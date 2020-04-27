@@ -1,0 +1,9 @@
+{
+  "key": "abc",
+  "token": "def",
+  "master_board": "ghi",
+  "slave_boards": {
+    "Label One": "jkl",
+    "Label Two": "mno"
+  }
+}

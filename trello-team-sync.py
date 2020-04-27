@@ -72,10 +72,11 @@ def get_master_cards(config):
 
 def load_config():
     logging.debug("Load saved configuration")
-    config = json.loads('{"slave_boards": [{"id": "456"}, {"id": "789"}]}')
+    with open("data/config.json", "r") as json_file:
+        config = json.load(json_file)
     config["slave_boards_ids"] = []
     for sb in config["slave_boards"]:
-        config["slave_boards_ids"].append(sb["id"])
+        config["slave_boards_ids"].append(config["slave_boards"][sb])
     logging.debug(config)
     return config
 
