@@ -5,6 +5,7 @@
 
 import logging
 import json
+import requests
 
 def generate_master_card_metadata(slave_cards):
     mcm = ""
