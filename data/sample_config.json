@@ -3,7 +3,15 @@
   "token": "def",
   "master_board": "ghi",
   "slave_boards": {
-    "Label One": "jkl",
-    "Label Two": "mno"
+    "Label One": {
+      "backlog": "aaa",
+      "in_progress": "bbb",
+      "complete": "ccc"
+    },
+    "Label Two": {
+      "backlog": "ddd",
+      "in_progress": "eee",
+      "complete": "fff"
+    }
   }
 }

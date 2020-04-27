@@ -17,19 +17,36 @@ def get_slave_card_information():
     slave_card = {}
     return slave_card
 
-def create_new_slave_card(master_card, slave_board):
+def create_new_slave_card(config, master_card, slave_board):
     logging.debug("Creating new slave card")
-    new_slave_card = {}
+    url = "https://api.trello.com/1/cards"
+    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    query = {
+       "idList": slave_board["lists"]["backlog"],
+       "name": master_card["name"],
+       "desc": "%s\n\nCreated from master card %s" % (master_card["desc"], master_card["shortUrl"]),
+       "pos": "bottom",
+       "urlSource": master_card["shortUrl"]
+    }
+    response = requests.request(
+        "POST",
+        url,
+        params=query
+    )
+    new_slave_card = response.json()
+    logging.debug(new_slave_card)
     return new_slave_card
 
 def process_master_card(config, master_card):
-    logging.debug("Process master card %s" % master_card)
+    logging.debug("="*64)
+    logging.debug("Process master card '%s'" % master_card["name"])
     # Check if this card is to be synced on a slave board
     slave_boards = []
     for l in master_card["labels"]:
-        if l["id"] in config["slave_boards_ids"]:
-            slave_boards.append(l)
-    logging.debug("Master card is to be synced on %d slave boards" % len(slave_boards))
+        if l["name"] in config["slave_boards"]:
+            slave_boards.append({"name": l["name"], "lists": config["slave_boards"][l["name"]]})
+    sb_list = ", ".join([sb["name"] for sb in slave_boards])
+    logging.debug("Master card is to be synced on %d slave boards (%s)" % (len(slave_boards), sb_list))
 
     # Verify if this master card is already linked to slave cards
     current_master_card_metadata = ""
@@ -48,12 +65,12 @@ def process_master_card(config, master_card):
     if len(slave_boards) > 0:
         slave_cards = []
         for sb in slave_boards:
-            if sb["id"] not in linked_slave_boards:
+            if sb["name"] not in linked_slave_boards:
                 # A new slave card need to be created for this slave board
-                card = create_new_slave_card(master_card, sb["id"])
+                card = create_new_slave_card(config, master_card, sb)
             else:
                 # Retrieve status of existing slave card
-                card = get_slave_card_information(linked_slave_cards[sb["id"]])
+                card = get_slave_card_information(linked_slave_cards[sb["name"]])
             slave_cards.append(card)
         # Generate master card metadata based on the slave cards info
         new_master_card_metadata = generate_master_card_metadata(slave_cards)
