@@ -9,6 +9,19 @@ import requests
 import os
 import sys
 
+def attach_slave_card_to_master_card(config, master_card, slave_card):
+    logging.debug("Attaching slave card %s to master card %s" % (slave_card["id"], master_card["id"]))
+    url = "https://api.trello.com/1/cards/%s/attachments" % master_card["id"]
+    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    query = {
+       "url": slave_card["url"]
+    }
+    response = requests.request(
+        "POST",
+        url,
+        params=query
+    )
+
 def delete_slave_cards(config):
     for sb in config["slave_boards"]:
         for l in config["slave_boards"][sb]:
@@ -91,6 +104,9 @@ def process_master_card(config, master_card):
             if sb["name"] not in linked_slave_boards:
                 # A new slave card need to be created for this slave board
                 card = create_new_slave_card(config, master_card, sb)
+                logging.debug(card["id"])
+                # Update the master card by attaching the new slave card
+                attach_slave_card_to_master_card(config, master_card, card)
             else:
                 # Retrieve status of existing slave card
                 card = get_slave_card_information(linked_slave_cards[sb["name"]])
@@ -104,8 +120,8 @@ def process_master_card(config, master_card):
 
     # Update the master card's checklist
     #TODO: Check if checklist exists
-    #TODO: Verify each child board has a checklist item
-    #TODO: Mark checklist item as Complete if child card is Done
+    #TODO: Verify each slave board has a checklist item
+    #TODO: Mark checklist item as Complete if slave card is Done
 
 def get_master_cards(config):
     logging.debug("Get list of cards on the master Trello board")
