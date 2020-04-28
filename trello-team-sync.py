@@ -79,8 +79,23 @@ def delete_slave_cards(config, master_cards):
                    url
                 )
 
-def generate_master_card_metadata(slave_cards):
+def get_name(config, record_type, record_id):
+    #TODO: Cache board/list names
+    url = "https://api.trello.com/1/%s/%s" % (record_type, record_id)
+    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    response = requests.request(
+       "GET",
+       url
+    )
+    return response.json()["name"]
+
+def generate_master_card_metadata(config, slave_cards):
     mcm = ""
+    for sc in slave_cards:
+        mcm += "* '%s' on list '%s/%s'\n" % (sc["name"],
+            get_name(config, "board", sc["idBoard"]),
+            get_name(config, "list", sc["idList"]))
+    logging.debug("New master card metadata: %s" % mcm)
     return mcm
 
 def create_new_slave_card(config, master_card, slave_board):
@@ -159,7 +174,7 @@ def process_master_card(config, master_card):
                 attach_slave_card_to_master_card(config, master_card, card)
             slave_cards.append(card)
         # Generate master card metadata based on the slave cards info
-        new_master_card_metadata = generate_master_card_metadata(slave_cards)
+        new_master_card_metadata = generate_master_card_metadata(config, slave_cards)
 
     # Update the master card's metadata if needed
     if new_master_card_metadata != current_master_card_metadata:
