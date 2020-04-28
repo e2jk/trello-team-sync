@@ -146,21 +146,13 @@ def process_master_card(config, master_card):
 
 def get_master_cards(config):
     logging.debug("Get list of cards on the master Trello board")
-    dump_file = "temp/master_board.json"
-    if os.path.exists(dump_file):
-        logging.debug("Loading master cards from dump file")
-        with open(dump_file) as in_file:
-            master_cards = json.load(in_file)
-    else:
-        url = "https://api.trello.com/1/boards/%s/cards" % config["master_board"]
-        url += "?key=%s&token=%s" % (config["key"], config["token"])
-        response = requests.request(
-           "GET",
-           url
-        )
-        master_cards = response.json()
-        with open(dump_file, "w") as out_file:
-            json.dump(master_cards, out_file, sort_keys=True, indent=2)
+    url = "https://api.trello.com/1/boards/%s/cards" % config["master_board"]
+    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    response = requests.request(
+       "GET",
+       url
+    )
+    master_cards = response.json()
 
     return master_cards
 
