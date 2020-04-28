@@ -11,6 +11,9 @@ import os
 import sys
 import re
 
+METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
+METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
+
 def attach_slave_card_to_master_card(config, master_card, slave_card):
     logging.debug("Attaching slave card %s to master card %s" % (slave_card["id"], master_card["id"]))
     url = "https://api.trello.com/1/cards/%s/attachments" % master_card["id"]
@@ -79,6 +82,38 @@ def delete_slave_cards(config, master_cards):
                    url
                 )
 
+def split_master_card_metadata(master_card_desc):
+    if METADATA_SEPARATOR not in master_card_desc:
+        if METADATA_PHRASE not in master_card_desc:
+            return [master_card_desc, ""]
+        else:
+            # Somebody has messed with the line, but the main text is still visible
+            # Cut off at that text
+            return [master_card_desc[:master_card_desc.find(METADATA_PHRASE)], ""]
+
+    else:
+        # Split the main description from the metadata added after the separator
+        regex_pattern = "^(.*)(%s)(.*)" % re.escape(METADATA_SEPARATOR)
+        match = re.search(regex_pattern, master_card_desc, re.DOTALL)
+        return [match.group(1), match.group(3)]
+
+def update_master_card_metadata(config, master_card, new_master_card_metadata):
+    (main_desc, current_master_card_metadata) = split_master_card_metadata(master_card["desc"])
+    if new_master_card_metadata != current_master_card_metadata:
+        logging.debug("Updating master card metadata")
+        new_full_desc = "%s%s%s" % (main_desc, METADATA_SEPARATOR, new_master_card_metadata)
+        logging.debug(new_full_desc)
+        url = "https://api.trello.com/1/cards/%s" % master_card["id"]
+        url += "?key=%s&token=%s" % (config["key"], config["token"])
+        query = {
+           "desc": new_full_desc
+        }
+        response = requests.request(
+            "PUT",
+            url,
+            params=query
+        )
+
 def get_name(config, record_type, record_id):
     #TODO: Cache board/list names
     url = "https://api.trello.com/1/%s/%s" % (record_type, record_id)
@@ -92,7 +127,7 @@ def get_name(config, record_type, record_id):
 def generate_master_card_metadata(config, slave_cards):
     mcm = ""
     for sc in slave_cards:
-        mcm += "* '%s' on list '%s/%s'\n" % (sc["name"],
+        mcm += "\n- '%s' on list '**%s|%s**'" % (sc["name"],
             get_name(config, "board", sc["idBoard"]),
             get_name(config, "list", sc["idList"]))
     logging.debug("New master card metadata: %s" % mcm)
@@ -124,17 +159,14 @@ def process_master_card(config, master_card):
     # Check if this card is to be synced on a slave board
     slave_boards = []
     for l in master_card["labels"]:
+        #TODO: handle label "All" to add to multiple lists at once
         if l["name"] in config["slave_boards"]:
             slave_boards.append({"name": l["name"], "lists": config["slave_boards"][l["name"]]})
     sb_list = ", ".join([sb["name"] for sb in slave_boards])
     logging.debug("Master card is to be synced on %d slave boards (%s)" % (len(slave_boards), sb_list))
 
-    # Verify if this master card is already linked to slave cards
-    current_master_card_metadata = ""
-    new_master_card_metadata = ""
-    #TODO: Parse master card description for already linked slave cards IDs
+    # Check if slave cards are already attached to this master card
     linked_slave_cards = []
-
     master_card_attachments = get_card_attachments(config, master_card)
     for mca in master_card_attachments:
         # Get the details for each attached card
@@ -147,6 +179,7 @@ def process_master_card(config, master_card):
         attached_card = response.json()
         linked_slave_cards.append(attached_card)
 
+    new_master_card_metadata = ""
     # Check if slave cards need to be unlinked
     if len(slave_boards) == 0 and len(linked_slave_cards) > 0:
         logging.debug("Master card has been unlinked from slave cards")
@@ -177,8 +210,7 @@ def process_master_card(config, master_card):
         new_master_card_metadata = generate_master_card_metadata(config, slave_cards)
 
     # Update the master card's metadata if needed
-    if new_master_card_metadata != current_master_card_metadata:
-        logging.debug("Updating master card metadata")
+    update_master_card_metadata(config, master_card, new_master_card_metadata)
 
     # Update the master card's checklist
     #TODO: Check if checklist exists
