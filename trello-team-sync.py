@@ -46,7 +46,7 @@ def get_card_attachments(config, card):
                 card_attachments.append(a)
     return card_attachments
 
-def delete_slave_cards(config, master_cards):
+def cleanup_test_boards(config, master_cards):
     logging.debug("Removing slave cards attachments on the master cards")
     for master_card in master_cards:
         master_card_attachments = get_card_attachments(config, master_card)
@@ -59,6 +59,10 @@ def delete_slave_cards(config, master_cards):
                    "DELETE",
                    url
                 )
+
+    logging.debug("Removing metadata from the master cards")
+    for master_card in master_cards:
+        update_master_card_metadata(config, master_card, "")
 
     logging.debug("Deleting slave cards")
     for sb in config["slave_boards"]:
@@ -101,7 +105,11 @@ def update_master_card_metadata(config, master_card, new_master_card_metadata):
     (main_desc, current_master_card_metadata) = split_master_card_metadata(master_card["desc"])
     if new_master_card_metadata != current_master_card_metadata:
         logging.debug("Updating master card metadata")
-        new_full_desc = "%s%s%s" % (main_desc, METADATA_SEPARATOR, new_master_card_metadata)
+        if new_master_card_metadata:
+            new_full_desc = "%s%s%s" % (main_desc, METADATA_SEPARATOR, new_master_card_metadata)
+        else:
+            # Also remove the metadata separator when removing the metadata
+            new_full_desc = main_desc
         logging.debug(new_full_desc)
         url = "https://api.trello.com/1/cards/%s" % master_card["id"]
         url += "?key=%s&token=%s" % (config["key"], config["token"])
@@ -286,7 +294,7 @@ def init():
         if args.cleanup:
             # Cleanup for demo purposes
             # Delete all the master card attachments and cards on the slave boards
-            delete_slave_cards(config, master_cards)
+            cleanup_test_boards(config, master_cards)
         elif args.propagate:
             # Loop over all cards on the master board to sync the slave boards
             for master_card in master_cards:
