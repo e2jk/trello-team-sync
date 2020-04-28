@@ -7,6 +7,29 @@ import logging
 import json
 import requests
 import os
+import sys
+
+def delete_slave_cards(config):
+    for sb in config["slave_boards"]:
+        for l in config["slave_boards"][sb]:
+            logging.debug("Retrieve cards from list %s/%s" % (sb, l))
+            url = "https://api.trello.com/1/lists/%s/cards" % config["slave_boards"][sb][l]
+            url += "?key=%s&token=%s" % (config["key"], config["token"])
+            response = requests.request(
+               "GET",
+               url
+            )
+            slave_cards = response.json()
+            logging.debug(slave_cards)
+            logging.debug("List %s/%s has %d cards to delete" % (sb, l, len(slave_cards)))
+            for sc in slave_cards:
+                logging.debug("Deleting slave card %s" % sc["id"])
+                url = "https://api.trello.com/1/cards/%s" % sc["id"]
+                url += "?key=%s&token=%s" % (config["key"], config["token"])
+                response = requests.request(
+                   "DELETE",
+                   url
+                )
 
 def generate_master_card_metadata(slave_cards):
     mcm = ""
@@ -122,6 +145,13 @@ def init():
 
         # Load configuration values
         config = load_config()
+
+        # Cleanup for demo purposes
+        do_clean_up = False
+        if do_clean_up:
+            # Delete all the cards on the slave boards
+            delete_slave_cards(config)
+            sys.exit(1)
 
         # Get list of cards on the master Trello board
         master_cards = get_master_cards(config)
