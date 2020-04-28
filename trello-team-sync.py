@@ -335,6 +335,9 @@ def parse_args(arguments):
     group.add_argument("-p", "--propagate", action='store_true', required=False, help="Propagate the master cards to the slave boards")
     group.add_argument("-cu", "--cleanup", action='store_true', required=False, help="Clean up all master cards and delete all cards from the slave boards (ONLY TO BE USED IN DEMO MODE)")
 
+    # These arguments are only to be used in conjunction with --propagate
+    parser.add_argument("-c", "--card", action='store', required=False, help="Specify which card to propagate. Only to be used in conjunction with --propagate.")
+
     # General arguments (can be used both with --propagate and --cleanup)
     parser.add_argument(
         '-d', '--debug',
@@ -352,7 +355,13 @@ def parse_args(arguments):
     # Validate if the arguments are used correctly
     if args.cleanup and not logging.getLevelName(args.loglevel) == "DEBUG":
         logging.critical("The --cleanup argument can only be used in conjunction with --debug. Exiting...")
-        sys.exit(1)
+        sys.exit(2)
+    if args.card and not args.propagate:
+        logging.critical("The --card argument can only be used in conjunction with --propagate. Exiting...")
+        sys.exit(3)
+    if args.card and not (re.match("^[0-9a-zA-Z]{8}$", args.card) or re.match("^[0-9a-fA-F]{32}$", args.card)):
+        logging.critical("The --card argument expects an 8 or 32-character card ID. Exiting...")
+        sys.exit(4)
 
     # Configure logging level
     if args.loglevel:
@@ -378,9 +387,24 @@ def init():
             # Delete all the master card attachments and cards on the slave boards
             cleanup_test_boards(config, master_cards)
         elif args.propagate:
-            # Loop over all cards on the master board to sync the slave boards
-            for master_card in master_cards:
-                process_master_card(config, master_card)
+            if args.card:
+                # Validate that this specific card is on the master board
+                valid_master_card = False
+                for master_card in master_cards:
+                    if args.card in (master_card["id"], master_card["shortLink"]):
+                        logging.debug("Card %s/%s is on the master board" % (master_card["id"], master_card["shortLink"]))
+                        # Process that single card
+                        valid_master_card = True
+                        process_master_card(config, master_card)
+                        break
+                if not valid_master_card:
+                    #TODO: Check if this is a slave card to process the associated master card
+                    logging.critical("Card %s is not located on the master board %s. Exiting..." % (args.card, config["master_board"]))
+                    sys.exit(1)
+            else:
+                # Loop over all cards on the master board to sync the slave boards
+                for master_card in master_cards:
+                    process_master_card(config, master_card)
         else:
             # Should never happen
             logging.critical("Program called with invalid parameters. Exiting...")
