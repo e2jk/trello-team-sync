@@ -14,6 +14,17 @@ import re
 METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
 METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
 
+def remove_teams_checklist(config, master_card):
+    master_card_checklists = get_card_checklists(config, master_card)
+    for c in master_card_checklists:
+        if "Involved Teams" == c["name"]:
+            logging.debug("Deleting checklist %s (%s) from master card %s" %(c["name"], c["id"], master_card["id"]))
+            url = "https://api.trello.com/1/checklists/%s" % (c["id"])
+            url += "?key=%s&token=%s" % (config["key"], config["token"])
+            response = requests.request(
+               "DELETE",
+               url
+            )
 
 def add_checklistitem_to_checklist(config, checklist_id, item_name):
     logging.debug("Adding new checklistitem %s to checklist %s" % (item_name, checklist_id))
@@ -102,6 +113,10 @@ def cleanup_test_boards(config, master_cards):
                    "DELETE",
                    url
                 )
+
+    logging.debug("Removing teams checklist from the master cards")
+    for master_card in master_cards:
+        remove_teams_checklist(config, master_card)
 
     logging.debug("Removing metadata from the master cards")
     for master_card in master_cards:
