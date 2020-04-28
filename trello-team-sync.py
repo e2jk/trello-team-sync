@@ -9,6 +9,7 @@ import json
 import requests
 import os
 import sys
+import re
 
 def attach_slave_card_to_master_card(config, master_card, slave_card):
     logging.debug("Attaching slave card %s to master card %s" % (slave_card["id"], master_card["id"]))
@@ -23,18 +24,30 @@ def attach_slave_card_to_master_card(config, master_card, slave_card):
         params=query
     )
 
+def get_card_attachments(config, card):
+    card_attachments = []
+    if card["badges"]["attachments"] > 0:
+        logging.debug("Getting %d attachments on master card %s" % (card["badges"]["attachments"], card["id"]))
+        url = "https://api.trello.com/1/cards/%s/attachments" % card["id"]
+        url += "?key=%s&token=%s" % (config["key"], config["token"])
+        response = requests.request(
+           "GET",
+           url
+        )
+        for a in response.json():
+            # Only keep attachments that are links to other Trello cards
+            card_shorturl_regex = "https://trello.com/c/([a-zA-Z0-9_-]{8})/.*"
+            card_shorturl_regex_match = re.match(card_shorturl_regex, a["url"])
+            if card_shorturl_regex_match:
+                a["card_shortUrl"] = card_shorturl_regex_match.group(1)
+                card_attachments.append(a)
+    return card_attachments
+
 def delete_slave_cards(config, master_cards):
     logging.debug("Removing slave cards attachments on the master cards")
     for master_card in master_cards:
-        if master_card["badges"]["attachments"] > 0:
-            logging.debug("Getting %d attachments on master card %s" % (master_card["badges"]["attachments"], master_card["id"]))
-            url = "https://api.trello.com/1/cards/%s/attachments" % master_card["id"]
-            url += "?key=%s&token=%s" % (config["key"], config["token"])
-            response = requests.request(
-               "GET",
-               url
-            )
-            master_card_attachments = response.json()
+        master_card_attachments = get_card_attachments(config, master_card)
+        if len(master_card_attachments) > 0:
             for a in master_card_attachments:
                 logging.debug("Deleting attachment %s from master card %s" %(a["id"], master_card["id"]))
                 url = "https://api.trello.com/1/cards/%s/attachments/%s" % (master_card["id"], a["id"])
@@ -69,11 +82,6 @@ def delete_slave_cards(config, master_cards):
 def generate_master_card_metadata(slave_cards):
     mcm = ""
     return mcm
-
-def get_slave_card_information():
-    logging.debug("Retrieve existing slave card information")
-    slave_card = {}
-    return slave_card
 
 def create_new_slave_card(config, master_card, slave_board):
     logging.debug("Creating new slave card")
@@ -110,8 +118,19 @@ def process_master_card(config, master_card):
     current_master_card_metadata = ""
     new_master_card_metadata = ""
     #TODO: Parse master card description for already linked slave cards IDs
-    linked_slave_boards = []
     linked_slave_cards = []
+
+    master_card_attachments = get_card_attachments(config, master_card)
+    for mca in master_card_attachments:
+        # Get the details for each attached card
+        url = "https://api.trello.com/1/cards/%s" % mca["card_shortUrl"]
+        url += "?key=%s&token=%s" % (config["key"], config["token"])
+        response = requests.request(
+           "GET",
+           url
+        )
+        attached_card = response.json()
+        linked_slave_cards.append(attached_card)
 
     # Check if slave cards need to be unlinked
     if len(slave_boards) == 0 and len(linked_slave_cards) > 0:
@@ -123,15 +142,21 @@ def process_master_card(config, master_card):
     if len(slave_boards) > 0:
         slave_cards = []
         for sb in slave_boards:
-            if sb["name"] not in linked_slave_boards:
-                # A new slave card need to be created for this slave board
+            existing_slave_card = None
+            for lsc in linked_slave_cards:
+                for l in sb["lists"]:
+                    if sb["lists"][l] == lsc["idList"]:
+                        existing_slave_card = lsc
+            if existing_slave_card:
+                logging.debug("Slave card %s already exists on board %s" % (existing_slave_card["id"], sb["name"]))
+                logging.debug(existing_slave_card)
+                card = existing_slave_card
+            else:
+                # A new slave card needs to be created for this slave board
                 card = create_new_slave_card(config, master_card, sb)
                 logging.debug(card["id"])
                 # Update the master card by attaching the new slave card
                 attach_slave_card_to_master_card(config, master_card, card)
-            else:
-                # Retrieve status of existing slave card
-                card = get_slave_card_information(linked_slave_cards[sb["name"]])
             slave_cards.append(card)
         # Generate master card metadata based on the slave cards info
         new_master_card_metadata = generate_master_card_metadata(slave_cards)
