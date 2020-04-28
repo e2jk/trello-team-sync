@@ -3,6 +3,7 @@
 
 #    This file is part of trello-team-sync and is MIT-licensed.
 
+import argparse
 import logging
 import json
 import requests
@@ -166,11 +167,43 @@ def load_config():
     logging.debug(config)
     return config
 
+def parse_args(arguments):
+    parser = argparse.ArgumentParser(description="Sync cards between different teams' Trello boards")
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument("-p", "--propagate", action='store_true', required=False, help="Propagate the master cards to the slave boards")
+    group.add_argument("-cu", "--cleanup", action='store_true', required=False, help="Clean up all master cards and delete all cards from the slave boards (ONLY TO BE USED IN DEMO MODE)")
+
+    # General arguments (can be used both with --propagate and --cleanup)
+    parser.add_argument(
+        '-d', '--debug',
+        help="Print lots of debugging statements",
+        action="store_const", dest="loglevel", const=logging.DEBUG,
+        default=logging.WARNING,
+    )
+    parser.add_argument(
+        '-v', '--verbose',
+        help="Be verbose",
+        action="store_const", dest="loglevel", const=logging.INFO,
+    )
+    args = parser.parse_args(arguments)
+
+    # Validate if the arguments are used correctly
+    if args.cleanup and not logging.getLevelName(args.loglevel) == "DEBUG":
+        logging.critical("The --cleanup argument can only be used in conjunction with --debug. Exiting...")
+        sys.exit(1)
+
+    # Configure logging level
+    if args.loglevel:
+        logging.basicConfig(level=args.loglevel)
+        args.logging_level = logging.getLevelName(args.loglevel)
+
+    logging.debug("These are the parsed arguments:\n'%s'" % args)
+    return args
+
 def init():
     if __name__ == "__main__":
-        logging.basicConfig(level=logging.DEBUG)
-        # logging.basicConfig(level=logging.WARNING)
-        logging.debug("Starting up")
+        # Parse the provided command-line arguments
+        args = parse_args(sys.argv[1:])
 
         # Load configuration values
         config = load_config()
@@ -178,15 +211,17 @@ def init():
         # Get list of cards on the master Trello board
         master_cards = get_master_cards(config)
 
-        # Cleanup for demo purposes
-        do_clean_up = False
-        if do_clean_up:
-            # Delete all the cards on the slave boards
+        if args.cleanup:
+            # Cleanup for demo purposes
+            # Delete all the master card attachments and cards on the slave boards
             delete_slave_cards(config, master_cards)
+        elif args.propagate:
+            # Loop over all cards on the master board to sync the slave boards
+            for master_card in master_cards:
+                process_master_card(config, master_card)
+        else:
+            # Should never happen
+            logging.critical("Program called with invalid parameters. Exiting...")
             sys.exit(1)
-
-        # Loop over all cards on the master board to sync the slave boards
-        for master_card in master_cards:
-            process_master_card(config, master_card)
 
 init()
