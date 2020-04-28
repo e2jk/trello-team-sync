@@ -14,6 +14,49 @@ import re
 METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
 METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
 
+
+def add_checklistitem_to_checklist(config, checklist_id, item_name):
+    logging.debug("Adding new checklistitem %s to checklist %s" % (item_name, checklist_id))
+    url = "https://api.trello.com/1/checklists/%s/checkItems" % checklist_id
+    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    query = {
+       "name": item_name
+    }
+    response = requests.request(
+        "POST",
+        url,
+        params=query
+    )
+    new_checklistitem = response.json()
+    logging.debug(new_checklistitem)
+    return new_checklistitem
+
+def add_checklist_to_master_card(config, master_card):
+    logging.debug("Creating new checklist")
+    url = "https://api.trello.com/1/cards/%s/checklists" % master_card["id"]
+    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    query = {
+       "name": "Involved Teams"
+    }
+    response = requests.request(
+        "POST",
+        url,
+        params=query
+    )
+    new_checklist = response.json()
+    logging.debug(new_checklist)
+    return new_checklist
+
+def get_card_checklists(config, master_card):
+    logging.debug("Retrieving checklists from card %s" % master_card["id"])
+    url = "https://api.trello.com/1/cards/%s/checklists" % master_card["id"]
+    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    response = requests.request(
+       "GET",
+       url
+    )
+    return response.json()
+
 def attach_slave_card_to_master_card(config, master_card, slave_card):
     logging.debug("Attaching slave card %s to master card %s" % (slave_card["id"], master_card["id"]))
     url = "https://api.trello.com/1/cards/%s/attachments" % master_card["id"]
@@ -220,10 +263,23 @@ def process_master_card(config, master_card):
     # Update the master card's metadata if needed
     update_master_card_metadata(config, master_card, new_master_card_metadata)
 
-    # Update the master card's checklist
-    #TODO: Check if checklist exists
-    #TODO: Verify each slave board has a checklist item
-    #TODO: Mark checklist item as Complete if slave card is Done
+    # Add a checklist for each team on the master card
+    if len(slave_boards) > 0:
+        master_card_checklists = get_card_checklists(config, master_card)
+        create_checklist = True
+        if master_card_checklists:
+            logging.debug("Already %d checklists on this master card: %s" % (len(master_card_checklists), ", ".join([c["name"] for c in master_card_checklists])))
+            for c in master_card_checklists:
+                if "Involved Teams" == c["name"]:
+                    #TODO: check if each team is on the checklist and update accordingly
+                    create_checklist = False
+                    logging.debug("Master card already contains a checklist name 'Involved Teams', skipping checklist creation")
+        if create_checklist:
+            cl = add_checklist_to_master_card(config, master_card)
+            for sb in slave_boards:
+                add_checklistitem_to_checklist(config, cl["id"], sb["name"])
+
+        #TODO: Mark checklist item as Complete if slave card is Done
 
 def get_master_cards(config):
     logging.debug("Get list of cards on the master Trello board")
