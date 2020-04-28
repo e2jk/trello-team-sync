@@ -22,7 +22,28 @@ def attach_slave_card_to_master_card(config, master_card, slave_card):
         params=query
     )
 
-def delete_slave_cards(config):
+def delete_slave_cards(config, master_cards):
+    logging.debug("Removing slave cards attachments on the master cards")
+    for master_card in master_cards:
+        if master_card["badges"]["attachments"] > 0:
+            logging.debug("Getting %d attachments on master card %s" % (master_card["badges"]["attachments"], master_card["id"]))
+            url = "https://api.trello.com/1/cards/%s/attachments" % master_card["id"]
+            url += "?key=%s&token=%s" % (config["key"], config["token"])
+            response = requests.request(
+               "GET",
+               url
+            )
+            master_card_attachments = response.json()
+            for a in master_card_attachments:
+                logging.debug("Deleting attachment %s from master card %s" %(a["id"], master_card["id"]))
+                url = "https://api.trello.com/1/cards/%s/attachments/%s" % (master_card["id"], a["id"])
+                url += "?key=%s&token=%s" % (config["key"], config["token"])
+                response = requests.request(
+                   "DELETE",
+                   url
+                )
+
+    logging.debug("Deleting slave cards")
     for sb in config["slave_boards"]:
         for l in config["slave_boards"][sb]:
             logging.debug("Retrieve cards from list %s/%s" % (sb, l))
@@ -162,15 +183,15 @@ def init():
         # Load configuration values
         config = load_config()
 
+        # Get list of cards on the master Trello board
+        master_cards = get_master_cards(config)
+
         # Cleanup for demo purposes
         do_clean_up = False
         if do_clean_up:
             # Delete all the cards on the slave boards
-            delete_slave_cards(config)
+            delete_slave_cards(config, master_cards)
             sys.exit(1)
-
-        # Get list of cards on the master Trello board
-        master_cards = get_master_cards(config)
 
         # Loop over all cards on the master board to sync the slave boards
         for master_card in master_cards:
