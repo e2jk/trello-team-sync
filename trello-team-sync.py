@@ -223,11 +223,21 @@ def process_master_card(config, master_card):
     logging.debug("="*64)
     logging.debug("Process master card '%s'" % master_card["name"])
     # Check if this card is to be synced on a slave board
-    slave_boards = []
+    full_slave_boards = []
     for l in master_card["labels"]:
-        #TODO: handle label "All" to add to multiple lists at once
-        if l["name"] in config["slave_boards"]:
-            slave_boards.append({"name": l["name"], "lists": config["slave_boards"][l["name"]]})
+        # Handle labels that add to multiple lists at once
+        if l["name"] in config["multiple_teams_names"]:
+            logging.debug("Syncing this master card to multiple boards at once")
+            for sb in config["multiple_teams"][l["name"]]:
+                full_slave_boards.append({"name": sb, "lists": config["slave_boards"][sb]})
+        else:
+            if l["name"] in config["slave_boards"]:
+                full_slave_boards.append({"name": l["name"], "lists": config["slave_boards"][l["name"]]})
+    # Remove duplicates (could happen is a team listed in a multiple_teams list is also added individually)
+    slave_boards = []
+    for fsb in full_slave_boards:
+        if fsb["name"] not in [sb["name"] for sb in slave_boards]:
+            slave_boards.append(fsb)
     sb_list = ", ".join([sb["name"] for sb in slave_boards])
     logging.debug("Master card is to be synced on %d slave boards (%s)" % (len(slave_boards), sb_list))
 
@@ -315,6 +325,7 @@ def load_config():
     config["slave_boards_ids"] = []
     for sb in config["slave_boards"]:
         config["slave_boards_ids"].append(config["slave_boards"][sb])
+    config["multiple_teams_names"] = list(config["multiple_teams"].keys())
     logging.debug(config)
     return config
 

@@ -13,5 +13,11 @@
       "in_progress": "eee",
       "complete": "fff"
     }
+  },
+  "multiple_teams": {
+    "All Teams": [
+      "Label One",
+      "Label Two"
+    ]
   }
 }
