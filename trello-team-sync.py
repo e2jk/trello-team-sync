@@ -285,13 +285,10 @@ def get_master_cards(config):
     logging.info("There are %d master cards that will be processed" % len(master_cards))
     return master_cards
 
-def load_config():
-    logging.debug("Load saved configuration")
-    with open("data/config.json", "r") as json_file:
+def load_config(config_file="data/config.json"):
+    logging.debug("Loading configuration %s" % config_file)
+    with open(config_file, "r") as json_file:
         config = json.load(json_file)
-    config["slave_boards_ids"] = []
-    for sb in config["slave_boards"]:
-        config["slave_boards_ids"].append(config["slave_boards"][sb])
     config["multiple_teams_names"] = list(config["multiple_teams"].keys())
     logging.info("Config '%s' loaded" % config["name"])
     logging.debug(config)

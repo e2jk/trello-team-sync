@@ -36,6 +36,43 @@ class TestGlobals(unittest.TestCase):
         self.assertEqual(target.METADATA_SEPARATOR, "\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n")
 
 
+class TestLoadConfig(unittest.TestCase):
+    def test_load_config(self):
+        """
+        Test loading a valid config file
+        """
+        config = target.load_config("data/sample_config.json")
+        self.assertEqual(config["name"], "Sample configuration")
+        self.assertEqual(config["key"], "abc")
+        self.assertEqual(config["token"], "def")
+        self.assertEqual(config["master_board"], "ghi")
+        self.assertEqual(len(config["slave_boards"]), 2)
+        self.assertEqual(len(config["slave_boards"]["Label One"]), 3)
+        self.assertEqual(config["slave_boards"]["Label One"]["backlog"], "aaa")
+        self.assertEqual(len(config["multiple_teams"]), 1)
+        self.assertEqual(len(config["multiple_teams"]["All Teams"]), 2)
+        self.assertEqual(config["multiple_teams"]["All Teams"][0], "Label One")
+        self.assertEqual(config["multiple_teams_names"], ["All Teams"])
+
+    def test_load_config_nonexisting(self):
+        """
+        Test loading a nonexisting config file
+        """
+        with self.assertRaises(FileNotFoundError) as cm:
+            config = target.load_config("data/nonexisting_config.json")
+        the_exception = cm.exception
+        self.assertEqual(str(the_exception), "[Errno 2] No such file or directory: 'data/nonexisting_config.json'")
+
+    def test_load_config_invalid(self):
+        """
+        Test loading an invalid config file (not json)
+        """
+        with self.assertRaises(json.decoder.JSONDecodeError) as cm:
+            config = target.load_config("requirements.txt")
+        the_exception = cm.exception
+        self.assertEqual(str(the_exception), "Expecting value: line 1 column 1 (char 0)")
+
+
 class TestParseArgs(unittest.TestCase):
     def test_parse_args_no_arguments(self):
         """
