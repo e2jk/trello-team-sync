@@ -14,6 +14,20 @@ import re
 METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
 METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
 
+def output_summary(args, summary):
+    logging.info("="*64)
+    if args.cleanup:
+        logging.info("Summary: cleaned up %d master cards and deleted %d slave cards from %d slave boards/%d slave lists." % (
+            summary["master_cards"],
+            summary["deleted_slave_cards"],
+            summary["erased_slave_boards"],
+            summary["erased_slave_lists"]))
+    elif args.propagate:
+        logging.info("Summary: processed %d master cards that have %d slave cards (of which %d new)." % (
+            summary["master_cards"],
+            summary["slave_card"],
+            summary["new_slave_card"]))
+
 def remove_teams_checklist(config, master_card):
     master_card_checklists = get_card_checklists(config, master_card)
     for c in master_card_checklists:
@@ -125,6 +139,7 @@ def cleanup_test_boards(config, master_cards):
     logging.debug("Deleting slave cards")
     num_lists_to_cleanup = 0
     num_lists_cleanedup = 0
+    deleted_slave_cards = 0
     for sb in config["slave_boards"]:
         for l in config["slave_boards"][sb]:
             num_lists_to_cleanup += 1
@@ -144,12 +159,17 @@ def cleanup_test_boards(config, master_cards):
             logging.debug("List %s/%s has %d cards to delete" % (sb, l, len(slave_cards)))
             for sc in slave_cards:
                 logging.debug("Deleting slave card %s" % sc["id"])
+                deleted_slave_cards += 1
                 url = "https://api.trello.com/1/cards/%s" % sc["id"]
                 url += "?key=%s&token=%s" % (config["key"], config["token"])
                 response = requests.request(
                    "DELETE",
                    url
                 )
+    return {"master_cards": len(master_cards),
+            "deleted_slave_cards": deleted_slave_cards,
+            "erased_slave_boards": len(config["slave_boards"]),
+            "erased_slave_lists": num_lists_cleanedup}
 
 def split_master_card_metadata(master_card_desc):
     if METADATA_SEPARATOR not in master_card_desc:
@@ -270,9 +290,9 @@ def process_master_card(config, master_card):
         new_master_card_metadata = ""
         #TODO: Determine what to do with the slave cards
 
+    num_new_cards = 0
+    slave_cards = []
     if len(slave_boards) > 0:
-        slave_cards = []
-        num_new_cards = 0
         for sb in slave_boards:
             existing_slave_card = None
             for lsc in linked_slave_cards:
@@ -317,6 +337,8 @@ def process_master_card(config, master_card):
                 add_checklistitem_to_checklist(config, cl["id"], sb["name"])
 
         #TODO: Mark checklist item as Complete if slave card is Done
+
+    return (len(slave_cards), num_new_cards)
 
 def get_master_cards(config):
     logging.debug("Get list of cards on the master Trello board")
@@ -398,8 +420,9 @@ def init():
         if args.cleanup:
             # Cleanup for demo purposes
             # Delete all the master card attachments and cards on the slave boards
-            cleanup_test_boards(config, master_cards)
+            summary = cleanup_test_boards(config, master_cards)
         elif args.propagate:
+            summary = {"master_cards": len(master_cards), "slave_card": 0, "new_slave_card": 0}
             if args.card:
                 # Validate that this specific card is on the master board
                 valid_master_card = False
@@ -408,7 +431,10 @@ def init():
                         logging.debug("Card %s/%s is on the master board" % (master_card["id"], master_card["shortLink"]))
                         # Process that single card
                         valid_master_card = True
-                        process_master_card(config, master_card)
+                        output = process_master_card(config, master_card)
+                        summary["master_cards"] = 1
+                        summary["slave_card"] += output[0]
+                        summary["new_slave_card"] += output[1]
                         break
                 if not valid_master_card:
                     #TODO: Check if this is a slave card to process the associated master card
@@ -418,10 +444,9 @@ def init():
                 # Loop over all cards on the master board to sync the slave boards
                 for idx, master_card in enumerate(master_cards):
                     logging.info("Processing master card %d/%d - %s" %(idx+1, len(master_cards), master_card["name"]))
-                    process_master_card(config, master_card)
-        else:
-            # Should never happen
-            logging.critical("Program called with invalid parameters. Exiting...")
-            sys.exit(1)
+                    output = process_master_card(config, master_card)
+                    summary["slave_card"] += output[0]
+                    summary["new_slave_card"] += output[1]
+        output_summary(args, summary)
 
 init()
