@@ -22,6 +22,20 @@ sys.path.append('.')
 target = __import__("trello-team-sync")
 
 
+class TestGlobals(unittest.TestCase):
+    def test_globals_metadata_phrase(self):
+        """
+        Test the METADATA_PHRASE global
+        """
+        self.assertEqual(target.METADATA_PHRASE, "DO NOT EDIT BELOW THIS LINE")
+
+    def test_globals_metadata_separator(self):
+        """
+        Test the METADATA_SEPARATOR global
+        """
+        self.assertEqual(target.METADATA_SEPARATOR, "\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n")
+
+
 class TestParseArgs(unittest.TestCase):
     def test_parse_args_no_arguments(self):
         """
