@@ -19,14 +19,15 @@ def output_summary(args, summary):
     if args.cleanup:
         logging.info("Summary%scleaned up %d master cards and deleted %d slave cards from %d slave boards/%d slave lists." % (
             " [DRY RUN]: would have " if args.dry_run else ": ",
-            summary["master_cards"],
+            summary["cleaned_up_master_cards"],
             summary["deleted_slave_cards"],
             summary["erased_slave_boards"],
             summary["erased_slave_lists"]))
     elif args.propagate:
-        logging.info("Summary%s: processed %d master cards that have %d slave cards (of which %d %snew)." % (
+        logging.info("Summary%s: processed %d master cards (of which %d active) that have %d slave cards (of which %d %snew)." % (
             " [DRY RUN]" if args.dry_run else "",
             summary["master_cards"],
+            summary["active_master_cards"],
             summary["slave_card"],
             summary["new_slave_card"],
             "would have been " if args.dry_run else ""))
@@ -73,11 +74,13 @@ def get_card_attachments(config, card):
 
 def cleanup_test_boards(config, master_cards):
     logging.debug("Removing slave cards attachments on the master cards")
+    cleaned_up_master_cards = 0
     for idx, master_card in enumerate(master_cards):
         logging.debug("="*64)
         logging.info("Cleaning up master card %d/%d - %s" %(idx+1, len(master_cards), master_card["name"]))
         master_card_attachments = get_card_attachments(config, master_card)
         if len(master_card_attachments) > 0:
+            cleaned_up_master_cards += 1
             for a in master_card_attachments:
                 logging.debug("Deleting attachment %s from master card %s" %(a["id"], master_card["id"]))
                 perform_request(config, "DELETE", "cards/%s/attachments/%s" % (master_card["id"], a["id"]))
@@ -89,8 +92,10 @@ def cleanup_test_boards(config, master_cards):
         update_master_card_metadata(config, master_card, "")
 
     logging.debug("Deleting slave cards")
+    erased_slave_boards = []
     num_lists_to_cleanup = 0
-    num_lists_cleanedup = 0
+    num_lists_inspected = 0
+    num_erased_slave_lists = 0
     deleted_slave_cards = 0
     for sb in config["slave_boards"]:
         for l in config["slave_boards"][sb]:
@@ -98,19 +103,23 @@ def cleanup_test_boards(config, master_cards):
     for sb in config["slave_boards"]:
         for l in config["slave_boards"][sb]:
             logging.debug("="*64)
-            num_lists_cleanedup += 1
-            logging.debug("Retrieve cards from list %s|%s (list %d/%d)" % (sb, l, num_lists_cleanedup, num_lists_to_cleanup))
+            num_lists_inspected += 1
+            logging.debug("Retrieve cards from list %s|%s (list %d/%d)" % (sb, l, num_lists_inspected, num_lists_to_cleanup))
             slave_cards = perform_request(config, "GET", "lists/%s/cards" % config["slave_boards"][sb][l])
             logging.debug(slave_cards)
             logging.debug("List %s/%s has %d cards to delete" % (sb, l, len(slave_cards)))
+            if len(slave_cards) > 0:
+                num_erased_slave_lists += 1
+                if not sb in erased_slave_boards:
+                    erased_slave_boards.append(sb)
             for sc in slave_cards:
                 logging.debug("Deleting slave card %s" % sc["id"])
                 deleted_slave_cards += 1
                 perform_request(config, "DELETE", "cards/%s" % sc["id"])
-    return {"master_cards": len(master_cards),
+    return {"cleaned_up_master_cards": cleaned_up_master_cards,
             "deleted_slave_cards": deleted_slave_cards,
-            "erased_slave_boards": len(config["slave_boards"]),
-            "erased_slave_lists": num_lists_cleanedup}
+            "erased_slave_boards": len(erased_slave_boards),
+            "erased_slave_lists": num_erased_slave_lists}
 
 def split_master_card_metadata(master_card_desc):
     if METADATA_SEPARATOR not in master_card_desc:
@@ -268,7 +277,7 @@ def process_master_card(config, master_card):
 
         #TODO: Mark checklist item as Complete if slave card is Done
 
-    return (len(slave_cards), num_new_cards)
+    return (1 if len(slave_boards) > 0 else 0, len(slave_cards), num_new_cards)
 
 def get_master_cards(config):
     logging.debug("Get list of cards on the master Trello board")
@@ -348,7 +357,7 @@ def init():
             # Delete all the master card attachments and cards on the slave boards
             summary = cleanup_test_boards(config, master_cards)
         elif args.propagate:
-            summary = {"master_cards": len(master_cards), "slave_card": 0, "new_slave_card": 0}
+            summary = {"master_cards": len(master_cards), "active_master_cards": 0, "slave_card": 0, "new_slave_card": 0}
             if args.card:
                 # Validate that this specific card is on the master board
                 valid_master_card = False
@@ -359,8 +368,9 @@ def init():
                         valid_master_card = True
                         output = process_master_card(config, master_card)
                         summary["master_cards"] = 1
-                        summary["slave_card"] += output[0]
-                        summary["new_slave_card"] += output[1]
+                        summary["active_master_cards"] = output[0]
+                        summary["slave_card"] += output[1]
+                        summary["new_slave_card"] += output[2]
                         break
                 if not valid_master_card:
                     #TODO: Check if this is a slave card to process the associated master card
@@ -371,8 +381,9 @@ def init():
                 for idx, master_card in enumerate(master_cards):
                     logging.info("Processing master card %d/%d - %s" %(idx+1, len(master_cards), master_card["name"]))
                     output = process_master_card(config, master_card)
-                    summary["slave_card"] += output[0]
-                    summary["new_slave_card"] += output[1]
+                    summary["active_master_cards"] += output[0]
+                    summary["slave_card"] += output[1]
+                    summary["new_slave_card"] += output[2]
         output_summary(args, summary)
 
 init()
