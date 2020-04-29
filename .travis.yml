@@ -1,0 +1,10 @@
+language: python
+python: 3.6
+# Ubuntu 18.04
+dist: bionic
+# Command to install Python dependencies
+install:
+  - pip3 install -r requirements.txt
+# Command to run tests
+script:
+  - ./test.sh
