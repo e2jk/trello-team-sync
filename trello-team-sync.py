@@ -150,6 +150,9 @@ def generate_master_card_metadata(config, slave_cards):
     return mcm
 
 def perform_request(config, method, url, query=None):
+    if method not in ("GET", "POST", "PUT", "DELETE"):
+        logging.critical("HTTP method '%s' not supported. Exiting..." % method)
+        sys.exit(6)
     url = "https://api.trello.com/1/%s" % url
     url += "?key=%s&token=%s" % (config["key"], config["token"])
     response = requests.request(
