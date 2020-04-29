@@ -102,7 +102,9 @@ def get_card_attachments(config, card):
 
 def cleanup_test_boards(config, master_cards):
     logging.debug("Removing slave cards attachments on the master cards")
-    for master_card in master_cards:
+    for idx, master_card in enumerate(master_cards):
+        logging.debug("="*64)
+        logging.info("Cleaning up master card %d/%d - %s" %(idx+1, len(master_cards), master_card["name"]))
         master_card_attachments = get_card_attachments(config, master_card)
         if len(master_card_attachments) > 0:
             for a in master_card_attachments:
@@ -265,6 +267,7 @@ def process_master_card(config, master_card):
 
     if len(slave_boards) > 0:
         slave_cards = []
+        num_new_cards = 0
         for sb in slave_boards:
             existing_slave_card = None
             for lsc in linked_slave_cards:
@@ -277,6 +280,7 @@ def process_master_card(config, master_card):
                 card = existing_slave_card
             else:
                 # A new slave card needs to be created for this slave board
+                num_new_cards += 1
                 card = create_new_slave_card(config, master_card, sb)
                 logging.debug(card["id"])
                 # Update the master card by attaching the new slave card
@@ -284,6 +288,9 @@ def process_master_card(config, master_card):
             slave_cards.append(card)
         # Generate master card metadata based on the slave cards info
         new_master_card_metadata = generate_master_card_metadata(config, slave_cards)
+        logging.info("This master card has %d slave cards (%d newly created)" % (len(slave_cards), num_new_cards))
+    else:
+        logging.info("This master card has no slave cards")
 
     # Update the master card's metadata if needed
     update_master_card_metadata(config, master_card, new_master_card_metadata)
@@ -315,7 +322,7 @@ def get_master_cards(config):
        url
     )
     master_cards = response.json()
-
+    logging.info("There are %d master cards that will be processed" % len(master_cards))
     return master_cards
 
 def load_config():
@@ -404,7 +411,8 @@ def init():
                     sys.exit(1)
             else:
                 # Loop over all cards on the master board to sync the slave boards
-                for master_card in master_cards:
+                for idx, master_card in enumerate(master_cards):
+                    logging.info("Processing master card %d/%d - %s" %(idx+1, len(master_cards), master_card["name"]))
                     process_master_card(config, master_card)
         else:
             # Should never happen
