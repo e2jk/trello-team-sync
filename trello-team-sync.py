@@ -326,6 +326,7 @@ def load_config():
     for sb in config["slave_boards"]:
         config["slave_boards_ids"].append(config["slave_boards"][sb])
     config["multiple_teams_names"] = list(config["multiple_teams"].keys())
+    logging.info("Config '%s' loaded" % config["name"])
     logging.debug(config)
     return config
 

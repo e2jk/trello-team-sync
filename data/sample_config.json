@@ -1,4 +1,5 @@
 {
+  "name": "Sample configuration",
   "key": "abc",
   "token": "def",
   "master_board": "ghi",
