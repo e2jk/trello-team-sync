@@ -116,18 +116,23 @@ def cleanup_test_boards(config, master_cards):
                    url
                 )
 
-    logging.debug("Removing teams checklist from the master cards")
-    for master_card in master_cards:
+        # Removing teams checklist from the master card
         remove_teams_checklist(config, master_card)
 
-    logging.debug("Removing metadata from the master cards")
-    for master_card in master_cards:
+        # Removing metadata from the master cards
         update_master_card_metadata(config, master_card, "")
 
     logging.debug("Deleting slave cards")
+    num_lists_to_cleanup = 0
+    num_lists_cleanedup = 0
     for sb in config["slave_boards"]:
         for l in config["slave_boards"][sb]:
-            logging.debug("Retrieve cards from list %s/%s" % (sb, l))
+            num_lists_to_cleanup += 1
+    for sb in config["slave_boards"]:
+        for l in config["slave_boards"][sb]:
+            logging.debug("="*64)
+            num_lists_cleanedup += 1
+            logging.debug("Retrieve cards from list %s|%s (list %d/%d)" % (sb, l, num_lists_cleanedup, num_lists_to_cleanup))
             url = "https://api.trello.com/1/lists/%s/cards" % config["slave_boards"][sb][l]
             url += "?key=%s&token=%s" % (config["key"], config["token"])
             response = requests.request(
