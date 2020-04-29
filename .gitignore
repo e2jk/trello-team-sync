@@ -1,6 +1,7 @@
 data/config.json
-temp/
 html_dev/coverage/
+startup.sh
+temp/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
