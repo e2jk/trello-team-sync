@@ -33,79 +33,33 @@ def remove_teams_checklist(config, master_card):
     for c in master_card_checklists:
         if "Involved Teams" == c["name"]:
             logging.debug("Deleting checklist %s (%s) from master card %s" %(c["name"], c["id"], master_card["id"]))
-            url = "https://api.trello.com/1/checklists/%s" % (c["id"])
-            url += "?key=%s&token=%s" % (config["key"], config["token"])
-            response = requests.request(
-               "DELETE",
-               url
-            )
+            perform_request(config, "DELETE", "checklists/%s" % (c["id"]))
 
 def add_checklistitem_to_checklist(config, checklist_id, item_name):
     logging.debug("Adding new checklistitem %s to checklist %s" % (item_name, checklist_id))
-    url = "https://api.trello.com/1/checklists/%s/checkItems" % checklist_id
-    url += "?key=%s&token=%s" % (config["key"], config["token"])
-    query = {
-       "name": item_name
-    }
-    response = requests.request(
-        "POST",
-        url,
-        params=query
-    )
-    new_checklistitem = response.json()
+    new_checklistitem = perform_request(config, "POST", "checklists/%s/checkItems" % checklist_id, {"name": item_name})
     logging.debug(new_checklistitem)
     return new_checklistitem
 
 def add_checklist_to_master_card(config, master_card):
     logging.debug("Creating new checklist")
-    url = "https://api.trello.com/1/cards/%s/checklists" % master_card["id"]
-    url += "?key=%s&token=%s" % (config["key"], config["token"])
-    query = {
-       "name": "Involved Teams"
-    }
-    response = requests.request(
-        "POST",
-        url,
-        params=query
-    )
-    new_checklist = response.json()
+    new_checklist = perform_request(config, "POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
     logging.debug(new_checklist)
     return new_checklist
 
 def get_card_checklists(config, master_card):
     logging.debug("Retrieving checklists from card %s" % master_card["id"])
-    url = "https://api.trello.com/1/cards/%s/checklists" % master_card["id"]
-    url += "?key=%s&token=%s" % (config["key"], config["token"])
-    response = requests.request(
-       "GET",
-       url
-    )
-    return response.json()
+    return perform_request(config, "GET", "cards/%s/checklists" % master_card["id"])
 
 def attach_slave_card_to_master_card(config, master_card, slave_card):
     logging.debug("Attaching slave card %s to master card %s" % (slave_card["id"], master_card["id"]))
-    url = "https://api.trello.com/1/cards/%s/attachments" % master_card["id"]
-    url += "?key=%s&token=%s" % (config["key"], config["token"])
-    query = {
-       "url": slave_card["url"]
-    }
-    response = requests.request(
-        "POST",
-        url,
-        params=query
-    )
+    perform_request(config, "POST", "cards/%s/attachments" % master_card["id"], {"url": slave_card["url"]})
 
 def get_card_attachments(config, card):
     card_attachments = []
     if card["badges"]["attachments"] > 0:
         logging.debug("Getting %d attachments on master card %s" % (card["badges"]["attachments"], card["id"]))
-        url = "https://api.trello.com/1/cards/%s/attachments" % card["id"]
-        url += "?key=%s&token=%s" % (config["key"], config["token"])
-        response = requests.request(
-           "GET",
-           url
-        )
-        for a in response.json():
+        for a in perform_request(config, "GET", "cards/%s/attachments" % card["id"]):
             # Only keep attachments that are links to other Trello cards
             card_shorturl_regex = "https://trello.com/c/([a-zA-Z0-9_-]{8})/.*"
             card_shorturl_regex_match = re.match(card_shorturl_regex, a["url"])
@@ -123,12 +77,7 @@ def cleanup_test_boards(config, master_cards):
         if len(master_card_attachments) > 0:
             for a in master_card_attachments:
                 logging.debug("Deleting attachment %s from master card %s" %(a["id"], master_card["id"]))
-                url = "https://api.trello.com/1/cards/%s/attachments/%s" % (master_card["id"], a["id"])
-                url += "?key=%s&token=%s" % (config["key"], config["token"])
-                response = requests.request(
-                   "DELETE",
-                   url
-                )
+                perform_request(config, "DELETE", "cards/%s/attachments/%s" % (master_card["id"], a["id"]))
 
         # Removing teams checklist from the master card
         remove_teams_checklist(config, master_card)
@@ -148,24 +97,13 @@ def cleanup_test_boards(config, master_cards):
             logging.debug("="*64)
             num_lists_cleanedup += 1
             logging.debug("Retrieve cards from list %s|%s (list %d/%d)" % (sb, l, num_lists_cleanedup, num_lists_to_cleanup))
-            url = "https://api.trello.com/1/lists/%s/cards" % config["slave_boards"][sb][l]
-            url += "?key=%s&token=%s" % (config["key"], config["token"])
-            response = requests.request(
-               "GET",
-               url
-            )
-            slave_cards = response.json()
+            slave_cards = perform_request(config, "GET", "lists/%s/cards" % config["slave_boards"][sb][l])
             logging.debug(slave_cards)
             logging.debug("List %s/%s has %d cards to delete" % (sb, l, len(slave_cards)))
             for sc in slave_cards:
                 logging.debug("Deleting slave card %s" % sc["id"])
                 deleted_slave_cards += 1
-                url = "https://api.trello.com/1/cards/%s" % sc["id"]
-                url += "?key=%s&token=%s" % (config["key"], config["token"])
-                response = requests.request(
-                   "DELETE",
-                   url
-                )
+                perform_request(config, "DELETE", "cards/%s" % sc["id"])
     return {"master_cards": len(master_cards),
             "deleted_slave_cards": deleted_slave_cards,
             "erased_slave_boards": len(config["slave_boards"]),
@@ -196,26 +134,11 @@ def update_master_card_metadata(config, master_card, new_master_card_metadata):
             # Also remove the metadata separator when removing the metadata
             new_full_desc = main_desc
         logging.debug(new_full_desc)
-        url = "https://api.trello.com/1/cards/%s" % master_card["id"]
-        url += "?key=%s&token=%s" % (config["key"], config["token"])
-        query = {
-           "desc": new_full_desc
-        }
-        response = requests.request(
-            "PUT",
-            url,
-            params=query
-        )
+        perform_request(config, "PUT", "cards/%s" % master_card["id"], {"desc": new_full_desc})
 
 def get_name(config, record_type, record_id):
     #TODO: Cache board/list names
-    url = "https://api.trello.com/1/%s/%s" % (record_type, record_id)
-    url += "?key=%s&token=%s" % (config["key"], config["token"])
-    response = requests.request(
-       "GET",
-       url
-    )
-    return response.json()["name"]
+    return perform_request(config, "GET", "%s/%s" % (record_type, record_id))["name"]
 
 def generate_master_card_metadata(config, slave_cards):
     mcm = ""
@@ -226,10 +149,18 @@ def generate_master_card_metadata(config, slave_cards):
     logging.debug("New master card metadata: %s" % mcm)
     return mcm
 
+def perform_request(config, method, url, query=None):
+    url = "https://api.trello.com/1/%s" % url
+    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    response = requests.request(
+        method,
+        url,
+        params=query
+    )
+    return response.json()
+
 def create_new_slave_card(config, master_card, slave_board):
     logging.debug("Creating new slave card")
-    url = "https://api.trello.com/1/cards"
-    url += "?key=%s&token=%s" % (config["key"], config["token"])
     query = {
        "idList": slave_board["lists"]["backlog"],
        "name": master_card["name"],
@@ -237,12 +168,7 @@ def create_new_slave_card(config, master_card, slave_board):
        "pos": "bottom",
        "urlSource": master_card["shortUrl"]
     }
-    response = requests.request(
-        "POST",
-        url,
-        params=query
-    )
-    new_slave_card = response.json()
+    new_slave_card = perform_request(config, "POST", "cards", query)
     logging.debug(new_slave_card)
     return new_slave_card
 
@@ -272,14 +198,7 @@ def process_master_card(config, master_card):
     linked_slave_cards = []
     master_card_attachments = get_card_attachments(config, master_card)
     for mca in master_card_attachments:
-        # Get the details for each attached card
-        url = "https://api.trello.com/1/cards/%s" % mca["card_shortUrl"]
-        url += "?key=%s&token=%s" % (config["key"], config["token"])
-        response = requests.request(
-           "GET",
-           url
-        )
-        attached_card = response.json()
+        attached_card = perform_request(config, "GET", "cards/%s" % mca["card_shortUrl"])
         linked_slave_cards.append(attached_card)
 
     new_master_card_metadata = ""
@@ -342,13 +261,7 @@ def process_master_card(config, master_card):
 
 def get_master_cards(config):
     logging.debug("Get list of cards on the master Trello board")
-    url = "https://api.trello.com/1/boards/%s/cards" % config["master_board"]
-    url += "?key=%s&token=%s" % (config["key"], config["token"])
-    response = requests.request(
-       "GET",
-       url
-    )
-    master_cards = response.json()
+    master_cards = perform_request(config, "GET", "boards/%s/cards" % config["master_board"])
     logging.info("There are %d master cards that will be processed" % len(master_cards))
     return master_cards
 
