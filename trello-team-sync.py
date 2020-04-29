@@ -355,13 +355,13 @@ def parse_args(arguments):
     # Validate if the arguments are used correctly
     if args.cleanup and not logging.getLevelName(args.loglevel) == "DEBUG":
         logging.critical("The --cleanup argument can only be used in conjunction with --debug. Exiting...")
-        sys.exit(2)
+        sys.exit(3)
     if args.card and not args.propagate:
         logging.critical("The --card argument can only be used in conjunction with --propagate. Exiting...")
-        sys.exit(3)
-    if args.card and not (re.match("^[0-9a-zA-Z]{8}$", args.card) or re.match("^[0-9a-fA-F]{32}$", args.card)):
-        logging.critical("The --card argument expects an 8 or 32-character card ID. Exiting...")
         sys.exit(4)
+    if args.card and not (re.match("^[0-9a-zA-Z]{8}$", args.card) or re.match("^[0-9a-fA-F]{24}$", args.card)):
+        logging.critical("The --card argument expects an 8 or 24-character card ID. Exiting...")
+        sys.exit(5)
 
     # Configure logging level
     if args.loglevel:
