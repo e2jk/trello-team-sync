@@ -166,6 +166,13 @@ class TestParseArgs(unittest.TestCase):
         the_exception = cm.exception
         self.assertEqual(the_exception.code, 4)
 
+    def test_parse_args_dry_run(self):
+        """
+        Test the --dry-run argument
+        """
+        parser = target.parse_args(['--propagate', '--dry-run'])
+        self.assertTrue(parser.dry_run)
+
 
 #TODO
 # class TestInitMain(unittest.TestCase):

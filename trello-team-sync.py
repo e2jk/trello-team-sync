@@ -17,16 +17,19 @@ METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
 def output_summary(args, summary):
     logging.info("="*64)
     if args.cleanup:
-        logging.info("Summary: cleaned up %d master cards and deleted %d slave cards from %d slave boards/%d slave lists." % (
+        logging.info("Summary%scleaned up %d master cards and deleted %d slave cards from %d slave boards/%d slave lists." % (
+            " [DRY RUN]: would have " if args.dry_run else ": ",
             summary["master_cards"],
             summary["deleted_slave_cards"],
             summary["erased_slave_boards"],
             summary["erased_slave_lists"]))
     elif args.propagate:
-        logging.info("Summary: processed %d master cards that have %d slave cards (of which %d new)." % (
+        logging.info("Summary%s: processed %d master cards that have %d slave cards (of which %d %snew)." % (
+            " [DRY RUN]" if args.dry_run else "",
             summary["master_cards"],
             summary["slave_card"],
-            summary["new_slave_card"]))
+            summary["new_slave_card"],
+            "would have been " if args.dry_run else ""))
 
 def remove_teams_checklist(config, master_card):
     master_card_checklists = get_card_checklists(config, master_card)
@@ -154,6 +157,9 @@ def perform_request(config, method, url, query=None):
         logging.critical("HTTP method '%s' not supported. Exiting..." % method)
         sys.exit(6)
     url = "https://api.trello.com/1/%s" % url
+    if args.dry_run and method != "GET":
+        logging.debug("Skipping %s call to '%s' due to --dry-run parameter" % (method, url))
+        return {}
     url += "?key=%s&token=%s" % (config["key"], config["token"])
     response = requests.request(
         method,
@@ -229,12 +235,14 @@ def process_master_card(config, master_card):
                 # A new slave card needs to be created for this slave board
                 num_new_cards += 1
                 card = create_new_slave_card(config, master_card, sb)
-                logging.debug(card["id"])
-                # Update the master card by attaching the new slave card
-                attach_slave_card_to_master_card(config, master_card, card)
+                if card:
+                    logging.debug(card["id"])
+                    # Update the master card by attaching the new slave card
+                    attach_slave_card_to_master_card(config, master_card, card)
             slave_cards.append(card)
-        # Generate master card metadata based on the slave cards info
-        new_master_card_metadata = generate_master_card_metadata(config, slave_cards)
+        if card:
+            # Generate master card metadata based on the slave cards info
+            new_master_card_metadata = generate_master_card_metadata(config, slave_cards)
         logging.info("This master card has %d slave cards (%d newly created)" % (len(slave_cards), num_new_cards))
     else:
         logging.info("This master card has no slave cards")
@@ -243,7 +251,7 @@ def process_master_card(config, master_card):
     update_master_card_metadata(config, master_card, new_master_card_metadata)
 
     # Add a checklist for each team on the master card
-    if len(slave_boards) > 0:
+    if len(slave_boards) > 0 and not args.dry_run:
         master_card_checklists = get_card_checklists(config, master_card)
         create_checklist = True
         if master_card_checklists:
@@ -287,9 +295,10 @@ def parse_args(arguments):
     group.add_argument("-cu", "--cleanup", action='store_true', required=False, help="Clean up all master cards and delete all cards from the slave boards (ONLY TO BE USED IN DEMO MODE)")
 
     # These arguments are only to be used in conjunction with --propagate
-    parser.add_argument("-c", "--card", action='store', required=False, help="Specify which card to propagate. Only to be used in conjunction with --propagate.")
+    parser.add_argument("-c", "--card", action='store', required=False, help="Specify which card to propagate. Only to be used in conjunction with --propagate")
 
     # General arguments (can be used both with --propagate and --cleanup)
+    parser.add_argument("-dr", "--dry-run", action='store_true', required=False, help="Do not create, update or delete any records")
     parser.add_argument(
         '-d', '--debug',
         help="Print lots of debugging statements",
@@ -325,6 +334,7 @@ def parse_args(arguments):
 def init():
     if __name__ == "__main__":
         # Parse the provided command-line arguments
+        global args # Define as global variable to be used without passing to all functions
         args = parse_args(sys.argv[1:])
 
         # Load configuration values
