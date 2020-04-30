@@ -32,10 +32,6 @@ def output_summary(args, summary):
             summary["new_slave_card"],
             "would have been " if args.dry_run else ""))
 
-def get_card_checklists(config, master_card):
-    logging.debug("Retrieving checklists from card %s" % master_card["id"])
-    return perform_request(config, "GET", "cards/%s/checklists" % master_card["id"])
-
 def get_card_attachments(config, card):
     card_attachments = []
     if card["badges"]["attachments"] > 0:
@@ -63,7 +59,8 @@ def cleanup_test_boards(config, master_cards):
                 perform_request(config, "DELETE", "cards/%s/attachments/%s" % (master_card["id"], a["id"]))
 
         # Removing teams checklist from the master card
-        for c in get_card_checklists(config, master_card):
+        logging.debug("Retrieving checklists from card %s" % master_card["id"])
+        for c in perform_request(config, "GET", "cards/%s/checklists" % master_card["id"]):
             if "Involved Teams" == c["name"]:
                 logging.debug("Deleting checklist %s (%s) from master card %s" %(c["name"], c["id"], master_card["id"]))
                 perform_request(config, "DELETE", "checklists/%s" % (c["id"]))
@@ -247,7 +244,8 @@ def process_master_card(config, master_card):
 
     # Add a checklist for each team on the master card
     if len(slave_boards) > 0 and not args.dry_run:
-        master_card_checklists = get_card_checklists(config, master_card)
+        logging.debug("Retrieving checklists from card %s" % master_card["id"])
+        master_card_checklists = perform_request(config, "GET", "cards/%s/checklists" % master_card["id"])
         create_checklist = True
         if master_card_checklists:
             logging.debug("Already %d checklists on this master card: %s" % (len(master_card_checklists), ", ".join([c["name"] for c in master_card_checklists])))
