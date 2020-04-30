@@ -168,6 +168,24 @@ class TestParseArgs(unittest.TestCase):
         parser = target.parse_args(['--propagate', '--card', card_id])
         self.assertEqual(parser.card, card_id)
 
+    def test_parse_args_valid_card_short_url(self):
+        """
+        Test a valid short card URL --card parameter
+        """
+        shortLink = "eoK0Rngb"
+        url = "https://trello.com/c/%s" % shortLink
+        parser = target.parse_args(['--propagate', '--card', url])
+        self.assertEqual(parser.card, shortLink)
+
+    def test_parse_args_valid_card_long_url(self):
+        """
+        Test a valid long card URL --card parameter
+        """
+        shortLink = "eoK0Rngb"
+        url = "https://trello.com/c/%s/60-another-task-for-all-teams" % shortLink
+        parser = target.parse_args(['--propagate', '--card', url])
+        self.assertEqual(parser.card, shortLink)
+
     def test_parse_args_invalid_card8(self):
         """
         Test an invalid 8-character --card parameter
@@ -185,6 +203,16 @@ class TestParseArgs(unittest.TestCase):
         card_id = "5Ga946e30ea7437974b0ac9e"
         with self.assertRaises(SystemExit) as cm:
             parser = target.parse_args(['--propagate', '--card', card_id])
+        the_exception = cm.exception
+        self.assertEqual(the_exception.code, 5)
+
+    def test_parse_args_invalid_card_url(self):
+        """
+        Test an invalid card URL by passing a board URL as --card parameter
+        """
+        url = "https://trello.com/b/264nrPh8/test-scrum-of-scrums"
+        with self.assertRaises(SystemExit) as cm:
+            parser = target.parse_args(['--propagate', '--card', url])
         the_exception = cm.exception
         self.assertEqual(the_exception.code, 5)
 

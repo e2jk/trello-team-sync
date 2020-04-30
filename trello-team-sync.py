@@ -315,6 +315,12 @@ def parse_args(arguments):
     )
     args = parser.parse_args(arguments)
 
+    # Check if the --card argument is a card URL
+    if args.card:
+        regex_match = re.match("^https://trello.com/c/([0-9a-zA-Z]{8})(/.*)?$", args.card)
+        if regex_match:
+            args.card = regex_match.group(1)
+
     # Validate if the arguments are used correctly
     if args.cleanup and not logging.getLevelName(args.loglevel) == "DEBUG":
         logging.critical("The --cleanup argument can only be used in conjunction with --debug. Exiting...")
