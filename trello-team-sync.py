@@ -39,12 +39,6 @@ def remove_teams_checklist(config, master_card):
             logging.debug("Deleting checklist %s (%s) from master card %s" %(c["name"], c["id"], master_card["id"]))
             perform_request(config, "DELETE", "checklists/%s" % (c["id"]))
 
-def add_checklistitem_to_checklist(config, checklist_id, item_name):
-    logging.debug("Adding new checklistitem %s to checklist %s" % (item_name, checklist_id))
-    new_checklistitem = perform_request(config, "POST", "checklists/%s/checkItems" % checklist_id, {"name": item_name})
-    logging.debug(new_checklistitem)
-    return new_checklistitem
-
 def add_checklist_to_master_card(config, master_card):
     logging.debug("Creating new checklist")
     new_checklist = perform_request(config, "POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
@@ -275,7 +269,9 @@ def process_master_card(config, master_card):
         if create_checklist:
             cl = add_checklist_to_master_card(config, master_card)
             for sb in slave_boards:
-                add_checklistitem_to_checklist(config, cl["id"], sb["name"])
+                logging.debug("Adding new checklistitem %s to checklist %s" % (sb["name"], cl["id"]))
+                perform_request(config, "POST", "checklists/%s/checkItems" % cl["id"], {"name": sb["name"]})
+                logging.debug(new_checklistitem)
 
         #TODO: Mark checklist item as Complete if slave card is Done
 
