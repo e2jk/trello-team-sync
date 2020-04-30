@@ -11,6 +11,8 @@ import sys
 import os
 import logging
 import json
+from unittest.mock import patch
+from unittest.mock import MagicMock
 
 sys.path.append('.')
 target = __import__("trello-team-sync")
@@ -88,6 +90,59 @@ class TestOutputSummary(unittest.TestCase):
         self.assertEqual(cm.output, [
             "INFO:root:================================================================",
             "INFO:root:Summary [DRY RUN]: would have cleaned up 4 master cards and deleted 6 slave cards from 2 slave boards/2 slave lists."])
+
+
+class TestGetCardAttachments(unittest.TestCase):
+    def test_get_card_attachments_none(self):
+        """
+        Test retrieving attachments from a card without attachments
+        """
+        card = {"badges": {"attachments": 0}}
+        card_attachments = target.get_card_attachments(None, card)
+        self.assertEqual(card_attachments, [])
+
+    @patch("trello-team-sync.perform_request")
+    def test_get_card_attachments_non_trello(self, t_pr):
+        """
+        Test the logic retrieving attachments from a card without Trello attachments
+        """
+        t_pr.return_value = [{"url": "https://monip.org"}, {"url": "https://example.com"}]
+        card = {"id": "1a2b3c", "badges": {"attachments": 2}}
+        card_attachments = target.get_card_attachments(None, card)
+        self.assertEqual(card_attachments, [])
+
+    @patch("trello-team-sync.perform_request")
+    def test_get_card_attachments_one_trello(self, t_pr):
+        """
+        Test retrieving attachments from a card with one Trello attachment
+        """
+        shortLink = "eoK0Rngb"
+        t_pr.return_value = [{"url": "https://trello.com/c/%s/blablabla" % shortLink}]
+        card = {"id": "1a2b3c", "badges": {"attachments": 1}}
+        card_attachments = target.get_card_attachments(None, card)
+        self.assertEqual(len(card_attachments), 1)
+        expected_card_attachments = [{"card_shortUrl": shortLink,
+            "url": "https://trello.com/c/%s/blablabla" % shortLink}]
+        self.assertEqual(card_attachments, expected_card_attachments)
+
+    @patch("trello-team-sync.perform_request")
+    def test_get_card_attachments_various(self, t_pr):
+        """
+        Test retrieving attachments from a card with both Trello and non-Trello attachments
+        """
+        shortLink1 = "eoK0Rngb"
+        shortLink2 = "abcd1234"
+        t_pr.return_value = [{"url": "https://trello.com/c/%s/blablabla" % shortLink1},
+            {"url": "https://monip.org"},
+            {"url": "https://trello.com/c/%s/blablabla" % shortLink2}]
+        card = {"id": "1a2b3c", "badges": {"attachments": 3}}
+        card_attachments = target.get_card_attachments(None, card)
+        self.assertEqual(len(card_attachments), 2)
+        expected_card_attachments = [{"card_shortUrl": shortLink1,
+            "url": "https://trello.com/c/%s/blablabla" % shortLink1},
+            {"card_shortUrl": shortLink2,
+            "url": "https://trello.com/c/%s/blablabla" % shortLink2}]
+        self.assertEqual(card_attachments, expected_card_attachments)
 
 
 class TestSplitMasterCardMetadata(unittest.TestCase):
