@@ -249,6 +249,26 @@ class TestSplitMasterCardMetadata(unittest.TestCase):
         self.assertEqual(current_metadata, metadata)
 
 
+class TestGetName(unittest.TestCase):
+    @patch("trello-team-sync.perform_request")
+    def test_get_name_board_uncached(self, t_pr):
+        """
+        Test getting a board's name, uncached
+        """
+        target.get_name(None, "board", "a1b2c3")
+        expected = call(None, 'GET', 'board/a1b2c3')
+        self.assertEqual(t_pr.mock_calls[0], expected)
+
+    @patch("trello-team-sync.perform_request")
+    def test_get_name_list_uncached(self, t_pr):
+        """
+        Test getting a list's name, uncached
+        """
+        target.get_name(None, "list", "a1b2c3")
+        expected = call(None, 'GET', 'list/a1b2c3')
+        self.assertEqual(t_pr.mock_calls[0], expected)
+
+
 class TestGlobals(unittest.TestCase):
     def test_globals_metadata_phrase(self):
         """
