@@ -312,10 +312,10 @@ class TestPerformRequest(unittest.TestCase):
         """
         Test performing a request with an invalid HTTP method
         """
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             target.perform_request(None, "INVALID", "https://monip.org")
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 30)
+        self.assertEqual(cm1.exception.code, 30)
+        self.assertEqual(cm2.output, ["CRITICAL:root:HTTP method 'INVALID' not supported. Exiting..."])
 
     @patch("requests.request")
     def test_perform_request_get(self, r_r):
@@ -460,8 +460,7 @@ class TestLoadConfig(unittest.TestCase):
         """
         with self.assertRaises(FileNotFoundError) as cm:
             config = target.load_config("data/nonexisting_config.json")
-        the_exception = cm.exception
-        self.assertEqual(str(the_exception), "[Errno 2] No such file or directory: 'data/nonexisting_config.json'")
+        self.assertEqual(str(cm.exception), "[Errno 2] No such file or directory: 'data/nonexisting_config.json'")
 
     def test_load_config_invalid(self):
         """
@@ -469,8 +468,7 @@ class TestLoadConfig(unittest.TestCase):
         """
         with self.assertRaises(json.decoder.JSONDecodeError) as cm:
             config = target.load_config("requirements.txt")
-        the_exception = cm.exception
-        self.assertEqual(str(the_exception), "Expecting value: line 1 column 1 (char 0)")
+        self.assertEqual(str(cm.exception), "Expecting value: line 1 column 1 (char 0)")
 
 
 class TestParseArgs(unittest.TestCase):
@@ -480,8 +478,7 @@ class TestParseArgs(unittest.TestCase):
         """
         with self.assertRaises(SystemExit) as cm:
             parser = target.parse_args([])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 2)
+        self.assertEqual(cm.exception.code, 2)
 
     def test_parse_args_propagate_cleanup(self):
         """
@@ -489,8 +486,7 @@ class TestParseArgs(unittest.TestCase):
         """
         with self.assertRaises(SystemExit) as cm:
             parser = target.parse_args(['--propagate', '--cleanup'])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 2)
+        self.assertEqual(cm.exception.code, 2)
 
     def test_parse_args_debug(self):
         """
@@ -591,39 +587,39 @@ class TestParseArgs(unittest.TestCase):
         Test an invalid 8-character --card parameter
         """
         shortLink = "$oK0Rngb"
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             parser = target.parse_args(['--propagate', '--card', shortLink])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 5)
+        self.assertEqual(cm1.exception.code, 5)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The --card argument expects an 8 or 24-character card ID. Exiting..."])
 
     def test_parse_args_invalid_card24(self):
         """
         Test an invalid 24-character --card parameter
         """
         card_id = "5Ga946e30ea7437974b0ac9e"
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             parser = target.parse_args(['--propagate', '--card', card_id])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 5)
+        self.assertEqual(cm1.exception.code, 5)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The --card argument expects an 8 or 24-character card ID. Exiting..."])
 
     def test_parse_args_invalid_card_url(self):
         """
         Test an invalid card URL by passing a board URL as --card parameter
         """
         url = "https://trello.com/b/264nrPh8/test-scrum-of-scrums"
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             parser = target.parse_args(['--propagate', '--card', url])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 5)
+        self.assertEqual(cm1.exception.code, 5)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The --card argument expects an 8 or 24-character card ID. Exiting..."])
 
     def test_parse_args_card(self):
         """
         Test an invalid --card parameter
         """
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             parser = target.parse_args(['--propagate', '--card', 'abc'])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 5)
+        self.assertEqual(cm1.exception.code, 5)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The --card argument expects an 8 or 24-character card ID. Exiting..."])
 
     def test_parse_args_valid_list24(self):
         """
@@ -638,29 +634,29 @@ class TestParseArgs(unittest.TestCase):
         Test an invalid 24-character --list parameter
         """
         list_id = "5Ga6f86a46d1b9096faf6a72"
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             parser = target.parse_args(['--propagate', '--list', list_id])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 7)
+        self.assertEqual(cm1.exception.code, 7)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The --list argument expects a 24-character list ID. Exiting..."])
 
     def test_parse_args_list(self):
         """
         Test an invalid --list parameter
         """
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             parser = target.parse_args(['--propagate', '--list', 'abc'])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 7)
+        self.assertEqual(cm1.exception.code, 7)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The --list argument expects a 24-character list ID. Exiting..."])
 
     def test_parse_args_cleanup_without_debug(self):
         """
         Test running the script with invalid arguments combination:
         --cleanup without --debug
         """
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             parser = target.parse_args(['--cleanup'])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 3)
+        self.assertEqual(cm1.exception.code, 3)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The --cleanup argument can only be used in conjunction with --debug. Exiting..."])
 
     def test_parse_args_card_cleanup(self):
         """
@@ -668,10 +664,10 @@ class TestParseArgs(unittest.TestCase):
         --card with --cleanup
         """
         card_id = "5ea946e30ea7437974b0ac9e"
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             parser = target.parse_args(['--cleanup', '--debug', '--card', card_id])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 4)
+        self.assertEqual(cm1.exception.code, 4)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The --card argument can only be used in conjunction with --propagate. Exiting..."])
 
     def test_parse_args_list_cleanup(self):
         """
@@ -679,10 +675,10 @@ class TestParseArgs(unittest.TestCase):
         --list with --cleanup
         """
         list_id = "5ea6f86a46d1b9096faf6a72"
-        with self.assertRaises(SystemExit) as cm:
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             parser = target.parse_args(['--cleanup', '--debug', '--list', list_id])
-        the_exception = cm.exception
-        self.assertEqual(the_exception.code, 6)
+        self.assertEqual(cm1.exception.code, 6)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The --list argument can only be used in conjunction with --propagate. Exiting..."])
 
     def test_parse_args_dry_run(self):
         """
