@@ -9,14 +9,8 @@
 import unittest
 import sys
 import os
-import shutil
 import logging
-import socket
 import json
-import tempfile
-from urllib.error import URLError
-from unittest.mock import patch
-from unittest.mock import MagicMock
 
 sys.path.append('.')
 target = __import__("trello-team-sync")
