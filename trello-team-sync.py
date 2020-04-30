@@ -55,10 +55,6 @@ def get_card_checklists(config, master_card):
     logging.debug("Retrieving checklists from card %s" % master_card["id"])
     return perform_request(config, "GET", "cards/%s/checklists" % master_card["id"])
 
-def attach_slave_card_to_master_card(config, master_card, slave_card):
-    logging.debug("Attaching slave card %s to master card %s" % (slave_card["id"], master_card["id"]))
-    perform_request(config, "POST", "cards/%s/attachments" % master_card["id"], {"url": slave_card["url"]})
-
 def get_card_attachments(config, card):
     card_attachments = []
     if card["badges"]["attachments"] > 0:
@@ -183,13 +179,15 @@ def create_new_slave_card(config, master_card, slave_board):
     logging.debug("Creating new slave card")
     query = {
        "idList": slave_board["lists"]["backlog"],
-       "name": master_card["name"],
        "desc": "%s\n\nCreated from master card %s" % (master_card["desc"], master_card["shortUrl"]),
        "pos": "bottom",
-       "urlSource": master_card["shortUrl"]
+       "idCardSource": master_card["id"],
+        # Explicitly don't keep labels,members
+        "keepFromSource ": "attachments,checklists,comments,due,stickers"
     }
     new_slave_card = perform_request(config, "POST", "cards", query)
-    logging.debug(new_slave_card)
+    if new_slave_card:
+        logging.debug("New slave card ID: %s" % new_slave_card["id"])
     return new_slave_card
 
 def process_master_card(config, master_card):
@@ -247,9 +245,11 @@ def process_master_card(config, master_card):
                 num_new_cards += 1
                 card = create_new_slave_card(config, master_card, sb)
                 if card:
-                    logging.debug(card["id"])
-                    # Update the master card by attaching the new slave card
-                    attach_slave_card_to_master_card(config, master_card, card)
+                    # Link cards between each other
+                    logging.debug("Attaching master card %s to slave card %s" % (master_card["id"], card["id"]))
+                    perform_request(config, "POST", "cards/%s/attachments" % card["id"], {"url": master_card["url"]})
+                    logging.debug("Attaching slave card %s to master card %s" % (card["id"], master_card["id"]))
+                    perform_request(config, "POST", "cards/%s/attachments" % master_card["id"], {"url": card["url"]})
             slave_cards.append(card)
         if card:
             # Generate master card metadata based on the slave cards info
