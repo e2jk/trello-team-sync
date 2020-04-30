@@ -269,6 +269,44 @@ class TestGetName(unittest.TestCase):
         self.assertEqual(t_pr.mock_calls[0], expected)
 
 
+class TestGenerateMasterCardMetadata(unittest.TestCase):
+    @patch("trello-team-sync.perform_request")
+    def test_generate_master_card_metadata_no_slave_cards(self, t_pr):
+        """
+        Test generating a master card's metadata that has no slave cards
+        """
+        slave_cards = []
+        new_master_card_metadata = target.generate_master_card_metadata(None, slave_cards)
+        # Confirm perform_request hasn't been called
+        self.assertEqual(t_pr.mock_calls, [])
+        self.assertEqual(new_master_card_metadata, "")
+
+    @patch("trello-team-sync.perform_request")
+    def test_generate_master_card_metadata_no_slave_cards_uncached(self, t_pr):
+        """
+        Test generating a master card's metadata that has 3 slave cards, uncached
+        """
+        slave_cards = [{"name": "name1", "idBoard": "idBoard1", "idList": "idList1"},
+                       {"name": "name2", "idBoard": "idBoard2", "idList": "idList2"},
+                       {"name": "name3", "idBoard": "idBoard3", "idList": "idList3"}]
+        t_pr.side_effect = [{"name": "record name1"},
+            {"name": "record name2"},
+            {"name": "record name3"},
+            {"name": "record name4"},
+            {"name": "record name5"},
+            {"name": "record name6"}]
+        new_master_card_metadata = target.generate_master_card_metadata(None, slave_cards)
+        expected = [call(None, 'GET', 'board/idBoard1'),
+            call(None, 'GET', 'list/idList1'),
+            call(None, 'GET', 'board/idBoard2'),
+            call(None, 'GET', 'list/idList2'),
+            call(None, 'GET', 'board/idBoard3'),
+            call(None, 'GET', 'list/idList3')]
+        self.assertEqual(t_pr.mock_calls, expected)
+        expected = "\n- 'name1' on list '**record name1|record name2**'\n- 'name2' on list '**record name3|record name4**'\n- 'name3' on list '**record name5|record name6**'"
+        self.assertEqual(new_master_card_metadata, expected)
+
+
 class TestGlobals(unittest.TestCase):
     def test_globals_metadata_phrase(self):
         """
