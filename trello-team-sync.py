@@ -32,12 +32,6 @@ def output_summary(args, summary):
             summary["new_slave_card"],
             "would have been " if args.dry_run else ""))
 
-def add_checklist_to_master_card(config, master_card):
-    logging.debug("Creating new checklist")
-    new_checklist = perform_request(config, "POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
-    logging.debug(new_checklist)
-    return new_checklist
-
 def get_card_checklists(config, master_card):
     logging.debug("Retrieving checklists from card %s" % master_card["id"])
     return perform_request(config, "GET", "cards/%s/checklists" % master_card["id"])
@@ -263,7 +257,9 @@ def process_master_card(config, master_card):
                     create_checklist = False
                     logging.debug("Master card already contains a checklist name 'Involved Teams', skipping checklist creation")
         if create_checklist:
-            cl = add_checklist_to_master_card(config, master_card)
+            logging.debug("Creating new checklist")
+            cl = perform_request(config, "POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
+            logging.debug(cl)
             for sb in slave_boards:
                 logging.debug("Adding new checklistitem %s to checklist %s" % (sb["name"], cl["id"]))
                 perform_request(config, "POST", "checklists/%s/checkItems" % cl["id"], {"name": sb["name"]})
