@@ -96,6 +96,47 @@ class TestOutputSummary(unittest.TestCase):
             "INFO:root:Summary [DRY RUN]: would have cleaned up 4 master cards and deleted 6 slave cards from 2 slave boards/2 slave lists."])
 
 
+class TestSplitMasterCardMetadata(unittest.TestCase):
+    def test_split_master_card_metadata_no_metadata(self):
+        """
+        Test splitting the master card description without metadata
+        """
+        full_desc = "ABC\nDEF"
+        (main_desc, current_metadata) = target.split_master_card_metadata(full_desc)
+        self.assertEqual(main_desc, full_desc)
+        self.assertEqual(current_metadata, "")
+
+    def test_split_master_card_metadata_partially_broken_metadata(self):
+        """
+        Test splitting the master card description with partially broken metadata
+        """
+        desc = "ABC\nDEFsldkjf"
+        full_desc = "%s== DO NOT EDIT BELOW THIS LINEkhsfhizehf" % desc
+        (main_desc, current_metadata) = target.split_master_card_metadata(full_desc)
+        self.assertEqual(main_desc, desc + "== ")
+        self.assertEqual(current_metadata, "")
+
+    def test_split_master_card_metadata_fully_broken_metadata(self):
+        """
+        Test splitting the master card description with fully broken metadata
+        """
+        full_desc = "ABC\nDEFsldkjf\n== DO NOT EDIT BELOW THIS Lsfhizehf"
+        (main_desc, current_metadata) = target.split_master_card_metadata(full_desc)
+        self.assertEqual(main_desc, full_desc)
+        self.assertEqual(current_metadata, "")
+
+    def test_split_master_card_metadata_valid_metadata(self):
+        """
+        Test splitting the master card description with valid metadata
+        """
+        desc = "ABC\nDEFsldkjf"
+        metadata = "jsdofhzpeh\nldjfozije"
+        full_desc = "%s%s%s" % (desc, target.METADATA_SEPARATOR, metadata)
+        (main_desc, current_metadata) = target.split_master_card_metadata(full_desc)
+        self.assertEqual(main_desc, desc)
+        self.assertEqual(current_metadata, metadata)
+
+
 class TestGlobals(unittest.TestCase):
     def test_globals_metadata_phrase(self):
         """
