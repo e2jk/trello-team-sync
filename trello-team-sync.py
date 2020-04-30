@@ -175,6 +175,8 @@ def perform_request(config, method, url, query=None):
         url,
         params=query
     )
+    # Raise an exception if the response status code indicates an issue
+    response.raise_for_status()
     return response.json()
 
 def create_new_slave_card(config, master_card, slave_board):
@@ -357,7 +359,11 @@ def init():
             summary = {"active_master_cards": 0, "slave_card": 0, "new_slave_card": 0}
             if args.card:
                 # Validate that this specific card is on the master board
-                master_card = perform_request(config, "GET", "cards/%s" % args.card)
+                try:
+                    master_card = perform_request(config, "GET", "cards/%s" % args.card)
+                except requests.exceptions.HTTPError:
+                    logging.critical("Invalid card ID %s. Exiting..." % args.card)
+                    sys.exit(33)
                 if master_card["idBoard"] == config["master_board"]:
                     logging.debug("Card %s/%s is on the master board" % (master_card["id"], master_card["shortLink"]))
                     # Process that single card
