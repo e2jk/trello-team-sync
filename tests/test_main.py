@@ -13,6 +13,7 @@ import logging
 import json
 from unittest.mock import patch
 from unittest.mock import MagicMock
+from unittest.mock import call
 
 sys.path.append('.')
 target = __import__("trello-team-sync")
@@ -143,6 +144,68 @@ class TestGetCardAttachments(unittest.TestCase):
             {"card_shortUrl": shortLink2,
             "url": "https://trello.com/c/%s/blablabla" % shortLink2}]
         self.assertEqual(card_attachments, expected_card_attachments)
+
+
+class TestUpdateMasterCardMetadata(unittest.TestCase):
+    @patch("trello-team-sync.perform_request")
+    def test_update_master_card_metadata_both_none(self, t_pr):
+        """
+        Test updating a card that had no metadata with empty metadata
+        """
+        master_card = {"id": "1a2b3c", "desc": "abc"}
+        target.update_master_card_metadata(None, master_card, "")
+        # Confirm perform_request hasn't been called
+        self.assertEqual(t_pr.mock_calls, [])
+
+    @patch("trello-team-sync.perform_request")
+    def test_update_master_card_metadata(self, t_pr):
+        """
+        Test updating a card that had no metadata with new metadata
+        """
+        master_card = {"id": "1a2b3c", "desc": "abc"}
+        metadata = "jsdofhzpeh\nldjfozije"
+        target.update_master_card_metadata(None, master_card, metadata)
+        expected = [call(None, 'PUT', 'cards/1a2b3c',
+            {'desc': 'abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\njsdofhzpeh\nldjfozije'})]
+        self.assertEqual(t_pr.mock_calls, expected)
+
+    @patch("trello-team-sync.perform_request")
+    def test_update_master_card_metadata_empty(self, t_pr):
+        """
+        Test updating a card's that had metadata with empty metadata
+        """
+        main_desc = "abc"
+        old_metadata = "old metadata"
+        master_card = {"id": "1a2b3c", "desc": "%s%s%s" % (main_desc, target.METADATA_SEPARATOR, old_metadata) }
+        target.update_master_card_metadata(None, master_card, "")
+        expected = [call(None, 'PUT', 'cards/1a2b3c', {'desc': main_desc})]
+        self.assertEqual(t_pr.mock_calls, expected)
+
+    @patch("trello-team-sync.perform_request")
+    def test_update_master_card_metadata_both(self, t_pr):
+        """
+        Test updating a card's that had metadata with new metadata
+        """
+        main_desc = "abc"
+        old_metadata = "old metadata"
+        master_card = {"id": "1a2b3c", "desc": "%s%s%s" % (main_desc, target.METADATA_SEPARATOR, old_metadata) }
+        new_metadata = "new metadata"
+        target.update_master_card_metadata(None, master_card, new_metadata)
+        expected = [call(None, 'PUT', 'cards/1a2b3c',
+            {'desc': "%s%s%s" % (main_desc, target.METADATA_SEPARATOR, new_metadata)})]
+        self.assertEqual(t_pr.mock_calls, expected)
+
+    @patch("trello-team-sync.perform_request")
+    def test_update_master_card_metadata_same(self, t_pr):
+        """
+        Test updating a card's that had metadata with the same new metadata
+        """
+        main_desc = "abc"
+        old_metadata = "old metadata"
+        master_card = {"id": "1a2b3c", "desc": "%s%s%s" % (main_desc, target.METADATA_SEPARATOR, old_metadata) }
+        target.update_master_card_metadata(None, master_card, old_metadata)
+        # Confirm perform_request hasn't been called
+        self.assertEqual(t_pr.mock_calls, [])
 
 
 class TestSplitMasterCardMetadata(unittest.TestCase):
