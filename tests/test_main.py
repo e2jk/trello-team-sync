@@ -14,6 +14,8 @@ import json
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from unittest.mock import call
+import io
+import contextlib
 
 sys.path.append('.')
 target = __import__("trello-team-sync")
@@ -476,17 +478,21 @@ class TestParseArgs(unittest.TestCase):
         """
         Test running the script without one of the required arguments --propagate or --cleanup
         """
-        with self.assertRaises(SystemExit) as cm:
+        f = io.StringIO()
+        with self.assertRaises(SystemExit) as cm, contextlib.redirect_stderr(f):
             parser = target.parse_args([])
         self.assertEqual(cm.exception.code, 2)
+        self.assertTrue("error: one of the arguments -p/--propagate -cu/--cleanup is required" in f.getvalue())
 
     def test_parse_args_propagate_cleanup(self):
         """
         Test running the script with both mutually exclusive arguments --propagate and --cleanup
         """
-        with self.assertRaises(SystemExit) as cm:
+        f = io.StringIO()
+        with self.assertRaises(SystemExit) as cm, contextlib.redirect_stderr(f):
             parser = target.parse_args(['--propagate', '--cleanup'])
         self.assertEqual(cm.exception.code, 2)
+        self.assertTrue("error: argument -cu/--cleanup: not allowed with argument -p/--propagate" in f.getvalue())
 
     def test_parse_args_debug(self):
         """
