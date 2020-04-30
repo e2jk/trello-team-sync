@@ -260,7 +260,7 @@ def process_master_card(config, master_card):
             logging.debug(cl)
             for sb in slave_boards:
                 logging.debug("Adding new checklistitem %s to checklist %s" % (sb["name"], cl["id"]))
-                perform_request(config, "POST", "checklists/%s/checkItems" % cl["id"], {"name": sb["name"]})
+                new_checklistitem = perform_request(config, "POST", "checklists/%s/checkItems" % cl["id"], {"name": sb["name"]})
                 logging.debug(new_checklistitem)
 
         #TODO: Mark checklist item as Complete if slave card is Done
