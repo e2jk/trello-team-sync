@@ -22,6 +22,80 @@ sys.path.append('.')
 target = __import__("trello-team-sync")
 
 
+class TestOutputSummary(unittest.TestCase):
+    def test_output_summary_propagate(self):
+        """
+        Test the summary for --propagate
+        """
+        args = type("blabla", (object,), {
+            "propagate": True,
+            "cleanup": False,
+            "dry_run": False})()
+        summary = {"master_cards": 4,
+            "active_master_cards": 2,
+            "slave_card": 3,
+            "new_slave_card": 1}
+        with self.assertLogs(level='INFO') as cm:
+            target.output_summary(args, summary)
+        self.assertEqual(cm.output, [
+            "INFO:root:================================================================",
+            "INFO:root:Summary: processed 4 master cards (of which 2 active) that have 3 slave cards (of which 1 new)."])
+
+    def test_output_summary_propagate_dry_run(self):
+        """
+        Test the summary for --propagate --dry-run
+        """
+        args = type("blabla", (object,), {
+            "propagate": True,
+            "cleanup": False,
+            "dry_run": True})()
+        summary = {"master_cards": 4,
+            "active_master_cards": 2,
+            "slave_card": 3,
+            "new_slave_card": 1}
+        with self.assertLogs(level='INFO') as cm:
+            target.output_summary(args, summary)
+        self.assertEqual(cm.output, [
+            "INFO:root:================================================================",
+            "INFO:root:Summary [DRY RUN]: processed 4 master cards (of which 2 active) that have 3 slave cards (of which 1 would have been new)."])
+
+    def test_output_summary_cleanup(self):
+        """
+        Test the summary for --cleanup
+        """
+        args = type("blabla", (object,), {
+            "propagate": False,
+            "cleanup": True,
+            "dry_run": False})()
+        summary = {"cleaned_up_master_cards": 4,
+            "deleted_slave_cards": 6,
+            "erased_slave_boards": 2,
+            "erased_slave_lists": 2}
+        with self.assertLogs(level='INFO') as cm:
+            target.output_summary(args, summary)
+        self.assertEqual(cm.output, [
+            "INFO:root:================================================================",
+            "INFO:root:Summary: cleaned up 4 master cards and deleted 6 slave cards from 2 slave boards/2 slave lists."])
+
+    def test_output_summary_cleanup_dry_run(self):
+        """
+        Test the summary for --cleanup --dry-run
+        """
+        args = type("blabla", (object,), {
+            "propagate": False,
+            "cleanup": True,
+            "dry_run": True})()
+        summary = {"cleaned_up_master_cards": 4,
+            "deleted_slave_cards": 6,
+            "erased_slave_boards": 2,
+            "erased_slave_lists": 2}
+        with self.assertLogs(level='INFO') as cm:
+            target.output_summary(args, summary)
+        self.assertEqual(cm.output, [
+            "INFO:root:================================================================",
+            "INFO:root:Summary [DRY RUN]: would have cleaned up 4 master cards and deleted 6 slave cards from 2 slave boards/2 slave lists."])
+
+
 class TestGlobals(unittest.TestCase):
     def test_globals_metadata_phrase(self):
         """
