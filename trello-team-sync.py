@@ -32,13 +32,6 @@ def output_summary(args, summary):
             summary["new_slave_card"],
             "would have been " if args.dry_run else ""))
 
-def remove_teams_checklist(config, master_card):
-    master_card_checklists = get_card_checklists(config, master_card)
-    for c in master_card_checklists:
-        if "Involved Teams" == c["name"]:
-            logging.debug("Deleting checklist %s (%s) from master card %s" %(c["name"], c["id"], master_card["id"]))
-            perform_request(config, "DELETE", "checklists/%s" % (c["id"]))
-
 def add_checklist_to_master_card(config, master_card):
     logging.debug("Creating new checklist")
     new_checklist = perform_request(config, "POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
@@ -76,7 +69,10 @@ def cleanup_test_boards(config, master_cards):
                 perform_request(config, "DELETE", "cards/%s/attachments/%s" % (master_card["id"], a["id"]))
 
         # Removing teams checklist from the master card
-        remove_teams_checklist(config, master_card)
+        for c in get_card_checklists(config, master_card):
+            if "Involved Teams" == c["name"]:
+                logging.debug("Deleting checklist %s (%s) from master card %s" %(c["name"], c["id"], master_card["id"]))
+                perform_request(config, "DELETE", "checklists/%s" % (c["id"]))
 
         # Removing metadata from the master cards
         update_master_card_metadata(config, master_card, "")
