@@ -164,7 +164,7 @@ def generate_master_card_metadata(config, slave_cards):
 def perform_request(config, method, url, query=None):
     if method not in ("GET", "POST", "PUT", "DELETE"):
         logging.critical("HTTP method '%s' not supported. Exiting..." % method)
-        sys.exit(6)
+        sys.exit(30)
     url = "https://api.trello.com/1/%s" % url
     if args.dry_run and method != "GET":
         logging.debug("Skipping %s call to '%s' due to --dry-run parameter" % (method, url))
@@ -282,7 +282,6 @@ def process_master_card(config, master_card):
 def get_master_cards(config):
     logging.debug("Get list of cards on the master Trello board")
     master_cards = perform_request(config, "GET", "boards/%s/cards" % config["master_board"])
-    logging.info("There are %d master cards that will be processed" % len(master_cards))
     return master_cards
 
 def load_config(config_file="data/config.json"):
@@ -301,7 +300,8 @@ def parse_args(arguments):
     group.add_argument("-cu", "--cleanup", action='store_true', required=False, help="Clean up all master cards and delete all cards from the slave boards (ONLY TO BE USED IN DEMO MODE)")
 
     # These arguments are only to be used in conjunction with --propagate
-    parser.add_argument("-c", "--card", action='store', required=False, help="Specify which card to propagate. Only to be used in conjunction with --propagate")
+    parser.add_argument("-c", "--card", action='store', required=False, help="Specify which master card to propagate. Only to be used in conjunction with --propagate")
+    parser.add_argument("-l", "--list", action='store', required=False, help="Specify which master list to propagate. Only to be used in conjunction with --propagate")
 
     # General arguments (can be used both with --propagate and --cleanup)
     parser.add_argument("-dr", "--dry-run", action='store_true', required=False, help="Do not create, update or delete any records")
@@ -328,6 +328,12 @@ def parse_args(arguments):
     if args.card and not (re.match("^[0-9a-zA-Z]{8}$", args.card) or re.match("^[0-9a-fA-F]{24}$", args.card)):
         logging.critical("The --card argument expects an 8 or 24-character card ID. Exiting...")
         sys.exit(5)
+    if args.list and not args.propagate:
+        logging.critical("The --list argument can only be used in conjunction with --propagate. Exiting...")
+        sys.exit(6)
+    if args.list and not re.match("^[0-9a-fA-F]{24}$", args.list):
+        logging.critical("The --list argument expects a 24-character list ID. Exiting...")
+        sys.exit(7)
 
     # Configure logging level
     if args.loglevel:
@@ -354,7 +360,7 @@ def init():
             # Delete all the master card attachments and cards on the slave boards
             summary = cleanup_test_boards(config, master_cards)
         elif args.propagate:
-            summary = {"master_cards": len(master_cards), "active_master_cards": 0, "slave_card": 0, "new_slave_card": 0}
+            summary = {"active_master_cards": 0, "slave_card": 0, "new_slave_card": 0}
             if args.card:
                 # Validate that this specific card is on the master board
                 valid_master_card = False
@@ -372,12 +378,27 @@ def init():
                 if not valid_master_card:
                     #TODO: Check if this is a slave card to process the associated master card
                     logging.critical("Card %s is not located on the master board %s. Exiting..." % (args.card, config["master_board"]))
-                    sys.exit(1)
+                    sys.exit(31)
             else:
-                # Loop over all cards on the master board to sync the slave boards
+                if args.list:
+                    # Validate that this specific list is on the master board
+                    master_lists = perform_request(config, "GET", "boards/%s/lists" % config["master_board"])
+                    valid_master_list = False
+                    for master_list in master_lists:
+                        if args.list == master_list["id"]:
+                            logging.debug("List %s is on the master board" % master_list["id"])
+                            valid_master_list = True
+                            # Get the list of cards on this master list
+                            master_cards = perform_request(config, "GET", "lists/%s/cards" % master_list["id"])
+                            break
+                    if not valid_master_list:
+                        logging.critical("List %s is not on the master board %s. Exiting..." % (args.list, config["master_board"]))
+                        sys.exit(32)
+                # Loop over all cards on the master board or list to sync the slave boards
                 for idx, master_card in enumerate(master_cards):
                     logging.info("Processing master card %d/%d - %s" %(idx+1, len(master_cards), master_card["name"]))
                     output = process_master_card(config, master_card)
+                    summary["master_cards"] = len(master_cards)
                     summary["active_master_cards"] += output[0]
                     summary["slave_card"] += output[1]
                     summary["new_slave_card"] += output[2]

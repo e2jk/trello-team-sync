@@ -160,9 +160,9 @@ class TestParseArgs(unittest.TestCase):
         parser = target.parse_args(['--propagate', '--card', shortLink])
         self.assertEqual(parser.card, shortLink)
 
-    def test_parse_args_valid_card32(self):
+    def test_parse_args_valid_card24(self):
         """
-        Test a valid 32-character --card parameter
+        Test a valid 24-character --card parameter
         """
         card_id = "5ea946e30ea7437974b0ac9e"
         parser = target.parse_args(['--propagate', '--card', card_id])
@@ -178,9 +178,9 @@ class TestParseArgs(unittest.TestCase):
         the_exception = cm.exception
         self.assertEqual(the_exception.code, 5)
 
-    def test_parse_args_invalid_card32(self):
+    def test_parse_args_invalid_card24(self):
         """
-        Test an invalid 32-character --card parameter
+        Test an invalid 24-character --card parameter
         """
         card_id = "5Ga946e30ea7437974b0ac9e"
         with self.assertRaises(SystemExit) as cm:
@@ -197,6 +197,33 @@ class TestParseArgs(unittest.TestCase):
         the_exception = cm.exception
         self.assertEqual(the_exception.code, 5)
 
+    def test_parse_args_valid_list24(self):
+        """
+        Test a valid 24-character --list parameter
+        """
+        list_id = "5ea6f86a46d1b9096faf6a72"
+        parser = target.parse_args(['--propagate', '--list', list_id])
+        self.assertEqual(parser.list, list_id)
+
+    def test_parse_args_invalid_list24(self):
+        """
+        Test an invalid 24-character --list parameter
+        """
+        list_id = "5Ga6f86a46d1b9096faf6a72"
+        with self.assertRaises(SystemExit) as cm:
+            parser = target.parse_args(['--propagate', '--list', list_id])
+        the_exception = cm.exception
+        self.assertEqual(the_exception.code, 7)
+
+    def test_parse_args_list(self):
+        """
+        Test an invalid --list parameter
+        """
+        with self.assertRaises(SystemExit) as cm:
+            parser = target.parse_args(['--propagate', '--list', 'abc'])
+        the_exception = cm.exception
+        self.assertEqual(the_exception.code, 7)
+
     def test_parse_args_cleanup_without_debug(self):
         """
         Test running the script with invalid arguments combination:
@@ -212,10 +239,22 @@ class TestParseArgs(unittest.TestCase):
         Test running the script with invalid arguments combination:
         --card with --cleanup
         """
+        card_id = "5ea946e30ea7437974b0ac9e"
         with self.assertRaises(SystemExit) as cm:
-            parser = target.parse_args(['--cleanup', '--debug', '--card', 'abc'])
+            parser = target.parse_args(['--cleanup', '--debug', '--card', card_id])
         the_exception = cm.exception
         self.assertEqual(the_exception.code, 4)
+
+    def test_parse_args_list_cleanup(self):
+        """
+        Test running the script with invalid arguments combination:
+        --list with --cleanup
+        """
+        list_id = "5ea6f86a46d1b9096faf6a72"
+        with self.assertRaises(SystemExit) as cm:
+            parser = target.parse_args(['--cleanup', '--debug', '--list', list_id])
+        the_exception = cm.exception
+        self.assertEqual(the_exception.code, 6)
 
     def test_parse_args_dry_run(self):
         """
