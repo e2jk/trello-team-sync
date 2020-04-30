@@ -279,11 +279,6 @@ def process_master_card(config, master_card):
 
     return (1 if len(slave_boards) > 0 else 0, len(slave_cards), num_new_cards)
 
-def get_master_cards(config):
-    logging.debug("Get list of cards on the master Trello board")
-    master_cards = perform_request(config, "GET", "boards/%s/cards" % config["master_board"])
-    return master_cards
-
 def load_config(config_file="data/config.json"):
     logging.debug("Loading configuration %s" % config_file)
     with open(config_file, "r") as json_file:
@@ -352,30 +347,26 @@ def init():
         # Load configuration values
         config = load_config()
 
-        # Get list of cards on the master Trello board
-        master_cards = get_master_cards(config)
-
         if args.cleanup:
             # Cleanup for demo purposes
+            logging.debug("Get list of cards on the master Trello board")
+            master_cards = perform_request(config, "GET", "boards/%s/cards" % config["master_board"])
             # Delete all the master card attachments and cards on the slave boards
             summary = cleanup_test_boards(config, master_cards)
         elif args.propagate:
             summary = {"active_master_cards": 0, "slave_card": 0, "new_slave_card": 0}
             if args.card:
                 # Validate that this specific card is on the master board
-                valid_master_card = False
-                for master_card in master_cards:
-                    if args.card in (master_card["id"], master_card["shortLink"]):
-                        logging.debug("Card %s/%s is on the master board" % (master_card["id"], master_card["shortLink"]))
-                        # Process that single card
-                        valid_master_card = True
-                        output = process_master_card(config, master_card)
-                        summary["master_cards"] = 1
-                        summary["active_master_cards"] = output[0]
-                        summary["slave_card"] += output[1]
-                        summary["new_slave_card"] += output[2]
-                        break
-                if not valid_master_card:
+                master_card = perform_request(config, "GET", "cards/%s" % args.card)
+                if master_card["idBoard"] == config["master_board"]:
+                    logging.debug("Card %s/%s is on the master board" % (master_card["id"], master_card["shortLink"]))
+                    # Process that single card
+                    output = process_master_card(config, master_card)
+                    summary["master_cards"] = 1
+                    summary["active_master_cards"] = output[0]
+                    summary["slave_card"] += output[1]
+                    summary["new_slave_card"] += output[2]
+                else:
                     #TODO: Check if this is a slave card to process the associated master card
                     logging.critical("Card %s is not located on the master board %s. Exiting..." % (args.card, config["master_board"]))
                     sys.exit(31)
@@ -394,6 +385,9 @@ def init():
                     if not valid_master_list:
                         logging.critical("List %s is not on the master board %s. Exiting..." % (args.list, config["master_board"]))
                         sys.exit(32)
+                else:
+                    logging.debug("Get list of cards on the master Trello board")
+                    master_cards = perform_request(config, "GET", "boards/%s/cards" % config["master_board"])
                 # Loop over all cards on the master board or list to sync the slave boards
                 for idx, master_card in enumerate(master_cards):
                     logging.info("Processing master card %d/%d - %s" %(idx+1, len(master_cards), master_card["name"]))
