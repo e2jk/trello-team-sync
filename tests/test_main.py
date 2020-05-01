@@ -539,32 +539,44 @@ Exiting...
         expected_exception_code = 36
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    def test_create_new_config_t(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_t(self, t_pr):
         """
         Test creating a new config file, valid token then quit
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "q"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Exiting...
 """
         expected_exception_code = 37
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    def test_create_new_config_ib(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_ibf(self, t_pr):
         """
-        Test creating a new config file, invalid board then quit
+        Test creating a new config file, invalid board ID format then quit
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "abc", "q"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Invalid board ID, must be 24 characters. Enter your master board ID ('q' to quit):\u0020
 Exiting...
@@ -572,16 +584,45 @@ Exiting...
         expected_exception_code = 37
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    def test_create_new_config_b(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_vb_not_own(self, t_pr):
+        """
+        Test creating a new config file, valid board ID format but not in list of own boards, then quit
+        """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
+        vals = ["a"*32, "b"*64, "d"*24, "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
+Enter your master board ID ('q' to quit):\u0020
+This is not the ID of one of the boards you have access to. Enter your master board ID ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 37
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_b(self, t_pr):
         """
         Test creating a new config file, valid board then quit
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "q"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Enter a name for this new configuration ('q' to quit):\u0020
 Exiting...
@@ -589,16 +630,22 @@ Exiting...
         expected_exception_code = 38
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    def test_create_new_config_l(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_l(self, t_pr):
         """
         Test creating a new config file, valid label then quit
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "q"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Enter a name for this new configuration ('q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
@@ -608,16 +655,22 @@ Exiting...
         expected_exception_code = 40
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    def test_create_new_config_vl_il(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_vl_il(self, t_pr):
         """
         Test creating a new config file, valid label, invalid list ID then quit
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "abc", "q"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Enter a name for this new configuration ('q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
@@ -628,16 +681,22 @@ Exiting...
         expected_exception_code = 40
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    def test_create_new_config_vl_vl(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_vl_vl(self, t_pr):
         """
         Test creating a new config file, valid label and list ID then quit
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "q"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Enter a name for this new configuration ('q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
@@ -648,16 +707,22 @@ Exiting...
         expected_exception_code = 41
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    def test_create_new_config_one_label_list_error_q(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_one_label_list_error_q(self, t_pr):
         """
         Test creating a new config file, one valid label/list ID then error and quit
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "abc", "q"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Enter a name for this new configuration ('q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
@@ -669,16 +734,22 @@ Exiting...
         expected_exception_code = 41
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    def test_create_new_config_one_label_list_error_no(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_one_label_list_error_no(self, t_pr):
         """
         Test creating a new config file, one valid label/list ID then error and continue
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "abc", "no"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Enter a name for this new configuration ('q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
@@ -693,16 +764,22 @@ New configuration saved to file 'data/config_config-name.json'
         # Delete the temporary file
         os.remove(config_file)
 
-    def test_create_new_config_one_label_list(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_one_label_list(self, t_pr):
         """
         Test creating a new config file, only one valid label/list ID
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "no"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Enter a name for this new configuration ('q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
@@ -716,16 +793,22 @@ New configuration saved to file 'data/config_config-name.json'
         # Delete the temporary file
         os.remove(config_file)
 
-    def test_create_new_config_two_label_list(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_two_label_list(self, t_pr):
         """
         Test creating a new config file, two valid labels/list IDs
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label 1", "d"*24, "yes", "Label 2", "e"*24, "no"]
         expected_output = """Welcome to the new configuration assistant.
 Trello key and token can be created at https://trello.com/app-key
 Please:
 Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
+These are your boards and their associated IDs:
+           ID             |  Name
+mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
+cccccccccccccccccccccccc  |  Board Two
 Enter your master board ID ('q' to quit):\u0020
 Enter a name for this new configuration ('q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
@@ -742,10 +825,12 @@ New configuration saved to file 'data/config_config-name.json'
         # Delete the temporary file
         os.remove(config_file)
 
-    def test_create_new_config_two_label_list(self):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_two_label_list(self, t_pr):
         """
         Test creating a new config file, two valid labels/list IDs
         """
+        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label 1", "d"*24, "yes", "Label 2", "e"*24, "no"]
         config_file = run_test_create_new_config(self, vals, None, None)
         self.assertTrue(os.path.isfile(config_file))

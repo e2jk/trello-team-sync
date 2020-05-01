@@ -303,10 +303,15 @@ def create_new_config():
             error_message = "Invalid Trello token, must be 64 characters. "
     config["token"] = trello_token
 
+    # Get the boards associated with the passed Trello credentials
+    boards = perform_request(config, "GET", "members/me/boards")
+    print("These are your boards and their associated IDs:")
+    print("           ID             |  Name")
+    print("\n".join(["%s  |  %s" % (b["id"], b["name"]) for b in boards]))
+
     # Master board
     error_message = ""
     master_board = None
-    #TODO: Get the boards associated with the passed Trello credentials
     while not master_board:
         master_board = input("%sEnter your master board ID ('q' to quit): " % error_message)
         if master_board.lower() == "q":
@@ -315,6 +320,9 @@ def create_new_config():
         if not re.match("^[0-9a-fA-F]{24}$", master_board):
             master_board = None
             error_message = "Invalid board ID, must be 24 characters. "
+        elif master_board not in [b["id"] for b in boards]:
+            master_board = None
+            error_message = "This is not the ID of one of the boards you have access to. "
     config["master_board"] = master_board
 
     # Config name
