@@ -20,6 +20,16 @@ import contextlib
 sys.path.append('.')
 target = __import__("trello-team-sync")
 
+# Used to test manual entry
+def setUpModule():
+    def mock_raw_input(s):
+        global mock_raw_input_counter
+        global mock_raw_input_values
+        print(s)
+        mock_raw_input_counter += 1
+        return mock_raw_input_values[mock_raw_input_counter - 1]
+    target.input = mock_raw_input
+
 
 class TestOutputSummary(unittest.TestCase):
     def test_output_summary_propagate(self):
@@ -93,6 +103,19 @@ class TestOutputSummary(unittest.TestCase):
         self.assertEqual(cm.output, [
             "INFO:root:================================================================",
             "INFO:root:Summary [DRY RUN]: would have cleaned up 4 master cards and deleted 6 slave cards from 2 slave boards/2 slave lists."])
+
+    def test_output_summary_new_config(self):
+        """
+        Test the summary for --new-config (no summary output)
+        """
+        args = type("blabla", (object,), {
+            "new_config": True})()
+        summary = None
+        f = io.StringIO()
+        with contextlib.redirect_stderr(f):
+            target.output_summary(args, summary)
+        # No output
+        self.assertEqual(f.getvalue(), "")
 
 
 class TestGetCardAttachments(unittest.TestCase):
@@ -437,6 +460,308 @@ class TestGlobals(unittest.TestCase):
         """
         self.assertEqual(target.METADATA_SEPARATOR, "\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n")
 
+def run_test_create_new_config(self, vals, expected_output, expected_exception_code):
+    global mock_raw_input_counter
+    global mock_raw_input_values
+    mock_raw_input_counter = 0
+    mock_raw_input_values = vals
+    f = io.StringIO()
+    config_file = ""
+    if expected_exception_code:
+        with self.assertRaises(SystemExit) as cm, contextlib.redirect_stdout(f):
+            config_file = target.create_new_config()
+        self.assertEqual(cm.exception.code, expected_exception_code)
+    else:
+        with contextlib.redirect_stdout(f):
+            config_file = target.create_new_config()
+    if expected_output:
+        self.assertEqual(expected_output, f.getvalue())
+    return config_file
+
+class TestCreateNewConfig(unittest.TestCase):
+    def test_create_new_config_q(self):
+        """
+        Test creating a new config file, invalid key then quit
+        """
+        vals = ["q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 35
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_ik(self):
+        """
+        Test creating a new config file, invalid key then quit
+        """
+        vals = ["abc", "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Invalid Trello key, must be 32 characters. Enter your Trello key ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 35
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_k(self):
+        """
+        Test creating a new config file, valid key then quit
+        """
+        vals = ["a"*32, "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 36
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_it(self):
+        """
+        Test creating a new config file, invalid token then quit
+        """
+        vals = ["a"*32, "abc", "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Invalid Trello token, must be 64 characters. Enter your Trello token ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 36
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_t(self):
+        """
+        Test creating a new config file, valid token then quit
+        """
+        vals = ["a"*32, "b"*64, "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 37
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_ib(self):
+        """
+        Test creating a new config file, invalid board then quit
+        """
+        vals = ["a"*32, "b"*64, "abc", "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Invalid board ID, must be 24 characters. Enter your master board ID ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 37
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_b(self):
+        """
+        Test creating a new config file, valid board then quit
+        """
+        vals = ["a"*32, "b"*64, "c"*24, "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Enter a name for this new configuration ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 38
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_l(self):
+        """
+        Test creating a new config file, valid label then quit
+        """
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Enter a name for this new configuration ('q' to quit):\u0020
+Enter a label name ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 40
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_vl_il(self):
+        """
+        Test creating a new config file, valid label, invalid list ID then quit
+        """
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "abc", "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Enter a name for this new configuration ('q' to quit):\u0020
+Enter a label name ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Invalid list ID, must be 24 characters. Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 40
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_vl_vl(self):
+        """
+        Test creating a new config file, valid label and list ID then quit
+        """
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Enter a name for this new configuration ('q' to quit):\u0020
+Enter a label name ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 41
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_one_label_list_error_q(self):
+        """
+        Test creating a new config file, one valid label/list ID then error and quit
+        """
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "abc", "q"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Enter a name for this new configuration ('q' to quit):\u0020
+Enter a label name ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 41
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    def test_create_new_config_one_label_list_error_no(self):
+        """
+        Test creating a new config file, one valid label/list ID then error and continue
+        """
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "abc", "no"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Enter a name for this new configuration ('q' to quit):\u0020
+Enter a label name ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+New configuration saved to file 'data/config_config-name.json'
+"""
+        expected_exception_code = None
+        config_file = run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+        self.assertTrue(os.path.isfile(config_file))
+        # Delete the temporary file
+        os.remove(config_file)
+
+    def test_create_new_config_one_label_list(self):
+        """
+        Test creating a new config file, only one valid label/list ID
+        """
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "no"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Enter a name for this new configuration ('q' to quit):\u0020
+Enter a label name ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+New configuration saved to file 'data/config_config-name.json'
+"""
+        expected_exception_code = None
+        config_file = run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+        self.assertTrue(os.path.isfile(config_file))
+        # Delete the temporary file
+        os.remove(config_file)
+
+    def test_create_new_config_two_label_list(self):
+        """
+        Test creating a new config file, two valid labels/list IDs
+        """
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label 1", "d"*24, "yes", "Label 2", "e"*24, "no"]
+        expected_output = """Welcome to the new configuration assistant.
+Trello key and token can be created at https://trello.com/app-key
+Please:
+Enter your Trello key ('q' to quit):\u0020
+Enter your Trello token ('q' to quit):\u0020
+Enter your master board ID ('q' to quit):\u0020
+Enter a name for this new configuration ('q' to quit):\u0020
+Enter a label name ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label 1' ('q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Enter a label name ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label 2' ('q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+New configuration saved to file 'data/config_config-name.json'
+"""
+        expected_exception_code = None
+        config_file = run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+        self.assertTrue(os.path.isfile(config_file))
+        # Delete the temporary file
+        os.remove(config_file)
+
+    def test_create_new_config_two_label_list(self):
+        """
+        Test creating a new config file, two valid labels/list IDs
+        """
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label 1", "d"*24, "yes", "Label 2", "e"*24, "no"]
+        config_file = run_test_create_new_config(self, vals, None, None)
+        self.assertTrue(os.path.isfile(config_file))
+        with open(config_file, "r") as json_file:
+            config = json.load(json_file)
+        # Delete the temporary file
+        os.remove(config_file)
+        # Validate the values loaded from the new config file
+        self.assertEqual(config["name"], vals[3])
+        self.assertEqual(config["key"], vals[0])
+        self.assertEqual(config["token"], vals[1])
+        self.assertEqual(config["master_board"], vals[2])
+        self.assertEqual(len(config["slave_boards"]), 2)
+        self.assertEqual(len(config["slave_boards"]["Label 1"]), 1)
+        self.assertEqual(config["slave_boards"]["Label 1"]["backlog"], vals[5])
+
 
 class TestLoadConfig(unittest.TestCase):
     def test_load_config(self):
@@ -476,13 +801,13 @@ class TestLoadConfig(unittest.TestCase):
 class TestParseArgs(unittest.TestCase):
     def test_parse_args_no_arguments(self):
         """
-        Test running the script without one of the required arguments --propagate or --cleanup
+        Test running the script without one of the required arguments --propagate, --cleanup or --new-config
         """
         f = io.StringIO()
         with self.assertRaises(SystemExit) as cm, contextlib.redirect_stderr(f):
             parser = target.parse_args([])
         self.assertEqual(cm.exception.code, 2)
-        self.assertTrue("error: one of the arguments -p/--propagate -cu/--cleanup is required" in f.getvalue())
+        self.assertTrue("error: one of the arguments -p/--propagate -cu/--cleanup -nc/--new-config is required" in f.getvalue())
 
     def test_parse_args_propagate_cleanup(self):
         """
@@ -493,6 +818,16 @@ class TestParseArgs(unittest.TestCase):
             parser = target.parse_args(['--propagate', '--cleanup'])
         self.assertEqual(cm.exception.code, 2)
         self.assertTrue("error: argument -cu/--cleanup: not allowed with argument -p/--propagate" in f.getvalue())
+
+    def test_parse_args_propagate_new_config(self):
+        """
+        Test running the script with both mutually exclusive arguments --propagate and --new-config
+        """
+        f = io.StringIO()
+        with self.assertRaises(SystemExit) as cm, contextlib.redirect_stderr(f):
+            parser = target.parse_args(['--propagate', '--new-config'])
+        self.assertEqual(cm.exception.code, 2)
+        self.assertTrue("error: argument -nc/--new-config: not allowed with argument -p/--propagate" in f.getvalue())
 
     def test_parse_args_debug(self):
         """

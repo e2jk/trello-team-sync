@@ -10,11 +10,14 @@ import requests
 import os
 import sys
 import re
+from slugify import slugify
 
 METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
 METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
 
 def output_summary(args, summary):
+    if not summary:
+        return
     logging.info("="*64)
     if args.cleanup:
         logging.info("Summary%scleaned up %d master cards and deleted %d slave cards from %d slave boards/%d slave lists." % (
@@ -267,6 +270,114 @@ def process_master_card(config, master_card):
 
     return (1 if len(slave_boards) > 0 else 0, len(slave_cards), num_new_cards)
 
+def create_new_config():
+    config = {"name": ""}
+    print("Welcome to the new configuration assistant.")
+    print("Trello key and token can be created at https://trello.com/app-key")
+    print("Please:")
+
+    # Trello key
+    error_message = ""
+    trello_key = None
+    #TODO: propose reusing Trello key and token from existing config files
+    while not trello_key:
+        trello_key = input("%sEnter your Trello key ('q' to quit): " % error_message)
+        if trello_key.lower() == "q":
+            print("Exiting...")
+            sys.exit(35)
+        if not re.match("^[0-9a-fA-F]{32}$", trello_key):
+            trello_key = None
+            error_message = "Invalid Trello key, must be 32 characters. "
+    config["key"] = trello_key
+
+    # Trello token
+    error_message = ""
+    trello_token = None
+    while not trello_token:
+        trello_token = input("%sEnter your Trello token ('q' to quit): " % error_message)
+        if trello_token.lower() == "q":
+            print("Exiting...")
+            sys.exit(36)
+        if not re.match("^[0-9a-fA-F]{64}$", trello_token):
+            trello_token = None
+            error_message = "Invalid Trello token, must be 64 characters. "
+    config["token"] = trello_token
+
+    # Master board
+    error_message = ""
+    master_board = None
+    #TODO: Get the boards associated with the passed Trello credentials
+    while not master_board:
+        master_board = input("%sEnter your master board ID ('q' to quit): " % error_message)
+        if master_board.lower() == "q":
+            print("Exiting...")
+            sys.exit(37)
+        if not re.match("^[0-9a-fA-F]{24}$", master_board):
+            master_board = None
+            error_message = "Invalid board ID, must be 24 characters. "
+    config["master_board"] = master_board
+
+    # Config name
+    error_message = ""
+    config_name = None
+    #TODO: Propose the board name as config name
+    while not config_name:
+        config_name = input("%sEnter a name for this new configuration ('q' to quit): " % error_message)
+        if config_name.lower() == "q":
+            print("Exiting...")
+            sys.exit(38)
+    config["name"] = config_name
+
+    # Get labels and lists
+    config["slave_boards"] = {}
+    #TODO: Get the labels and lists associated with the master board
+    error_message = ""
+    continue_label = "yes"
+    while continue_label == "yes":
+        label = input("%sEnter a label name ('q' to quit): " % error_message)
+        if label.lower() == "q":
+            print("Exiting...")
+            sys.exit(39)
+        #TODO: check this is a valid label name
+        config["slave_boards"][label] = {}
+        # Get list ID to associate with this label
+        error_message = ""
+        list_id = None
+        #TODO: Get all the lists associated with the passed Trello credentials
+        while not list_id:
+            list_id = input("%sEnter the list ID you want to associate with label '%s' ('q' to quit): " % (error_message, label))
+            if list_id.lower() == "q":
+                print("Exiting...")
+                sys.exit(40)
+            if not re.match("^[0-9a-fA-F]{24}$", list_id):
+                list_id = None
+                error_message = "Invalid list ID, must be 24 characters. "
+        config["slave_boards"][label]["backlog"] = list_id
+
+        error_message = ""
+        continue_label = None
+        while not continue_label:
+            continue_label = input("%sDo you want to add a new label (Enter 'yes' or 'no', 'q' to quit): " % error_message)
+            if continue_label.lower() == "q":
+                print("Exiting...")
+                sys.exit(41)
+            if continue_label not in ("yes", "no"):
+                continue_label = None
+
+    config["multiple_teams"] = {}
+    #TODO: Support labels that point to multiple lists ("multiple_teams")
+
+    logging.debug(config)
+
+    config_file = "data/config_%s.json" % slugify(config_name)
+    while os.path.isfile(config_file):
+        #TODO: ask the user to enter a new valid file name
+        config_file += ".nxt"
+    with open(config_file, 'w') as out_file:
+        json.dump(config, out_file, indent=2)
+    print("New configuration saved to file '%s'" % config_file)
+    return config_file
+
 def load_config(config_file):
     logging.debug("Loading configuration %s" % config_file)
     with open(config_file, "r") as json_file:
@@ -281,6 +392,7 @@ def parse_args(arguments):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("-p", "--propagate", action='store_true', required=False, help="Propagate the master cards to the slave boards")
     group.add_argument("-cu", "--cleanup", action='store_true', required=False, help="Clean up all master cards and delete all cards from the slave boards (ONLY TO BE USED IN DEMO MODE)")
+    group.add_argument("-nc", "--new-config", action='store_true', required=False, help="Create a new configuration file")
 
     # These arguments are only to be used in conjunction with --propagate
     parser.add_argument("-c", "--card", action='store', required=False, help="Specify which master card to propagate. Only to be used in conjunction with --propagate")
@@ -342,10 +454,16 @@ def init():
         global args # Define as global variable to be used without passing to all functions
         args = parse_args(sys.argv[1:])
 
+        config_file = args.config
+        if args.new_config:
+            config_file = create_new_config()
+
         # Load configuration values
-        config_file = args.config if args.config else "data/config.json"
+        if not config_file:
+            config_file = "data/config.json"
         config = load_config(config_file)
 
+        summary = None
         if args.cleanup:
             if not args.dry_run:
                 # Cleanup deletes data, ensure the user is aware of that
