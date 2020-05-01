@@ -693,9 +693,21 @@ class TestParseArgs(unittest.TestCase):
         parser = target.parse_args(['--propagate', '--dry-run'])
         self.assertTrue(parser.dry_run)
 
+    def test_parse_args_config_valid(self):
+        """
+        Test the --config argument with a valid file path
+        """
+        parser = target.parse_args(['--propagate', '--config', "data/sample_config.json"])
+        self.assertEqual(parser.config, "data/sample_config.json")
 
-#TODO
-# class TestInitMain(unittest.TestCase):
+    def test_parse_args_config_invalid(self):
+        """
+        Test the --config argument with a valid file path
+        """
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
+            target.parse_args(['--propagate', '--config', "data/nonexisting_config.json"])
+        self.assertEqual(cm1.exception.code, 8)
+        self.assertEqual(cm2.output, ["CRITICAL:root:The value passed in the --path argument is not a valid file path. Exiting..."])
 
 
 class TestLicense(unittest.TestCase):

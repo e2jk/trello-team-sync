@@ -267,7 +267,7 @@ def process_master_card(config, master_card):
 
     return (1 if len(slave_boards) > 0 else 0, len(slave_cards), num_new_cards)
 
-def load_config(config_file="data/config.json"):
+def load_config(config_file):
     logging.debug("Loading configuration %s" % config_file)
     with open(config_file, "r") as json_file:
         config = json.load(json_file)
@@ -288,6 +288,7 @@ def parse_args(arguments):
 
     # General arguments (can be used both with --propagate and --cleanup)
     parser.add_argument("-dr", "--dry-run", action='store_true', required=False, help="Do not create, update or delete any records")
+    parser.add_argument("-cfg", "--config", action='store', required=False, help="Path to the configuration file to use")
     parser.add_argument(
         '-d', '--debug',
         help="Print lots of debugging statements",
@@ -323,6 +324,9 @@ def parse_args(arguments):
     if args.list and not re.match("^[0-9a-fA-F]{24}$", args.list):
         logging.critical("The --list argument expects a 24-character list ID. Exiting...")
         sys.exit(7)
+    if args.config and not os.path.isfile(args.config):
+        logging.critical("The value passed in the --path argument is not a valid file path. Exiting...")
+        sys.exit(8)
 
     # Configure logging level
     if args.loglevel:
@@ -339,7 +343,8 @@ def init():
         args = parse_args(sys.argv[1:])
 
         # Load configuration values
-        config = load_config()
+        config_file = args.config if args.config else "data/config.json"
+        config = load_config(config_file)
 
         if args.cleanup:
             if not args.dry_run:
