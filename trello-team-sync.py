@@ -342,7 +342,16 @@ def init():
         config = load_config()
 
         if args.cleanup:
-            # Cleanup for demo purposes
+            if not args.dry_run:
+                # Cleanup deletes data, ensure the user is aware of that
+                warning_acknowledged = False
+                while not warning_acknowledged:
+                    s = input("WARNING: this will delete all cards on the slave lists. Type 'YES' to confirm, or 'q' to quit: ")
+                    if s.lower() == "q":
+                        print("Exiting...")
+                        sys.exit(34)
+                    if s.lower() in ("yes", "oui", "ok", "yep", "no problemo", "aye"):
+                        warning_acknowledged = True
             logging.debug("Get list of cards on the master Trello board")
             master_cards = perform_request(config, "GET", "boards/%s/cards" % config["master_board"])
             # Delete all the master card attachments and cards on the slave boards
