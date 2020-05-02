@@ -460,7 +460,7 @@ class TestGlobals(unittest.TestCase):
         """
         self.assertEqual(target.METADATA_SEPARATOR, "\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n")
 
-def run_test_create_new_config(self, vals, expected_output, expected_exception_code):
+def run_test_create_new_config(self, vals, expected_output, expected_exception_code, print_output=False):
     global mock_raw_input_counter
     global mock_raw_input_values
     mock_raw_input_counter = 0
@@ -474,6 +474,8 @@ def run_test_create_new_config(self, vals, expected_output, expected_exception_c
     else:
         with contextlib.redirect_stdout(f):
             config_file = target.create_new_config()
+    if print_output:
+        print(f.getvalue())
     if expected_output:
         self.assertTrue(expected_output in f.getvalue())
     return config_file
@@ -602,14 +604,42 @@ Exiting...
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
     @patch("trello-team-sync.perform_request")
+    def test_create_new_config_il(self, t_pr):
+        """
+        Test creating a new config file, invalid label then quit
+        """
+        t_pr.side_effect = [
+        [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+        [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Invalid label", "q"]
+        expected_output = """These are the labels from the selected board and their associated IDs:
+           ID             |  Label
+gggggggggggggggggggggggg  |  'Label One' (color1)
+iiiiiiiiiiiiiiiiiiiiiiii  |  'Label Three' (color3)
+Enter a label name ('q' to quit):\u0020
+This is not a valid label name for the selected board. Enter a label name ('q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 39
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    @patch("trello-team-sync.perform_request")
     def test_create_new_config_l(self, t_pr):
         """
         Test creating a new config file, valid label then quit
         """
-        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "q"]
-        expected_output = """Enter a label name ('q' to quit):\u0020
-Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "q"]
+        expected_output = """These are the labels from the selected board and their associated IDs:
+           ID             |  Label
+gggggggggggggggggggggggg  |  'Label One' (color1)
+iiiiiiiiiiiiiiiiiiiiiiii  |  'Label Three' (color3)
+Enter a label name ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Exiting...
 """
         expected_exception_code = 40
@@ -620,10 +650,13 @@ Exiting...
         """
         Test creating a new config file, valid label, invalid list ID then quit
         """
-        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "abc", "q"]
-        expected_output = """Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
-Invalid list ID, must be 24 characters. Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "abc", "q"]
+        expected_output = """Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
+Invalid list ID, must be 24 characters. Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Exiting...
 """
         expected_exception_code = 40
@@ -634,10 +667,13 @@ Exiting...
         """
         Test creating a new config file, valid label and list ID then quit
         """
-        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "q"]
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "q"]
         expected_output = """Enter a label name ('q' to quit):\u0020
-Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Exiting...
 """
@@ -649,10 +685,13 @@ Exiting...
         """
         Test creating a new config file, one valid label/list ID then error and quit
         """
-        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "abc", "q"]
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "abc", "q"]
         expected_output = """Enter a label name ('q' to quit):\u0020
-Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Exiting...
@@ -665,9 +704,12 @@ Exiting...
         """
         Test creating a new config file, one valid label/list ID then error and continue
         """
-        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "abc", "no"]
-        expected_output = """Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "abc", "no"]
+        expected_output = """Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
@@ -683,10 +725,13 @@ New configuration saved to file 'data/config_config-name.json'
         """
         Test creating a new config file, only one valid label/list ID
         """
-        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "no"]
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "no"]
         expected_output = """Enter a label name ('q' to quit):\u0020
-Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
 """
@@ -701,12 +746,15 @@ New configuration saved to file 'data/config_config-name.json'
         """
         Test creating a new config file, two valid labels/list IDs
         """
-        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label 1", "d"*24, "yes", "Label 2", "e"*24, "no"]
-        expected_output = """Enter the list ID you want to associate with label 'Label 1' ('q' to quit):\u0020
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label One", "d"*24, "yes", "Label Three", "e"*24, "no"]
+        expected_output = """Enter the list ID you want to associate with label 'Label One' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
-Enter the list ID you want to associate with label 'Label 2' ('q' to quit):\u0020
+Enter the list ID you want to associate with label 'Label Three' ('qOne to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
 """
@@ -721,8 +769,11 @@ New configuration saved to file 'data/config_config-name.json'
         """
         Test creating a new config file, two valid labels/list IDs
         """
-        t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label 1", "d"*24, "yes", "Label 2", "e"*24, "no"]
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label One", "d"*24, "yes", "Label Three", "e"*24, "no"]
         config_file = run_test_create_new_config(self, vals, None, None)
         self.assertTrue(os.path.isfile(config_file))
         with open(config_file, "r") as json_file:
@@ -735,8 +786,8 @@ New configuration saved to file 'data/config_config-name.json'
         self.assertEqual(config["token"], vals[1])
         self.assertEqual(config["master_board"], vals[2])
         self.assertEqual(len(config["slave_boards"]), 2)
-        self.assertEqual(len(config["slave_boards"]["Label 1"]), 1)
-        self.assertEqual(config["slave_boards"]["Label 1"]["backlog"], vals[5])
+        self.assertEqual(len(config["slave_boards"]["Label One"]), 1)
+        self.assertEqual(config["slave_boards"]["Label One"]["backlog"], vals[5])
 
 
 class TestLoadConfig(unittest.TestCase):

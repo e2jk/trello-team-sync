@@ -336,17 +336,32 @@ def create_new_config():
             sys.exit(38)
     config["name"] = config_name
 
+    # Get the labels associated with the master board
+    labels = perform_request(config, "GET", "boards/%s/labels" % master_board)
+    print("These are the labels from the selected board and their associated IDs:")
+    print("           ID             |  Label")
+    label_names = []
+    for l in labels:
+        if l["name"]:
+            # Only propose labels that have names
+            print("%s  |  '%s' (%s)" % (l["id"], l["name"], l["color"]))
+            label_names.append(l["name"])
+
     # Get labels and lists
     config["slave_boards"] = {}
-    #TODO: Get the labels and lists associated with the master board
     error_message = ""
     continue_label = "yes"
+    label = None
     while continue_label == "yes":
-        label = input("%sEnter a label name ('q' to quit): " % error_message)
-        if label.lower() == "q":
-            print("Exiting...")
-            sys.exit(39)
-        #TODO: check this is a valid label name
+        while not label:
+            label = input("%sEnter a label name ('q' to quit): " % error_message)
+            if label.lower() == "q":
+                print("Exiting...")
+                sys.exit(39)
+            elif label not in label_names:
+                # This is not the name of a label for this master board
+                label = None
+                error_message = "This is not a valid label name for the selected board. "
         config["slave_boards"][label] = {}
         # Get list ID to associate with this label
         error_message = ""
@@ -371,6 +386,7 @@ def create_new_config():
                 sys.exit(41)
             if continue_label not in ("yes", "no"):
                 continue_label = None
+            label = None
 
     config["multiple_teams"] = {}
     #TODO: Support labels that point to multiple lists ("multiple_teams")
