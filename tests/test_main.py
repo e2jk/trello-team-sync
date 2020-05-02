@@ -475,7 +475,7 @@ def run_test_create_new_config(self, vals, expected_output, expected_exception_c
         with contextlib.redirect_stdout(f):
             config_file = target.create_new_config()
     if expected_output:
-        self.assertEqual(expected_output, f.getvalue())
+        self.assertTrue(expected_output in f.getvalue())
     return config_file
 
 class TestCreateNewConfig(unittest.TestCase):
@@ -498,10 +498,7 @@ Exiting...
         Test creating a new config file, invalid key then quit
         """
         vals = ["abc", "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
+        expected_output = """Enter your Trello key ('q' to quit):\u0020
 Invalid Trello key, must be 32 characters. Enter your Trello key ('q' to quit):\u0020
 Exiting...
 """
@@ -513,10 +510,7 @@ Exiting...
         Test creating a new config file, valid key then quit
         """
         vals = ["a"*32, "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
+        expected_output = """Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
 Exiting...
 """
@@ -528,10 +522,7 @@ Exiting...
         Test creating a new config file, invalid token then quit
         """
         vals = ["a"*32, "abc", "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
+        expected_output = """Enter your Trello key ('q' to quit):\u0020
 Enter your Trello token ('q' to quit):\u0020
 Invalid Trello token, must be 64 characters. Enter your Trello token ('q' to quit):\u0020
 Exiting...
@@ -546,12 +537,7 @@ Exiting...
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
+        expected_output = """These are your boards and their associated IDs:
            ID             |  Name
 mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
 cccccccccccccccccccccccc  |  Board Two
@@ -568,12 +554,7 @@ Exiting...
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "abc", "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
+        expected_output = """These are your boards and their associated IDs:
            ID             |  Name
 mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
 cccccccccccccccccccccccc  |  Board Two
@@ -591,12 +572,7 @@ Exiting...
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "d"*24, "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
+        expected_output = """These are your boards and their associated IDs:
            ID             |  Name
 mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
 cccccccccccccccccccccccc  |  Board Two
@@ -614,12 +590,7 @@ Exiting...
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
+        expected_output = """These are your boards and their associated IDs:
            ID             |  Name
 mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
 cccccccccccccccccccccccc  |  Board Two
@@ -637,18 +608,7 @@ Exiting...
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
-           ID             |  Name
-mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
-cccccccccccccccccccccccc  |  Board Two
-Enter your master board ID ('q' to quit):\u0020
-Enter a name for this new configuration ('q' to quit):\u0020
-Enter a label name ('q' to quit):\u0020
+        expected_output = """Enter a label name ('q' to quit):\u0020
 Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
 Exiting...
 """
@@ -662,19 +622,7 @@ Exiting...
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "abc", "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
-           ID             |  Name
-mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
-cccccccccccccccccccccccc  |  Board Two
-Enter your master board ID ('q' to quit):\u0020
-Enter a name for this new configuration ('q' to quit):\u0020
-Enter a label name ('q' to quit):\u0020
-Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+        expected_output = """Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
 Invalid list ID, must be 24 characters. Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
 Exiting...
 """
@@ -688,18 +636,7 @@ Exiting...
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
-           ID             |  Name
-mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
-cccccccccccccccccccccccc  |  Board Two
-Enter your master board ID ('q' to quit):\u0020
-Enter a name for this new configuration ('q' to quit):\u0020
-Enter a label name ('q' to quit):\u0020
+        expected_output = """Enter a label name ('q' to quit):\u0020
 Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Exiting...
@@ -714,18 +651,7 @@ Exiting...
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "abc", "q"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
-           ID             |  Name
-mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
-cccccccccccccccccccccccc  |  Board Two
-Enter your master board ID ('q' to quit):\u0020
-Enter a name for this new configuration ('q' to quit):\u0020
-Enter a label name ('q' to quit):\u0020
+        expected_output = """Enter a label name ('q' to quit):\u0020
 Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
@@ -741,19 +667,7 @@ Exiting...
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "abc", "no"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
-           ID             |  Name
-mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
-cccccccccccccccccccccccc  |  Board Two
-Enter your master board ID ('q' to quit):\u0020
-Enter a name for this new configuration ('q' to quit):\u0020
-Enter a label name ('q' to quit):\u0020
-Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
+        expected_output = """Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
@@ -771,18 +685,7 @@ New configuration saved to file 'data/config_config-name.json'
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label", "d"*24, "no"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
-           ID             |  Name
-mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
-cccccccccccccccccccccccc  |  Board Two
-Enter your master board ID ('q' to quit):\u0020
-Enter a name for this new configuration ('q' to quit):\u0020
-Enter a label name ('q' to quit):\u0020
+        expected_output = """Enter a label name ('q' to quit):\u0020
 Enter the list ID you want to associate with label 'Label' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
@@ -800,19 +703,7 @@ New configuration saved to file 'data/config_config-name.json'
         """
         t_pr.return_value = [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label 1", "d"*24, "yes", "Label 2", "e"*24, "no"]
-        expected_output = """Welcome to the new configuration assistant.
-Trello key and token can be created at https://trello.com/app-key
-Please:
-Enter your Trello key ('q' to quit):\u0020
-Enter your Trello token ('q' to quit):\u0020
-These are your boards and their associated IDs:
-           ID             |  Name
-mmmmmmmmmmmmmmmmmmmmmmmm  |  Board One
-cccccccccccccccccccccccc  |  Board Two
-Enter your master board ID ('q' to quit):\u0020
-Enter a name for this new configuration ('q' to quit):\u0020
-Enter a label name ('q' to quit):\u0020
-Enter the list ID you want to associate with label 'Label 1' ('q' to quit):\u0020
+        expected_output = """Enter the list ID you want to associate with label 'Label 1' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
 Enter the list ID you want to associate with label 'Label 2' ('q' to quit):\u0020
