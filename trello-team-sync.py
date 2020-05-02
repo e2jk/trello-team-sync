@@ -11,9 +11,20 @@ import os
 import sys
 import re
 from slugify import slugify
+import readline
 
 METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
 METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
+
+def rlinput(prompt, prefill=''):
+    """Provide an editable input string
+    Inspired from https://stackoverflow.com/a/36607077
+    """
+    readline.set_startup_hook(lambda: readline.insert_text(prefill))
+    try:
+        return input(prompt)
+    finally:
+        readline.set_startup_hook()
 
 def output_summary(args, summary):
     if not summary:
@@ -324,13 +335,18 @@ def create_new_config():
             master_board = None
             error_message = "This is not the ID of one of the boards you have access to. "
     config["master_board"] = master_board
+    board_name = None
+    for b in boards:
+        if b["id"] == master_board:
+            board_name = b["name"]
+            break
 
     # Config name
     error_message = ""
     config_name = None
-    #TODO: Propose the board name as config name
     while not config_name:
-        config_name = input("%sEnter a name for this new configuration ('q' to quit): " % error_message)
+        # Propose the board name as config name
+        config_name = rlinput("%sEnter a name for this new configuration ('q' to quit): " % error_message, board_name)
         if config_name.lower() == "q":
             print("Exiting...")
             sys.exit(38)
