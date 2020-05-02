@@ -335,11 +335,20 @@ def create_new_config():
             master_board = None
             error_message = "This is not the ID of one of the boards you have access to. "
     config["master_board"] = master_board
+
+    # Get the name of the selected board, and the lists associated with the other boards
     board_name = None
+    lists_from_other_boards = []
+    lists_output = ""
     for b in boards:
         if b["id"] == master_board:
             board_name = b["name"]
-            break
+        else:
+            lists_output += "\n\nLists from board '%s':\n           ID             |  Name" % b["name"]
+            boards_lists = perform_request(config, "GET", "boards/%s/lists" % b["id"])
+            for l in boards_lists:
+                lists_from_other_boards.append(l["id"])
+                lists_output += "\n%s  |  '%s' (from board '%s')" % (l["id"], l["name"], b["name"])
 
     # Config name
     error_message = ""
@@ -363,7 +372,7 @@ def create_new_config():
             print("%s  |  '%s' (%s)" % (l["id"], l["name"], l["color"]))
             label_names.append(l["name"])
 
-    # Get labels and lists
+    # Associate labels with lists
     config["slave_boards"] = {}
     error_message = ""
     continue_label = "yes"
@@ -375,14 +384,13 @@ def create_new_config():
                 print("Exiting...")
                 sys.exit(39)
             elif label not in label_names:
-                # This is not the name of a label for this master board
                 label = None
                 error_message = "This is not a valid label name for the selected board. "
         config["slave_boards"][label] = {}
         # Get list ID to associate with this label
         error_message = ""
         list_id = None
-        #TODO: Get all the lists associated with the passed Trello credentials
+        print("These are the lists associated to the other boards:\n%s" % lists_output)
         while not list_id:
             list_id = input("%sEnter the list ID you want to associate with label '%s' ('q' to quit): " % (error_message, label))
             if list_id.lower() == "q":

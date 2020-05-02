@@ -610,6 +610,7 @@ Exiting...
         """
         t_pr.side_effect = [
         [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+        [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
         [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Invalid label", "q"]
@@ -630,7 +631,9 @@ Exiting...
         Test creating a new config file, valid label then quit
         """
         t_pr.side_effect = [
-            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}, {"name": "Board Three", "id": "u"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
+            [{"name": "List Three", "id": "f"*24}, {"name": "List Four", "id": "q"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "q"]
@@ -639,6 +642,18 @@ Exiting...
 gggggggggggggggggggggggg  |  'Label One' (color1)
 iiiiiiiiiiiiiiiiiiiiiiii  |  'Label Three' (color3)
 Enter a label name ('q' to quit):\u0020
+These are the lists associated to the other boards:
+
+
+Lists from board 'Board One':
+           ID             |  Name
+dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
+eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
+
+Lists from board 'Board Three':
+           ID             |  Name
+ffffffffffffffffffffffff  |  'List Three' (from board 'Board Three')
+qqqqqqqqqqqqqqqqqqqqqqqq  |  'List Four' (from board 'Board Three')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Exiting...
 """
@@ -652,6 +667,7 @@ Exiting...
         """
         t_pr.side_effect = [
             [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "abc", "q"]
@@ -669,10 +685,18 @@ Exiting...
         """
         t_pr.side_effect = [
             [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "q"]
         expected_output = """Enter a label name ('q' to quit):\u0020
+These are the lists associated to the other boards:
+
+
+Lists from board 'Board One':
+           ID             |  Name
+dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
+eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Exiting...
@@ -687,10 +711,18 @@ Exiting...
         """
         t_pr.side_effect = [
             [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "abc", "q"]
         expected_output = """Enter a label name ('q' to quit):\u0020
+These are the lists associated to the other boards:
+
+
+Lists from board 'Board One':
+           ID             |  Name
+dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
+eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
@@ -706,6 +738,7 @@ Exiting...
         """
         t_pr.side_effect = [
             [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "abc", "no"]
@@ -727,10 +760,18 @@ New configuration saved to file 'data/config_config-name.json'
         """
         t_pr.side_effect = [
             [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "no"]
         expected_output = """Enter a label name ('q' to quit):\u0020
+These are the lists associated to the other boards:
+
+
+Lists from board 'Board One':
+           ID             |  Name
+dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
+eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
@@ -748,13 +789,21 @@ New configuration saved to file 'data/config_config-name.json'
         """
         t_pr.side_effect = [
             [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label One", "d"*24, "yes", "Label Three", "e"*24, "no"]
         expected_output = """Enter the list ID you want to associate with label 'Label One' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Enter a label name ('q' to quit):\u0020
-Enter the list ID you want to associate with label 'Label Three' ('qOne to quit):\u0020
+These are the lists associated to the other boards:
+
+
+Lists from board 'Board One':
+           ID             |  Name
+dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
+eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
+Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
 """
@@ -771,6 +820,7 @@ New configuration saved to file 'data/config_config-name.json'
         """
         t_pr.side_effect = [
             [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
         vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label One", "d"*24, "yes", "Label Three", "e"*24, "no"]
