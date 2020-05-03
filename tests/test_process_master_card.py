@@ -216,6 +216,51 @@ class TestProcessMasterCard(unittest.TestCase):
         self.assertEqual(cm.output, expected)
         target.args = None
 
+    @patch("trello-team-sync.perform_request")
+    def test_process_master_card_one_label_wet_run_no_checklist(self, t_pr):
+        """
+        Test processing a new master card with one recognized label, no dry_run, without a checklist
+        """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
+        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+            "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
+        master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
+            "labels": [{"name": "Label One"}], "badges": {"attachments": 0},
+            "shortUrl": "https://trello.com/c/eoK0Rngb",
+            "url": "https://trello.com/c/eoK0Rngb/blablabla"}
+        t_pr.side_effect = [{"id": "b"*24, "name": "Slave card One",
+                "idBoard": "k"*24, "idList": "l"*24,
+                "url": "https://trello.com/c/abcd1234/blablabla2"},
+            {},
+            {},
+            {"name": "Board name"},
+            {"name": "List name"},
+            {},
+            [],
+            {"id": "w"*24, "name": "New Checklist"},
+            {"name": "New Checklist item"}]
+        with self.assertLogs(level='DEBUG') as cm:
+            output = target.process_master_card(config, master_card)
+        self.assertEqual(output, (1, 1, 1))
+        expected = ['DEBUG:root:================================================================',
+            "DEBUG:root:Process master card 'Card name'",
+            'DEBUG:root:Master card is to be synced on 1 slave boards (Label One)',
+            'DEBUG:root:Creating new slave card',
+            'DEBUG:root:New slave card ID: bbbbbbbbbbbbbbbbbbbbbbbb',
+            'DEBUG:root:Attaching master card tttttttttttttttttttttttt to slave card bbbbbbbbbbbbbbbbbbbbbbbb',
+            'DEBUG:root:Attaching slave card bbbbbbbbbbbbbbbbbbbbbbbb to master card tttttttttttttttttttttttt',
+            "DEBUG:root:New master card metadata: \n- 'Slave card One' on list '**Board name|List name**'",
+            'INFO:root:This master card has 1 slave cards (1 newly created)',
+            'DEBUG:root:Updating master card metadata',
+            "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'",
+            "DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
+            "DEBUG:root:Creating new checklist",
+            "DEBUG:root:{'id': 'wwwwwwwwwwwwwwwwwwwwwwww', 'name': 'New Checklist'}",
+            "DEBUG:root:Adding new checklistitem Label One to checklist wwwwwwwwwwwwwwwwwwwwwwww",
+            "DEBUG:root:{'name': 'New Checklist item'}"]
+        self.assertEqual(cm.output, expected)
+        target.args = None
+
 
 if __name__ == '__main__':
     unittest.main()
