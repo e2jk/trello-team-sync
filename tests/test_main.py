@@ -15,6 +15,7 @@ from unittest.mock import patch
 from unittest.mock import call
 import io
 import contextlib
+import inspect
 
 sys.path.append('.')
 target = __import__("trello-team-sync")
@@ -336,104 +337,112 @@ class TestPerformRequest(unittest.TestCase):
         """
         Test performing a GET request
         """
-        target.args = type("blabla", (object,), {"dry_run": False})()
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
         config = {"key": "ghi", "token": "jkl"}
         target.perform_request(config, "GET", "cards/a1b2c3d4")
         expected = [call('GET', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
+        target.args = None
 
     @patch("requests.request")
     def test_perform_request_get_dry_run(self, r_r):
         """
         Test performing a GET request with --dry-run
         """
-        target.args = type("blabla", (object,), {"dry_run": True})()
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         config = {"key": "ghi", "token": "jkl"}
         target.perform_request(config, "GET", "cards/a1b2c3d4")
         expected = [call('GET', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
+        target.args = None
 
     @patch("requests.request")
     def test_perform_request_post(self, r_r):
         """
         Test performing a POST request
         """
-        target.args = type("blabla", (object,), {"dry_run": False})()
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
         config = {"key": "ghi", "token": "jkl"}
         target.perform_request(config, "POST", "cards/a1b2c3d4", {"abc": "def"})
         expected = [call('POST', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params={'abc': 'def'}),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
+        target.args = None
 
     @patch("requests.request")
     def test_perform_request_post_dry_run(self, r_r):
         """
         Test performing a POST request with --dry-run
         """
-        target.args = type("blabla", (object,), {"dry_run": True})()
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         config = {"key": "ghi", "token": "jkl"}
         with self.assertLogs(level='DEBUG') as cm:
             target.perform_request(config, "POST", "cards/a1b2c3d4", {"abc": "def"})
         self.assertEqual(cm.output, ["DEBUG:root:Skipping POST call to 'https://api.trello.com/1/cards/a1b2c3d4' due to --dry-run parameter"])
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
+        target.args = None
 
     @patch("requests.request")
     def test_perform_request_put(self, r_r):
         """
         Test performing a PUT request
         """
-        target.args = type("blabla", (object,), {"dry_run": False})()
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
         config = {"key": "ghi", "token": "jkl"}
         target.perform_request(config, "PUT", "cards/a1b2c3d4", {"abc": "def"})
         expected = [call('PUT', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params={'abc': 'def'}),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
+        target.args = None
 
     @patch("requests.request")
     def test_perform_request_put_dry_run(self, r_r):
         """
         Test performing a PUT request with --dry-run
         """
-        target.args = type("blabla", (object,), {"dry_run": True})()
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         config = {"key": "ghi", "token": "jkl"}
         with self.assertLogs(level='DEBUG') as cm:
             target.perform_request(config, "PUT", "cards/a1b2c3d4", {"abc": "def"})
         self.assertEqual(cm.output, ["DEBUG:root:Skipping PUT call to 'https://api.trello.com/1/cards/a1b2c3d4' due to --dry-run parameter"])
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
+        target.args = None
 
     @patch("requests.request")
     def test_perform_request_delete(self, r_r):
         """
         Test performing a DELETE request
         """
-        target.args = type("blabla", (object,), {"dry_run": False})()
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
         config = {"key": "ghi", "token": "jkl"}
         target.perform_request(config, "DELETE", "cards/a1b2c3d4")
         expected = [call('DELETE', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
+        target.args = None
 
     @patch("requests.request")
     def test_perform_request_delete_dry_run(self, r_r):
         """
         Test performing a DELETE request with --dry-run
         """
-        target.args = type("blabla", (object,), {"dry_run": True})()
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         config = {"key": "ghi", "token": "jkl"}
         with self.assertLogs(level='DEBUG') as cm:
             target.perform_request(config, "DELETE", "cards/a1b2c3d4")
         self.assertEqual(cm.output, ["DEBUG:root:Skipping DELETE call to 'https://api.trello.com/1/cards/a1b2c3d4' due to --dry-run parameter"])
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
+        target.args = None
 
 
 class TestCreateNewSlaveCard(unittest.TestCase):

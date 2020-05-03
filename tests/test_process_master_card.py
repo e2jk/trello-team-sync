@@ -10,6 +10,7 @@ import unittest
 import sys
 from unittest.mock import patch
 from unittest.mock import call
+import inspect
 
 sys.path.append('.')
 target = __import__("trello-team-sync")
@@ -52,6 +53,7 @@ class TestProcessMasterCard(unittest.TestCase):
         """
         Test processing a new master card with one recognized label
         """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
@@ -81,11 +83,13 @@ class TestProcessMasterCard(unittest.TestCase):
             'DEBUG:root:Updating master card metadata',
             "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
         self.assertEqual(cm.output, expected)
+        target.args = None
 
     def test_process_master_card_label_multiple(self):
         """
         Test processing a new master card with one label that maps to multiple lists
         """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         config = {"key": "ghi", "token": "jkl",
             "slave_boards": {
                 "Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"},
@@ -108,11 +112,13 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:Skipping POST call to 'https://api.trello.com/1/cards' due to --dry-run parameter",
             'INFO:root:This master card has 2 slave cards (2 newly created)']
         self.assertEqual(cm.output, expected)
+        target.args = None
 
     def test_process_master_card_label_multiple_and_duplicate_single(self):
         """
         Test processing a new master card with one label that maps to multiple lists and another single label that was already in the multiple list
         """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         config = {"key": "ghi", "token": "jkl",
             "slave_boards": {
                 "Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"},
@@ -135,12 +141,14 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:Skipping POST call to 'https://api.trello.com/1/cards' due to --dry-run parameter",
             'INFO:root:This master card has 2 slave cards (2 newly created)']
         self.assertEqual(cm.output, expected)
+        target.args = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_dummy_attachment(self, t_pr):
         """
         Test processing a new master card with one non-Trello attachment
         """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
@@ -172,12 +180,14 @@ class TestProcessMasterCard(unittest.TestCase):
             'DEBUG:root:Updating master card metadata',
             "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
         self.assertEqual(cm.output, expected)
+        target.args = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_attachment(self, t_pr):
         """
         Test processing a new master card with one Trello attachment
         """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
@@ -204,6 +214,7 @@ class TestProcessMasterCard(unittest.TestCase):
             'DEBUG:root:Updating master card metadata',
             "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
         self.assertEqual(cm.output, expected)
+        target.args = None
 
 
 if __name__ == '__main__':
