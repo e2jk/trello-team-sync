@@ -436,6 +436,26 @@ class TestPerformRequest(unittest.TestCase):
         self.assertEqual(r_r.mock_calls, [])
 
 
+class TestCreateNewSlaveCard(unittest.TestCase):
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_slave_card(self, t_pr):
+        """
+        Test creating a new card
+        """
+        config = {"key": "ghi", "token": "jkl"}
+        master_card = {"id": "1a2b3c", "desc": "abc", "shortUrl": "https://trello.com/c/eoK0Rngb"}
+        slave_board = {"lists": {"backlog": "a"*24}}
+        t_pr.return_value = {"id": "b"*24}
+        card = target.create_new_slave_card(config, master_card, slave_board)
+        expected = [call({'key': 'ghi', 'token': 'jkl'}, 'POST', 'cards',
+            {'idList': 'aaaaaaaaaaaaaaaaaaaaaaaa',
+            'desc': 'abc\n\nCreated from master card https://trello.com/c/eoK0Rngb',
+            'pos': 'bottom', 'idCardSource': '1a2b3c',
+            'keepFromSource ': 'attachments,checklists,comments,due,stickers'})]
+        self.assertEqual(t_pr.mock_calls, expected)
+        self.assertEqual(card, t_pr.return_value)
+
+
 class TestGlobals(unittest.TestCase):
     def test_globals_metadata_phrase(self):
         """
