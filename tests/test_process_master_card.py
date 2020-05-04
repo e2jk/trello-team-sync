@@ -68,6 +68,7 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "Board name"},
             {"name": "List name"},
             {}]
+        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(config, master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -164,6 +165,7 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "Board name"},
             {"name": "List name"},
             {}]
+        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(config, master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -269,6 +271,7 @@ class TestProcessMasterCard(unittest.TestCase):
             [],
             {"id": "w"*24, "name": "New checklist"},
             {"name": "New checklist item"}]
+        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(config, master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -303,6 +306,7 @@ class TestProcessMasterCard(unittest.TestCase):
             [{"name": "Unrelated checklist"}],
             {"id": "w"*24, "name": "New checklist"},
             {"name": "New checklist item"}]
+        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(config, master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -336,6 +340,7 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "List name"},
             {},
             [{"name": "Involved Teams"}]]
+        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(config, master_card)
         self.assertEqual(output, (1, 1, 1))
