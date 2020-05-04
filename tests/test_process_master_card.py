@@ -242,23 +242,12 @@ class TestProcessMasterCard(unittest.TestCase):
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(config, master_card)
         self.assertEqual(output, (1, 1, 1))
-        expected = ['DEBUG:root:================================================================',
-            "DEBUG:root:Process master card 'Card name'",
-            'DEBUG:root:Master card is to be synced on 1 slave boards (Label One)',
-            'DEBUG:root:Creating new slave card',
-            'DEBUG:root:New slave card ID: bbbbbbbbbbbbbbbbbbbbbbbb',
-            'DEBUG:root:Attaching master card tttttttttttttttttttttttt to slave card bbbbbbbbbbbbbbbbbbbbbbbb',
-            'DEBUG:root:Attaching slave card bbbbbbbbbbbbbbbbbbbbbbbb to master card tttttttttttttttttttttttt',
-            "DEBUG:root:New master card metadata: \n- 'Slave card One' on list '**Board name|List name**'",
-            'INFO:root:This master card has 1 slave cards (1 newly created)',
-            'DEBUG:root:Updating master card metadata',
-            "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'",
-            "DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
+        expected = "\n".join(["DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
             "DEBUG:root:Creating new checklist",
             "DEBUG:root:{'id': 'wwwwwwwwwwwwwwwwwwwwwwww', 'name': 'New Checklist'}",
             "DEBUG:root:Adding new checklistitem Label One to checklist wwwwwwwwwwwwwwwwwwwwwwww",
-            "DEBUG:root:{'name': 'New Checklist item'}"]
-        self.assertEqual(cm.output, expected)
+            "DEBUG:root:{'name': 'New Checklist item'}"])
+        self.assertTrue(expected in "\n".join(cm.output))
         target.args = None
 
 
