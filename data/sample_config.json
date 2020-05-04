@@ -5,7 +5,7 @@
   "master_board": "ghi",
   "slave_boards": {
     "Label One": {
-      "backlog": "aaa",
+      "backlog": "a1a1a1a1a1a1a1a1a1a1a1a1",
       "in_progress": "bbb",
       "complete": "ccc"
     },

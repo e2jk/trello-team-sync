@@ -528,13 +528,13 @@ def init():
             # Delete all the master card attachments and cards on the slave boards
             summary = cleanup_test_boards(config, master_cards)
         elif args.propagate:
-            summary = {"active_master_cards": 0, "slave_card": 0, "new_slave_card": 0}
+            summary = {"master_cards": 0, "active_master_cards": 0, "slave_card": 0, "new_slave_card": 0}
             if args.card:
                 # Validate that this specific card is on the master board
                 try:
                     master_card = perform_request(config, "GET", "cards/%s" % args.card)
                 except requests.exceptions.HTTPError:
-                    logging.critical("Invalid card ID %s. Exiting..." % args.card)
+                    logging.critical("Invalid card ID %s, card not found. Exiting..." % args.card)
                     sys.exit(33)
                 if master_card["idBoard"] == config["master_board"]:
                     logging.debug("Card %s/%s is on the master board" % (master_card["id"], master_card["shortLink"]))

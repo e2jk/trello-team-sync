@@ -442,7 +442,7 @@ class TestLoadConfig(unittest.TestCase):
         self.assertEqual(config["master_board"], "ghi")
         self.assertEqual(len(config["slave_boards"]), 2)
         self.assertEqual(len(config["slave_boards"]["Label One"]), 3)
-        self.assertEqual(config["slave_boards"]["Label One"]["backlog"], "aaa")
+        self.assertEqual(config["slave_boards"]["Label One"]["backlog"], "a1a1a1a1a1a1a1a1a1a1a1a1")
         self.assertEqual(len(config["multiple_teams"]), 1)
         self.assertEqual(len(config["multiple_teams"]["All Teams"]), 2)
         self.assertEqual(config["multiple_teams"]["All Teams"][0], "Label One")
