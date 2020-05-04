@@ -161,6 +161,147 @@ class TestGetCardAttachments(unittest.TestCase):
         self.assertEqual(card_attachments, expected_card_attachments)
 
 
+class TestCleanupTestBoards(unittest.TestCase):
+    @patch("trello-team-sync.perform_request")
+    def test_cleanup_test_boards_none(self, t_pr):
+        """
+        Test cleaning up the test boards when there is no master card and no cards on the slave lists
+        """
+        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+            "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
+        master_cards = []
+        t_pr.return_value = []
+        with self.assertLogs(level='DEBUG') as cm:
+            summary = target.cleanup_test_boards(config, master_cards)
+        self.assertEqual(summary, {"cleaned_up_master_cards": 0,
+            "deleted_slave_cards": 0,
+            "erased_slave_boards": 0,
+            "erased_slave_lists": 0})
+        expected = ["DEBUG:root:Removing slave cards attachments on the master cards",
+            "DEBUG:root:Deleting slave cards",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|backlog (list 1/3)",
+            "DEBUG:root:[]",
+            "DEBUG:root:List Label One/backlog has 0 cards to delete",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|in_progress (list 2/3)",
+            "DEBUG:root:[]",
+            "DEBUG:root:List Label One/in_progress has 0 cards to delete",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|complete (list 3/3)",
+            "DEBUG:root:[]",
+            "DEBUG:root:List Label One/complete has 0 cards to delete"]
+        self.assertEqual(cm.output, expected)
+
+    @patch("trello-team-sync.perform_request")
+    def test_cleanup_test_boards_no_mc_yes_sc(self, t_pr):
+        """
+        Test cleaning up the test boards when there is no master card and cards on the slave lists
+        """
+        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+            "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
+        master_cards = []
+        t_pr.return_value = [{"id": "u"*24}]
+        with self.assertLogs(level='DEBUG') as cm:
+            summary = target.cleanup_test_boards(config, master_cards)
+        self.assertEqual(summary, {"cleaned_up_master_cards": 0,
+            "deleted_slave_cards": 3,
+            "erased_slave_boards": 1,
+            "erased_slave_lists": 3})
+        expected = ["DEBUG:root:Removing slave cards attachments on the master cards",
+            "DEBUG:root:Deleting slave cards",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|backlog (list 1/3)",
+            "DEBUG:root:[{'id': 'uuuuuuuuuuuuuuuuuuuuuuuu'}]",
+            "DEBUG:root:List Label One/backlog has 1 cards to delete",
+            "DEBUG:root:Deleting slave card uuuuuuuuuuuuuuuuuuuuuuuu",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|in_progress (list 2/3)",
+            "DEBUG:root:[{'id': 'uuuuuuuuuuuuuuuuuuuuuuuu'}]",
+            "DEBUG:root:List Label One/in_progress has 1 cards to delete",
+            "DEBUG:root:Deleting slave card uuuuuuuuuuuuuuuuuuuuuuuu",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|complete (list 3/3)",
+            "DEBUG:root:[{'id': 'uuuuuuuuuuuuuuuuuuuuuuuu'}]",
+            "DEBUG:root:List Label One/complete has 1 cards to delete",
+            "DEBUG:root:Deleting slave card uuuuuuuuuuuuuuuuuuuuuuuu"]
+        self.assertEqual(cm.output, expected)
+
+    @patch("trello-team-sync.perform_request")
+    def test_cleanup_test_boards_master_card_no_attach(self, t_pr):
+        """
+        Test cleaning up the test boards with a master card without attachment
+        """
+        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+            "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
+        master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
+            "badges": {"attachments": 0}}]
+        t_pr.return_value = []
+        with self.assertLogs(level='DEBUG') as cm:
+            summary = target.cleanup_test_boards(config, master_cards)
+        self.assertEqual(summary, {"cleaned_up_master_cards": 0,
+            "deleted_slave_cards": 0,
+            "erased_slave_boards": 0,
+            "erased_slave_lists": 0})
+        expected = ["DEBUG:root:Removing slave cards attachments on the master cards",
+            "DEBUG:root:================================================================",
+            "INFO:root:Cleaning up master card 1/1 - Card name",
+            "DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
+            "DEBUG:root:Deleting slave cards",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|backlog (list 1/3)",
+            "DEBUG:root:[]",
+            "DEBUG:root:List Label One/backlog has 0 cards to delete",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|in_progress (list 2/3)",
+            "DEBUG:root:[]",
+            "DEBUG:root:List Label One/in_progress has 0 cards to delete",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|complete (list 3/3)",
+            "DEBUG:root:[]",
+            "DEBUG:root:List Label One/complete has 0 cards to delete"]
+        self.assertEqual(cm.output, expected)
+
+    @patch("trello-team-sync.perform_request")
+    def test_cleanup_test_boards_master_card_attach(self, t_pr):
+        """
+        Test cleaning up the test boards with a master card with related attachment
+        """
+        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+            "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
+        master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
+            "badges": {"attachments": 1}}]
+        t_pr.side_effect = [[{"id": "a"*24, "url": "https://trello.com/c/eoK0Rngb/blablabla"}],
+            {}, [{"id": "b"*24, "name": "Involved Teams"}], {}, [], [], []]
+        with self.assertLogs(level='DEBUG') as cm:
+            summary = target.cleanup_test_boards(config, master_cards)
+        self.assertEqual(summary, {"cleaned_up_master_cards": 1,
+            "deleted_slave_cards": 0,
+            "erased_slave_boards": 0,
+            "erased_slave_lists": 0})
+        expected = ["DEBUG:root:Removing slave cards attachments on the master cards",
+            "DEBUG:root:================================================================",
+            "INFO:root:Cleaning up master card 1/1 - Card name",
+            "DEBUG:root:Getting 1 attachments on master card tttttttttttttttttttttttt",
+            "DEBUG:root:Deleting attachment aaaaaaaaaaaaaaaaaaaaaaaa from master card tttttttttttttttttttttttt",
+            "DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
+            "DEBUG:root:Deleting checklist Involved Teams (bbbbbbbbbbbbbbbbbbbbbbbb) from master card tttttttttttttttttttttttt",
+            "DEBUG:root:Deleting slave cards",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|backlog (list 1/3)",
+            "DEBUG:root:[]",
+            "DEBUG:root:List Label One/backlog has 0 cards to delete",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|in_progress (list 2/3)",
+            "DEBUG:root:[]",
+            "DEBUG:root:List Label One/in_progress has 0 cards to delete",
+            "DEBUG:root:================================================================",
+            "DEBUG:root:Retrieve cards from list Label One|complete (list 3/3)",
+            "DEBUG:root:[]",
+            "DEBUG:root:List Label One/complete has 0 cards to delete"]
+        self.assertEqual(cm.output, expected)
+
+
 class TestUpdateMasterCardMetadata(unittest.TestCase):
     @patch("trello-team-sync.perform_request")
     def test_update_master_card_metadata_both_none(self, t_pr):
