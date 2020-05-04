@@ -13,6 +13,7 @@ import json
 from unittest.mock import patch
 import io
 import contextlib
+from pathlib import Path
 
 sys.path.append('.')
 target = __import__("trello-team-sync")
@@ -349,6 +350,27 @@ New configuration saved to file 'data/config_config-name.json'
         self.assertTrue(os.path.isfile(config_file))
         # Delete the temporary file
         os.remove(config_file)
+
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_existing_filename(self, t_pr):
+        """
+        Test creating a new config file when there was already a config file with the same filename
+        """
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "no"]
+        existing_config_file = "data/config_config-name.json"
+        Path(existing_config_file).touch()
+        expected_output = "New configuration saved to file 'data/config_config-name.json.nxt'"
+        expected_exception_code = None
+        config_file = run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+        self.assertTrue(os.path.isfile(config_file))
+        # Delete the temporary files
+        os.remove(config_file)
+        os.remove(existing_config_file)
 
     @patch("trello-team-sync.perform_request")
     def test_create_new_config_two_label_list(self, t_pr):
