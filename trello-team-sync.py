@@ -178,7 +178,7 @@ def create_new_slave_card(config, master_card, slave_board):
        "pos": "bottom",
        "idCardSource": master_card["id"],
         # Explicitly don't keep labels,members
-        "keepFromSource ": "attachments,checklists,comments,due,stickers"
+        "keepFromSource": "attachments,checklists,comments,due,stickers"
     }
     new_slave_card = perform_request(config, "POST", "cards", query)
     if new_slave_card:

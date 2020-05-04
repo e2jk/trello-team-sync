@@ -612,7 +612,7 @@ class TestCreateNewSlaveCard(unittest.TestCase):
             {'idList': 'aaaaaaaaaaaaaaaaaaaaaaaa',
             'desc': 'abc\n\nCreated from master card https://trello.com/c/eoK0Rngb',
             'pos': 'bottom', 'idCardSource': '1a2b3c',
-            'keepFromSource ': 'attachments,checklists,comments,due,stickers'})]
+            'keepFromSource': 'attachments,checklists,comments,due,stickers'})]
         self.assertEqual(t_pr.mock_calls, expected)
         self.assertEqual(card, t_pr.return_value)
 
