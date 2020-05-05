@@ -429,6 +429,31 @@ def create_new_config():
     print("New configuration saved to file '%s'" % config_file)
     return config_file
 
+def new_webhook():
+    logging.debug("Creating a new webhook for master board %s" % config["master_board"])
+    query = {
+        #TODO: direct to our future web enpoint
+        #TODO: pass config filename for easier retrieval when processing a webhook
+        "callbackURL": "https://webhook.site/04b7baf0-1a59-41e2-b41a-245abeabc847?c=config",
+        "idModel": config["master_board"]
+    }
+    webhooks = perform_request(config, "POST", "webhooks", query)
+    logging.debug(json.dumps(webhooks, indent=2))
+
+def list_webhooks():
+    logging.debug("Existing webhooks:")
+    webhooks = perform_request(config, "GET", "tokens/%s/webhooks" % config["token"])
+    logging.debug(json.dumps(webhooks, indent=2))
+    return webhooks
+
+def delete_webhook():
+    logging.debug("Delete existing webhook for master board %s" % config["master_board"])
+    for w in list_webhooks():
+        if w["idModel"] == config["master_board"]:
+            # Delete the webhook for that config's master model
+            perform_request(config, "DELETE", "webhooks/%s" % w["id"])
+            logging.debug("Webhook %s deleted" % w["id"])
+
 def load_config(config_file):
     logging.debug("Loading configuration %s" % config_file)
     with open(config_file, "r") as json_file:
@@ -444,6 +469,7 @@ def parse_args(arguments):
     group.add_argument("-p", "--propagate", action='store_true', required=False, help="Propagate the master cards to the slave boards")
     group.add_argument("-cu", "--cleanup", action='store_true', required=False, help="Clean up all master cards and delete all cards from the slave boards (ONLY TO BE USED IN DEMO MODE)")
     group.add_argument("-nc", "--new-config", action='store_true', required=False, help="Create a new configuration file")
+    group.add_argument("-w", "--webhook", choices=["new", "list", "delete"], action='store', required=False, help="Create new, list or delete existing webhooks")
 
     # These arguments are only to be used in conjunction with --propagate
     parser.add_argument("-c", "--card", action='store', required=False, help="Specify which master card to propagate. Only to be used in conjunction with --propagate")
@@ -501,8 +527,10 @@ def parse_args(arguments):
 
 def init():
     if __name__ == "__main__":
+        # Define as global variable to be used without passing to all functions
+        global args
+        global config
         # Parse the provided command-line arguments
-        global args # Define as global variable to be used without passing to all functions
         args = parse_args(sys.argv[1:])
 
         config_file = args.config
@@ -577,6 +605,13 @@ def init():
                     summary["active_master_cards"] += output[0]
                     summary["slave_card"] += output[1]
                     summary["new_slave_card"] += output[2]
+        elif args.webhook:
+            if args.webhook == "new":
+                new_webhook()
+            elif args.webhook == "list":
+                list_webhooks()
+            elif args.webhook == "delete":
+                delete_webhook()
         output_summary(args, summary)
 
 init()

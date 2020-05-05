@@ -631,16 +631,112 @@ class TestGlobals(unittest.TestCase):
         self.assertEqual(target.METADATA_SEPARATOR, "\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n")
 
 
+class TestNewWebhook(unittest.TestCase):
+    @patch("trello-team-sync.perform_request")
+    def test_new_webhook(self, t_pr):
+        """
+        Test creating a new webhook
+        """
+        target.config = {"master_board": "cde"}
+        t_pr.return_value = {}
+        target.new_webhook()
+        expected = [call({'master_board': 'cde'}, 'POST', 'webhooks', {'callbackURL': 'https://webhook.site/04b7baf0-1a59-41e2-b41a-245abeabc847?c=config', 'idModel': 'cde'})]
+        self.assertEqual(t_pr.mock_calls, expected)
+        target.config = None
+
+
+class TestListWebhooks(unittest.TestCase):
+    @patch("trello-team-sync.perform_request")
+    def test_list_webhooks(self, t_pr):
+        """
+        Test listing webhooks
+        """
+        target.config = {"key": "ghi", "token": "jkl"}
+        t_pr.return_value = {"dummy": "list"}
+        webhooks = target.list_webhooks()
+        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks')]
+        self.assertEqual(t_pr.mock_calls, expected)
+        self.assertEqual(webhooks, t_pr.return_value)
+        target.config = None
+
+
+class TestDeleteWebhook(unittest.TestCase):
+    @patch("trello-team-sync.perform_request")
+    def test_delete_webhook_none(self, t_pr):
+        """
+        Test deleting this board's webhook when no webhook exists
+        """
+        target.config = {"key": "ghi", "token": "jkl", "master_board": "cde"}
+        t_pr.return_value = {}
+        webhooks = target.delete_webhook()
+        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks')]
+        self.assertEqual(t_pr.mock_calls, expected)
+        target.config = None
+
+    @patch("trello-team-sync.perform_request")
+    def test_delete_webhook_one_ok(self, t_pr):
+        """
+        Test deleting this board's webhook when there is one webhook for that board
+        """
+        target.config = {"key": "ghi", "token": "jkl", "master_board": "cde"}
+        t_pr.side_effect = [[{"id": "kdfg", "idModel": target.config["master_board"]}], {}]
+        webhooks = target.delete_webhook()
+        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks'),
+            call({'key': 'ghi', 'token': 'jkl', 'master_board': 'cde'}, 'DELETE', 'webhooks/kdfg')]
+        self.assertEqual(t_pr.mock_calls, expected)
+        target.config = None
+
+    @patch("trello-team-sync.perform_request")
+    def test_delete_webhook_one_nok(self, t_pr):
+        """
+        Test deleting this board's webhook when there is one webhook but not for that board
+        """
+        target.config = {"key": "ghi", "token": "jkl", "master_board": "this_board"}
+        t_pr.return_value = [{"id": "kdfg", "idModel": "other_board"}]
+        webhooks = target.delete_webhook()
+        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks')]
+        self.assertEqual(t_pr.mock_calls, expected)
+        target.config = None
+
+    @patch("trello-team-sync.perform_request")
+    def test_delete_webhook_multiple_ok(self, t_pr):
+        """
+        Test deleting this board's webhook when there are multiple webhook including for that board
+        """
+        target.config = {"key": "ghi", "token": "jkl", "master_board": "this_board"}
+        t_pr.return_value = [{"id": "kdfg1", "idModel": "other_board"},
+            {"id": "kdfg2", "idModel": "yet_another_board"},
+            {"id": "kdfg3", "idModel": "this_board"}]
+        webhooks = target.delete_webhook()
+        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks'),
+            call(target.config, 'DELETE', 'webhooks/kdfg3')]
+        self.assertEqual(t_pr.mock_calls, expected)
+        target.config = None
+
+    @patch("trello-team-sync.perform_request")
+    def test_delete_webhook_multiple_ok(self, t_pr):
+        """
+        Test deleting this board's webhook when there are multiple webhook including for that board
+        """
+        target.config = {"key": "ghi", "token": "jkl", "master_board": "this_board"}
+        t_pr.return_value = [{"id": "kdfg1", "idModel": "other_board"},
+            {"id": "kdfg2", "idModel": "yet_another_board"}]
+        webhooks = target.delete_webhook()
+        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks')]
+        self.assertEqual(t_pr.mock_calls, expected)
+        target.config = None
+
+
 class TestParseArgs(unittest.TestCase):
     def test_parse_args_no_arguments(self):
         """
-        Test running the script without one of the required arguments --propagate, --cleanup or --new-config
+        Test running the script without one of the required arguments --propagate, --cleanup, --new-config or --webhook
         """
         f = io.StringIO()
         with self.assertRaises(SystemExit) as cm, contextlib.redirect_stderr(f):
             parser = target.parse_args([])
         self.assertEqual(cm.exception.code, 2)
-        self.assertTrue("error: one of the arguments -p/--propagate -cu/--cleanup -nc/--new-config is required" in f.getvalue())
+        self.assertTrue("error: one of the arguments -p/--propagate -cu/--cleanup -nc/--new-config -w/--webhook is required" in f.getvalue())
 
     def test_parse_args_propagate_cleanup(self):
         """
@@ -661,6 +757,16 @@ class TestParseArgs(unittest.TestCase):
             parser = target.parse_args(['--propagate', '--new-config'])
         self.assertEqual(cm.exception.code, 2)
         self.assertTrue("error: argument -nc/--new-config: not allowed with argument -p/--propagate" in f.getvalue())
+
+    def test_parse_args_propagate_webhook(self):
+        """
+        Test running the script with both mutually exclusive arguments --propagate and --webhook
+        """
+        f = io.StringIO()
+        with self.assertRaises(SystemExit) as cm, contextlib.redirect_stderr(f):
+            parser = target.parse_args(['--propagate', '--webhook', 'list'])
+        self.assertEqual(cm.exception.code, 2)
+        self.assertTrue("error: argument -w/--webhook: not allowed with argument -p/--propagate" in f.getvalue())
 
     def test_parse_args_debug(self):
         """
@@ -877,6 +983,34 @@ class TestParseArgs(unittest.TestCase):
         self.assertEqual(cm1.exception.code, 8)
         self.assertEqual(cm2.output, ["CRITICAL:root:The value passed in the --path argument is not a valid file path. Exiting..."])
 
+    def test_parse_args_webhook_no_arg(self):
+        """
+        Test running the script with --webhook but without its required argument
+        """
+        f = io.StringIO()
+        with self.assertRaises(SystemExit) as cm, contextlib.redirect_stderr(f):
+            parser = target.parse_args(["--webhook"])
+        self.assertEqual(cm.exception.code, 2)
+        self.assertTrue("error: argument -w/--webhook: expected one argument" in f.getvalue())
+
+    def test_parse_args_webhook_invalid_arg(self):
+        """
+        Test running the script with --webhook with an invalid argument
+        """
+        f = io.StringIO()
+        with self.assertRaises(SystemExit) as cm, contextlib.redirect_stderr(f):
+            parser = target.parse_args(["--webhook", "abc"])
+        self.assertEqual(cm.exception.code, 2)
+        self.assertTrue("error: argument -w/--webhook: invalid choice: 'abc' (choose from 'new', 'list', 'delete')" in f.getvalue())
+
+    def test_parse_args_webhook_valid_args(self):
+        """
+        Test running the script with --webhook with all its valid arguments
+        """
+        for t in ('new', 'list', 'delete'):
+            parser = target.parse_args(["--webhook", t])
+            self.assertTrue(parser.webhook, t)
+
 
 class TestInitMain(unittest.TestCase):
     @patch("trello-team-sync.perform_request")
@@ -1080,6 +1214,39 @@ Exiting...
         with self.assertLogs(level='DEBUG') as cm:
             target.init()
         self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 0 active) that have 0 slave cards (of which 0 new)." in cm.output)
+
+    @patch("trello-team-sync.new_webhook")
+    def test_init_webhook_new(self, t_nw):
+        """
+        Test the initialization code with --webhook new
+        """
+        target.__name__ = "__main__"
+        target.sys.argv = ["scriptname.py", "--webhook", "new"]
+        target.init()
+        # Confirm we called new_webhook()
+        self.assertEqual(t_nw.mock_calls, [call()])
+
+    @patch("trello-team-sync.list_webhooks")
+    def test_init_webhook_list(self, t_lw):
+        """
+        Test the initialization code with --webhook list
+        """
+        target.__name__ = "__main__"
+        target.sys.argv = ["scriptname.py", "--webhook", "list"]
+        target.init()
+        # Confirm we called list_webhooks()
+        self.assertEqual(t_lw.mock_calls, [call()])
+
+    @patch("trello-team-sync.delete_webhook")
+    def test_init_webhook_delete(self, t_dw):
+        """
+        Test the initialization code with --webhook delete
+        """
+        target.__name__ = "__main__"
+        target.sys.argv = ["scriptname.py", "--webhook", "delete"]
+        target.init()
+        # Confirm we called delete_webhook()
+        self.assertEqual(t_dw.mock_calls, [call()])
 
 
 class TestLicense(unittest.TestCase):
