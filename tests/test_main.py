@@ -1003,12 +1003,22 @@ class TestParseArgs(unittest.TestCase):
         self.assertEqual(cm.exception.code, 2)
         self.assertTrue("error: argument -w/--webhook: invalid choice: 'abc' (choose from 'new', 'list', 'delete')" in f.getvalue())
 
+    def test_parse_args_webhook_without_debug(self):
+        """
+        Test running the script with --webhook without --debug
+        """
+        f = io.StringIO()
+        with self.assertRaises(SystemExit) as cm1, contextlib.redirect_stderr(f), self.assertLogs(level='DEBUG') as cm2:
+            parser = target.parse_args(["--webhook", "list"])
+        self.assertEqual(cm1.exception.code, 9)
+        self.assertTrue("CRITICAL:root:The --webhook argument can only be used in conjunction with --debug. Exiting..." in cm2.output)
+
     def test_parse_args_webhook_valid_args(self):
         """
         Test running the script with --webhook with all its valid arguments
         """
         for t in ('new', 'list', 'delete'):
-            parser = target.parse_args(["--webhook", t])
+            parser = target.parse_args(["--webhook", t, "--debug"])
             self.assertTrue(parser.webhook, t)
 
 
@@ -1221,7 +1231,7 @@ Exiting...
         Test the initialization code with --webhook new
         """
         target.__name__ = "__main__"
-        target.sys.argv = ["scriptname.py", "--webhook", "new"]
+        target.sys.argv = ["scriptname.py", "--debug", "--webhook", "new"]
         target.init()
         # Confirm we called new_webhook()
         self.assertEqual(t_nw.mock_calls, [call()])
@@ -1232,7 +1242,7 @@ Exiting...
         Test the initialization code with --webhook list
         """
         target.__name__ = "__main__"
-        target.sys.argv = ["scriptname.py", "--webhook", "list"]
+        target.sys.argv = ["scriptname.py", "--debug", "--webhook", "list"]
         target.init()
         # Confirm we called list_webhooks()
         self.assertEqual(t_lw.mock_calls, [call()])
@@ -1243,7 +1253,7 @@ Exiting...
         Test the initialization code with --webhook delete
         """
         target.__name__ = "__main__"
-        target.sys.argv = ["scriptname.py", "--webhook", "delete"]
+        target.sys.argv = ["scriptname.py", "--debug", "--webhook", "delete"]
         target.init()
         # Confirm we called delete_webhook()
         self.assertEqual(t_dw.mock_calls, [call()])

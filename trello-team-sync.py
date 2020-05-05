@@ -501,6 +501,9 @@ def parse_args(arguments):
     if args.cleanup and not logging.getLevelName(args.loglevel) == "DEBUG":
         logging.critical("The --cleanup argument can only be used in conjunction with --debug. Exiting...")
         sys.exit(3)
+    if args.webhook and not logging.getLevelName(args.loglevel) == "DEBUG":
+        logging.critical("The --webhook argument can only be used in conjunction with --debug. Exiting...")
+        sys.exit(9)
     if args.card and not args.propagate:
         logging.critical("The --card argument can only be used in conjunction with --propagate. Exiting...")
         sys.exit(4)
