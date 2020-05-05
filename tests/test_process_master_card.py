@@ -20,32 +20,34 @@ class TestProcessMasterCard(unittest.TestCase):
         """
         Test processing a new master card without labels or attachments
         """
-        config = {"key": "ghi", "token": "jkl"}
+        target.config = {"key": "ghi", "token": "jkl"}
         master_card = {"id": "1a2b3c", "desc": "abc", "name": "Card name",
             "labels": [], "badges": {"attachments": 0}}
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (0, 0, 0))
         self.assertEqual(cm.output, ['DEBUG:root:================================================================',
             "DEBUG:root:Process master card 'Card name'",
             'DEBUG:root:Master card is to be synced on 0 slave boards ()',
             'INFO:root:This master card has no slave cards'])
+        target.config = None
 
     def test_process_master_card_unknown_label(self):
         """
         Test processing a new master card with one label that is not in the config
         """
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "1a2b3c", "desc": "abc", "name": "Card name",
             "labels": [{"name": "Unknown label"}], "badges": {"attachments": 0}}
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (0, 0, 0))
         self.assertEqual(cm.output, ['DEBUG:root:================================================================',
             "DEBUG:root:Process master card 'Card name'",
             'DEBUG:root:Master card is to be synced on 0 slave boards ()',
             'INFO:root:This master card has no slave cards'])
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_one_label(self, t_pr):
@@ -53,7 +55,7 @@ class TestProcessMasterCard(unittest.TestCase):
         Test processing a new master card with one recognized label
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
             "labels": [{"name": "Label One"}], "badges": {"attachments": 0},
@@ -69,7 +71,7 @@ class TestProcessMasterCard(unittest.TestCase):
             {}]
         target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
         expected = ['DEBUG:root:================================================================',
             "DEBUG:root:Process master card 'Card name'",
@@ -84,13 +86,14 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
         self.assertEqual(cm.output, expected)
         target.args = None
+        target.config = None
 
     def test_process_master_card_label_multiple(self):
         """
         Test processing a new master card with one label that maps to multiple lists
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl",
+        target.config = {"key": "ghi", "token": "jkl",
             "slave_boards": {
                 "Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"},
                 "Label Two": {"backlog": "ddd", "in_progress": "eee", "complete": "fff"}},
@@ -100,7 +103,7 @@ class TestProcessMasterCard(unittest.TestCase):
             "labels": [{"name": "All Teams"}], "badges": {"attachments": 0},
             "shortUrl": "https://trello.com/c/eoK0Rngb"}
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 2, 2))
         expected = ['DEBUG:root:================================================================',
             "DEBUG:root:Process master card 'Card name'",
@@ -113,13 +116,14 @@ class TestProcessMasterCard(unittest.TestCase):
             'INFO:root:This master card has 2 slave cards (2 newly created)']
         self.assertEqual(cm.output, expected)
         target.args = None
+        target.config = None
 
     def test_process_master_card_label_multiple_and_duplicate_single(self):
         """
         Test processing a new master card with one label that maps to multiple lists and another single label that was already in the multiple list
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl",
+        target.config = {"key": "ghi", "token": "jkl",
             "slave_boards": {
                 "Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"},
                 "Label Two": {"backlog": "ddd", "in_progress": "eee", "complete": "fff"}},
@@ -129,7 +133,7 @@ class TestProcessMasterCard(unittest.TestCase):
             "labels": [{"name": "All Teams"}, {"name": "Label One"}], "badges": {"attachments": 0},
             "shortUrl": "https://trello.com/c/eoK0Rngb"}
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 2, 2))
         expected = ['DEBUG:root:================================================================',
             "DEBUG:root:Process master card 'Card name'",
@@ -142,6 +146,7 @@ class TestProcessMasterCard(unittest.TestCase):
             'INFO:root:This master card has 2 slave cards (2 newly created)']
         self.assertEqual(cm.output, expected)
         target.args = None
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_dummy_attachment(self, t_pr):
@@ -149,7 +154,7 @@ class TestProcessMasterCard(unittest.TestCase):
         Test processing a new master card with one non-Trello attachment
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
             "labels": [{"name": "Label One"}], "badges": {"attachments": 1},
@@ -166,7 +171,7 @@ class TestProcessMasterCard(unittest.TestCase):
             {}]
         target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
         expected = ['DEBUG:root:================================================================',
             "DEBUG:root:Process master card 'Card name'",
@@ -182,6 +187,7 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
         self.assertEqual(cm.output, expected)
         target.args = None
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_attachment(self, t_pr):
@@ -189,7 +195,7 @@ class TestProcessMasterCard(unittest.TestCase):
         Test processing a new master card with one Trello attachment
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
             "labels": [{"name": "Label One"}], "badges": {"attachments": 1},
@@ -202,7 +208,7 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "List name"},
             {}]
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 0))
         expected = ['DEBUG:root:================================================================',
             "DEBUG:root:Process master card 'Card name'",
@@ -216,6 +222,7 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
         self.assertEqual(cm.output, expected)
         target.args = None
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_attachment_no_label(self, t_pr):
@@ -223,7 +230,7 @@ class TestProcessMasterCard(unittest.TestCase):
         Test processing a new master card with one Trello attachment but no label
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
             "labels": [], "badges": {"attachments": 1},
@@ -236,7 +243,7 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "List name"},
             {}]
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (0, 0, 0))
         expected = ['DEBUG:root:================================================================',
             "DEBUG:root:Process master card 'Card name'",
@@ -246,6 +253,7 @@ class TestProcessMasterCard(unittest.TestCase):
             "INFO:root:This master card has no slave cards"]
         self.assertEqual(cm.output, expected)
         target.args = None
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_one_label_wet_run_no_checklist(self, t_pr):
@@ -253,7 +261,7 @@ class TestProcessMasterCard(unittest.TestCase):
         Test processing a new master card with one recognized label, no dry_run, without a checklist
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
             "labels": [{"name": "Label One"}], "badges": {"attachments": 0},
@@ -272,7 +280,7 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "New checklist item"}]
         target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
         expected = "\n".join(["DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
             "DEBUG:root:Creating new checklist",
@@ -281,6 +289,7 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:{'name': 'New checklist item'}"])
         self.assertTrue(expected in "\n".join(cm.output))
         target.args = None
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_one_label_wet_run_unrelated_checklist(self, t_pr):
@@ -288,7 +297,7 @@ class TestProcessMasterCard(unittest.TestCase):
         Test processing a new master card with one recognized label, no dry_run, with one unrelated checklist
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
             "labels": [{"name": "Label One"}], "badges": {"attachments": 0},
@@ -307,7 +316,7 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "New checklist item"}]
         target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
         expected = "\n".join(["DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
             "DEBUG:root:Already 1 checklists on this master card: Unrelated checklist",
@@ -317,6 +326,7 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:{'name': 'New checklist item'}"])
         self.assertTrue(expected in "\n".join(cm.output))
         target.args = None
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_one_label_wet_run_related_checklist(self, t_pr):
@@ -324,7 +334,7 @@ class TestProcessMasterCard(unittest.TestCase):
         Test processing a new master card with one recognized label, no dry_run, with already the related checklist
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
             "labels": [{"name": "Label One"}], "badges": {"attachments": 0},
@@ -341,12 +351,13 @@ class TestProcessMasterCard(unittest.TestCase):
             [{"name": "Involved Teams"}]]
         target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
-            output = target.process_master_card(config, master_card)
+            output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
         expected = "\n".join(["DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
             "DEBUG:root:Already 1 checklists on this master card: Involved Teams"])
         self.assertTrue(expected in "\n".join(cm.output))
         target.args = None
+        target.config
 
 
 if __name__ == '__main__':

@@ -417,17 +417,18 @@ New configuration saved to file 'data/config_config-name.json'
         config_file = run_test_create_new_config(self, vals, None, None)
         self.assertTrue(os.path.isfile(config_file))
         with open(config_file, "r") as json_file:
-            config = json.load(json_file)
+            target.config = json.load(json_file)
         # Delete the temporary file
         os.remove(config_file)
         # Validate the values loaded from the new config file
-        self.assertEqual(config["name"], vals[3])
-        self.assertEqual(config["key"], vals[0])
-        self.assertEqual(config["token"], vals[1])
-        self.assertEqual(config["master_board"], vals[2])
-        self.assertEqual(len(config["slave_boards"]), 2)
-        self.assertEqual(len(config["slave_boards"]["Label One"]), 1)
-        self.assertEqual(config["slave_boards"]["Label One"]["backlog"], vals[5])
+        self.assertEqual(target.config["name"], vals[3])
+        self.assertEqual(target.config["key"], vals[0])
+        self.assertEqual(target.config["token"], vals[1])
+        self.assertEqual(target.config["master_board"], vals[2])
+        self.assertEqual(len(target.config["slave_boards"]), 2)
+        self.assertEqual(len(target.config["slave_boards"]["Label One"]), 1)
+        self.assertEqual(target.config["slave_boards"]["Label One"]["backlog"], vals[5])
+        target.config = None
 
 
 class TestLoadConfig(unittest.TestCase):
@@ -435,34 +436,33 @@ class TestLoadConfig(unittest.TestCase):
         """
         Test loading a valid config file
         """
-        config = target.load_config("data/sample_config.json")
-        self.assertEqual(config["name"], "Sample configuration")
-        self.assertEqual(config["key"], "abc")
-        self.assertEqual(config["token"], "def")
-        self.assertEqual(config["master_board"], "ghi")
-        self.assertEqual(len(config["slave_boards"]), 2)
-        self.assertEqual(len(config["slave_boards"]["Label One"]), 3)
-        self.assertEqual(config["slave_boards"]["Label One"]["backlog"], "a1a1a1a1a1a1a1a1a1a1a1a1")
-        self.assertEqual(len(config["multiple_teams"]), 1)
-        self.assertEqual(len(config["multiple_teams"]["All Teams"]), 2)
-        self.assertEqual(config["multiple_teams"]["All Teams"][0], "Label One")
-        self.assertEqual(config["multiple_teams_names"], ["All Teams"])
+        target.config = target.load_config("data/sample_config.json")
+        self.assertEqual(target.config["name"], "Sample configuration")
+        self.assertEqual(target.config["key"], "abc")
+        self.assertEqual(target.config["token"], "def")
+        self.assertEqual(target.config["master_board"], "ghi")
+        self.assertEqual(len(target.config["slave_boards"]), 2)
+        self.assertEqual(len(target.config["slave_boards"]["Label One"]), 3)
+        self.assertEqual(target.config["slave_boards"]["Label One"]["backlog"], "a1a1a1a1a1a1a1a1a1a1a1a1")
+        target.config = None
 
     def test_load_config_nonexisting(self):
         """
         Test loading a nonexisting config file
         """
         with self.assertRaises(FileNotFoundError) as cm:
-            config = target.load_config("data/nonexisting_config.json")
+            target.config = target.load_config("data/nonexisting_config.json")
         self.assertEqual(str(cm.exception), "[Errno 2] No such file or directory: 'data/nonexisting_config.json'")
+        target.config = None
 
     def test_load_config_invalid(self):
         """
         Test loading an invalid config file (not json)
         """
         with self.assertRaises(json.decoder.JSONDecodeError) as cm:
-            config = target.load_config("requirements.txt")
+            target.config = target.load_config("requirements.txt")
         self.assertEqual(str(cm.exception), "Expecting value: line 1 column 1 (char 0)")
+        target.config = None
 
 
 if __name__ == '__main__':

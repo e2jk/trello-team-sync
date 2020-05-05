@@ -125,7 +125,7 @@ class TestGetCardAttachments(unittest.TestCase):
         Test retrieving attachments from a card without attachments
         """
         card = {"badges": {"attachments": 0}}
-        card_attachments = target.get_card_attachments(None, card)
+        card_attachments = target.get_card_attachments(card)
         self.assertEqual(card_attachments, [])
 
     @patch("trello-team-sync.perform_request")
@@ -135,7 +135,7 @@ class TestGetCardAttachments(unittest.TestCase):
         """
         t_pr.return_value = [{"url": "https://monip.org"}, {"url": "https://example.com"}]
         card = {"id": "1a2b3c", "badges": {"attachments": 2}}
-        card_attachments = target.get_card_attachments(None, card)
+        card_attachments = target.get_card_attachments(card)
         self.assertEqual(card_attachments, [])
 
     @patch("trello-team-sync.perform_request")
@@ -146,7 +146,7 @@ class TestGetCardAttachments(unittest.TestCase):
         shortLink = "eoK0Rngb"
         t_pr.return_value = [{"url": "https://trello.com/c/%s/blablabla" % shortLink}]
         card = {"id": "1a2b3c", "badges": {"attachments": 1}}
-        card_attachments = target.get_card_attachments(None, card)
+        card_attachments = target.get_card_attachments(card)
         self.assertEqual(len(card_attachments), 1)
         expected_card_attachments = [{"card_shortUrl": shortLink,
             "url": "https://trello.com/c/%s/blablabla" % shortLink}]
@@ -163,7 +163,7 @@ class TestGetCardAttachments(unittest.TestCase):
             {"url": "https://monip.org"},
             {"url": "https://trello.com/c/%s/blablabla" % shortLink2}]
         card = {"id": "1a2b3c", "badges": {"attachments": 3}}
-        card_attachments = target.get_card_attachments(None, card)
+        card_attachments = target.get_card_attachments(card)
         self.assertEqual(len(card_attachments), 2)
         expected_card_attachments = [{"card_shortUrl": shortLink1,
             "url": "https://trello.com/c/%s/blablabla" % shortLink1},
@@ -178,12 +178,12 @@ class TestCleanupTestBoards(unittest.TestCase):
         """
         Test cleaning up the test boards when there is no master card and no cards on the slave lists
         """
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_cards = []
         t_pr.return_value = []
         with self.assertLogs(level='DEBUG') as cm:
-            summary = target.cleanup_test_boards(config, master_cards)
+            summary = target.cleanup_test_boards(master_cards)
         self.assertEqual(summary, {"cleaned_up_master_cards": 0,
             "deleted_slave_cards": 0,
             "erased_slave_boards": 0,
@@ -203,18 +203,19 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:[]",
             "DEBUG:root:List Label One/complete has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_no_mc_yes_sc(self, t_pr):
         """
         Test cleaning up the test boards when there is no master card and cards on the slave lists
         """
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_cards = []
         t_pr.return_value = [{"id": "u"*24}]
         with self.assertLogs(level='DEBUG') as cm:
-            summary = target.cleanup_test_boards(config, master_cards)
+            summary = target.cleanup_test_boards(master_cards)
         self.assertEqual(summary, {"cleaned_up_master_cards": 0,
             "deleted_slave_cards": 3,
             "erased_slave_boards": 1,
@@ -237,19 +238,20 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:List Label One/complete has 1 cards to delete",
             "DEBUG:root:Deleting slave card uuuuuuuuuuuuuuuuuuuuuuuu"]
         self.assertEqual(cm.output, expected)
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_master_card_no_attach(self, t_pr):
         """
         Test cleaning up the test boards with a master card without attachment
         """
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
             "badges": {"attachments": 0}}]
         t_pr.return_value = []
         with self.assertLogs(level='DEBUG') as cm:
-            summary = target.cleanup_test_boards(config, master_cards)
+            summary = target.cleanup_test_boards(master_cards)
         self.assertEqual(summary, {"cleaned_up_master_cards": 0,
             "deleted_slave_cards": 0,
             "erased_slave_boards": 0,
@@ -272,20 +274,21 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:[]",
             "DEBUG:root:List Label One/complete has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
+        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_master_card_attach(self, t_pr):
         """
         Test cleaning up the test boards with a master card with related attachment
         """
-        config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
+        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
             "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
         master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
             "badges": {"attachments": 1}}]
         t_pr.side_effect = [[{"id": "a"*24, "url": "https://trello.com/c/eoK0Rngb/blablabla"}],
             {}, [{"id": "b"*24, "name": "Involved Teams"}], {}, [], [], []]
         with self.assertLogs(level='DEBUG') as cm:
-            summary = target.cleanup_test_boards(config, master_cards)
+            summary = target.cleanup_test_boards(master_cards)
         self.assertEqual(summary, {"cleaned_up_master_cards": 1,
             "deleted_slave_cards": 0,
             "erased_slave_boards": 0,
@@ -311,6 +314,7 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:[]",
             "DEBUG:root:List Label One/complete has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
+        target.config = None
 
 
 class TestUpdateMasterCardMetadata(unittest.TestCase):
@@ -320,7 +324,7 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
         Test updating a card that had no metadata with empty metadata
         """
         master_card = {"id": "1a2b3c", "desc": "abc"}
-        target.update_master_card_metadata(None, master_card, "")
+        target.update_master_card_metadata(master_card, "")
         # Confirm perform_request hasn't been called
         self.assertEqual(t_pr.mock_calls, [])
 
@@ -331,8 +335,8 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
         """
         master_card = {"id": "1a2b3c", "desc": "abc"}
         metadata = "jsdofhzpeh\nldjfozije"
-        target.update_master_card_metadata(None, master_card, metadata)
-        expected = [call(None, 'PUT', 'cards/1a2b3c',
+        target.update_master_card_metadata(master_card, metadata)
+        expected = [call('PUT', 'cards/1a2b3c',
             {'desc': 'abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\njsdofhzpeh\nldjfozije'})]
         self.assertEqual(t_pr.mock_calls, expected)
 
@@ -344,8 +348,8 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
         main_desc = "abc"
         old_metadata = "old metadata"
         master_card = {"id": "1a2b3c", "desc": "%s%s%s" % (main_desc, target.METADATA_SEPARATOR, old_metadata) }
-        target.update_master_card_metadata(None, master_card, "")
-        expected = [call(None, 'PUT', 'cards/1a2b3c', {'desc': main_desc})]
+        target.update_master_card_metadata(master_card, "")
+        expected = [call('PUT', 'cards/1a2b3c', {'desc': main_desc})]
         self.assertEqual(t_pr.mock_calls, expected)
 
     @patch("trello-team-sync.perform_request")
@@ -357,8 +361,8 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
         old_metadata = "old metadata"
         master_card = {"id": "1a2b3c", "desc": "%s%s%s" % (main_desc, target.METADATA_SEPARATOR, old_metadata) }
         new_metadata = "new metadata"
-        target.update_master_card_metadata(None, master_card, new_metadata)
-        expected = [call(None, 'PUT', 'cards/1a2b3c',
+        target.update_master_card_metadata(master_card, new_metadata)
+        expected = [call('PUT', 'cards/1a2b3c',
             {'desc': "%s%s%s" % (main_desc, target.METADATA_SEPARATOR, new_metadata)})]
         self.assertEqual(t_pr.mock_calls, expected)
 
@@ -370,7 +374,7 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
         main_desc = "abc"
         old_metadata = "old metadata"
         master_card = {"id": "1a2b3c", "desc": "%s%s%s" % (main_desc, target.METADATA_SEPARATOR, old_metadata) }
-        target.update_master_card_metadata(None, master_card, old_metadata)
+        target.update_master_card_metadata(master_card, old_metadata)
         # Confirm perform_request hasn't been called
         self.assertEqual(t_pr.mock_calls, [])
 
@@ -422,8 +426,8 @@ class TestGetName(unittest.TestCase):
         """
         Test getting a board's name, uncached
         """
-        target.get_name(None, "board", "a1b2c3")
-        expected = call(None, 'GET', 'board/a1b2c3')
+        target.get_name("board", "a1b2c3")
+        expected = call('GET', 'board/a1b2c3')
         self.assertEqual(t_pr.mock_calls[0], expected)
 
     @patch("trello-team-sync.perform_request")
@@ -431,8 +435,8 @@ class TestGetName(unittest.TestCase):
         """
         Test getting a list's name, uncached
         """
-        target.get_name(None, "list", "a1b2c3")
-        expected = call(None, 'GET', 'list/a1b2c3')
+        target.get_name("list", "a1b2c3")
+        expected = call('GET', 'list/a1b2c3')
         self.assertEqual(t_pr.mock_calls[0], expected)
 
 
@@ -443,7 +447,7 @@ class TestGenerateMasterCardMetadata(unittest.TestCase):
         Test generating a master card's metadata that has no slave cards
         """
         slave_cards = []
-        new_master_card_metadata = target.generate_master_card_metadata(None, slave_cards)
+        new_master_card_metadata = target.generate_master_card_metadata(slave_cards)
         # Confirm perform_request hasn't been called
         self.assertEqual(t_pr.mock_calls, [])
         self.assertEqual(new_master_card_metadata, "")
@@ -462,13 +466,13 @@ class TestGenerateMasterCardMetadata(unittest.TestCase):
             {"name": "record name4"},
             {"name": "record name5"},
             {"name": "record name6"}]
-        new_master_card_metadata = target.generate_master_card_metadata(None, slave_cards)
-        expected = [call(None, 'GET', 'board/idBoard1'),
-            call(None, 'GET', 'list/idList1'),
-            call(None, 'GET', 'board/idBoard2'),
-            call(None, 'GET', 'list/idList2'),
-            call(None, 'GET', 'board/idBoard3'),
-            call(None, 'GET', 'list/idList3')]
+        new_master_card_metadata = target.generate_master_card_metadata(slave_cards)
+        expected = [call('GET', 'board/idBoard1'),
+            call('GET', 'list/idList1'),
+            call('GET', 'board/idBoard2'),
+            call('GET', 'list/idList2'),
+            call('GET', 'board/idBoard3'),
+            call('GET', 'list/idList3')]
         self.assertEqual(t_pr.mock_calls, expected)
         expected = "\n- 'name1' on list '**record name1|record name2**'\n- 'name2' on list '**record name3|record name4**'\n- 'name3' on list '**record name5|record name6**'"
         self.assertEqual(new_master_card_metadata, expected)
@@ -480,7 +484,7 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a request with an invalid HTTP method
         """
         with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
-            target.perform_request(None, "INVALID", "https://monip.org")
+            target.perform_request("INVALID", "https://monip.org")
         self.assertEqual(cm1.exception.code, 30)
         self.assertEqual(cm2.output, ["CRITICAL:root:HTTP method 'INVALID' not supported. Exiting..."])
 
@@ -490,13 +494,14 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a GET request
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        config = {"key": "ghi", "token": "jkl"}
-        target.perform_request(config, "GET", "cards/a1b2c3d4")
+        target.config = {"key": "ghi", "token": "jkl"}
+        target.perform_request("GET", "cards/a1b2c3d4")
         expected = [call('GET', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
+        target.config = None
 
     @patch("requests.request")
     def test_perform_request_get_dry_run(self, r_r):
@@ -504,13 +509,14 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a GET request with --dry-run
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl"}
-        target.perform_request(config, "GET", "cards/a1b2c3d4")
+        target.config = {"key": "ghi", "token": "jkl"}
+        target.perform_request("GET", "cards/a1b2c3d4")
         expected = [call('GET', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
+        target.config = None
 
     @patch("requests.request")
     def test_perform_request_post(self, r_r):
@@ -518,13 +524,14 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a POST request
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        config = {"key": "ghi", "token": "jkl"}
-        target.perform_request(config, "POST", "cards/a1b2c3d4", {"abc": "def"})
+        target.config = {"key": "ghi", "token": "jkl"}
+        target.perform_request("POST", "cards/a1b2c3d4", {"abc": "def"})
         expected = [call('POST', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params={'abc': 'def'}),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
+        target.config = None
 
     @patch("requests.request")
     def test_perform_request_post_dry_run(self, r_r):
@@ -532,13 +539,14 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a POST request with --dry-run
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl"}
+        target.config = {"key": "ghi", "token": "jkl"}
         with self.assertLogs(level='DEBUG') as cm:
-            target.perform_request(config, "POST", "cards/a1b2c3d4", {"abc": "def"})
+            target.perform_request("POST", "cards/a1b2c3d4", {"abc": "def"})
         self.assertEqual(cm.output, ["DEBUG:root:Skipping POST call to 'https://api.trello.com/1/cards/a1b2c3d4' due to --dry-run parameter"])
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
         target.args = None
+        target.config = None
 
     @patch("requests.request")
     def test_perform_request_put(self, r_r):
@@ -546,13 +554,14 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a PUT request
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        config = {"key": "ghi", "token": "jkl"}
-        target.perform_request(config, "PUT", "cards/a1b2c3d4", {"abc": "def"})
+        target.config = {"key": "ghi", "token": "jkl"}
+        target.perform_request("PUT", "cards/a1b2c3d4", {"abc": "def"})
         expected = [call('PUT', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params={'abc': 'def'}),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
+        target.config = None
 
     @patch("requests.request")
     def test_perform_request_put_dry_run(self, r_r):
@@ -560,13 +569,14 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a PUT request with --dry-run
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl"}
+        target.config = {"key": "ghi", "token": "jkl"}
         with self.assertLogs(level='DEBUG') as cm:
-            target.perform_request(config, "PUT", "cards/a1b2c3d4", {"abc": "def"})
+            target.perform_request("PUT", "cards/a1b2c3d4", {"abc": "def"})
         self.assertEqual(cm.output, ["DEBUG:root:Skipping PUT call to 'https://api.trello.com/1/cards/a1b2c3d4' due to --dry-run parameter"])
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
         target.args = None
+        target.config = None
 
     @patch("requests.request")
     def test_perform_request_delete(self, r_r):
@@ -574,13 +584,14 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a DELETE request
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        config = {"key": "ghi", "token": "jkl"}
-        target.perform_request(config, "DELETE", "cards/a1b2c3d4")
+        target.config = {"key": "ghi", "token": "jkl"}
+        target.perform_request("DELETE", "cards/a1b2c3d4")
         expected = [call('DELETE', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
+        target.config = None
 
     @patch("requests.request")
     def test_perform_request_delete_dry_run(self, r_r):
@@ -588,13 +599,14 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a DELETE request with --dry-run
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        config = {"key": "ghi", "token": "jkl"}
+        target.config = {"key": "ghi", "token": "jkl"}
         with self.assertLogs(level='DEBUG') as cm:
-            target.perform_request(config, "DELETE", "cards/a1b2c3d4")
+            target.perform_request("DELETE", "cards/a1b2c3d4")
         self.assertEqual(cm.output, ["DEBUG:root:Skipping DELETE call to 'https://api.trello.com/1/cards/a1b2c3d4' due to --dry-run parameter"])
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
         target.args = None
+        target.config = None
 
 
 class TestCreateNewSlaveCard(unittest.TestCase):
@@ -603,18 +615,19 @@ class TestCreateNewSlaveCard(unittest.TestCase):
         """
         Test creating a new card
         """
-        config = {"key": "ghi", "token": "jkl"}
+        target.config = {"key": "ghi", "token": "jkl"}
         master_card = {"id": "1a2b3c", "desc": "abc", "shortUrl": "https://trello.com/c/eoK0Rngb"}
         slave_board = {"lists": {"backlog": "a"*24}}
         t_pr.return_value = {"id": "b"*24}
-        card = target.create_new_slave_card(config, master_card, slave_board)
-        expected = [call({'key': 'ghi', 'token': 'jkl'}, 'POST', 'cards',
+        card = target.create_new_slave_card(master_card, slave_board)
+        expected = [call('POST', 'cards',
             {'idList': 'aaaaaaaaaaaaaaaaaaaaaaaa',
             'desc': 'abc\n\nCreated from master card https://trello.com/c/eoK0Rngb',
             'pos': 'bottom', 'idCardSource': '1a2b3c',
             'keepFromSource': 'attachments,checklists,comments,due,stickers'})]
         self.assertEqual(t_pr.mock_calls, expected)
         self.assertEqual(card, t_pr.return_value)
+        target.config = None
 
 
 class TestGlobals(unittest.TestCase):
@@ -640,7 +653,7 @@ class TestNewWebhook(unittest.TestCase):
         target.config = {"master_board": "cde"}
         t_pr.return_value = {}
         target.new_webhook()
-        expected = [call({'master_board': 'cde'}, 'POST', 'webhooks', {'callbackURL': 'https://webhook.site/04b7baf0-1a59-41e2-b41a-245abeabc847?c=config', 'idModel': 'cde'})]
+        expected = [call('POST', 'webhooks', {'callbackURL': 'https://webhook.site/04b7baf0-1a59-41e2-b41a-245abeabc847?c=config', 'idModel': 'cde'})]
         self.assertEqual(t_pr.mock_calls, expected)
         target.config = None
 
@@ -654,7 +667,7 @@ class TestListWebhooks(unittest.TestCase):
         target.config = {"key": "ghi", "token": "jkl"}
         t_pr.return_value = {"dummy": "list"}
         webhooks = target.list_webhooks()
-        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks')]
+        expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
         self.assertEqual(webhooks, t_pr.return_value)
         target.config = None
@@ -669,7 +682,7 @@ class TestDeleteWebhook(unittest.TestCase):
         target.config = {"key": "ghi", "token": "jkl", "master_board": "cde"}
         t_pr.return_value = {}
         webhooks = target.delete_webhook()
-        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks')]
+        expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
         target.config = None
 
@@ -681,8 +694,8 @@ class TestDeleteWebhook(unittest.TestCase):
         target.config = {"key": "ghi", "token": "jkl", "master_board": "cde"}
         t_pr.side_effect = [[{"id": "kdfg", "idModel": target.config["master_board"]}], {}]
         webhooks = target.delete_webhook()
-        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks'),
-            call({'key': 'ghi', 'token': 'jkl', 'master_board': 'cde'}, 'DELETE', 'webhooks/kdfg')]
+        expected = [call('GET', 'tokens/jkl/webhooks'),
+            call('DELETE', 'webhooks/kdfg')]
         self.assertEqual(t_pr.mock_calls, expected)
         target.config = None
 
@@ -694,7 +707,7 @@ class TestDeleteWebhook(unittest.TestCase):
         target.config = {"key": "ghi", "token": "jkl", "master_board": "this_board"}
         t_pr.return_value = [{"id": "kdfg", "idModel": "other_board"}]
         webhooks = target.delete_webhook()
-        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks')]
+        expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
         target.config = None
 
@@ -708,8 +721,8 @@ class TestDeleteWebhook(unittest.TestCase):
             {"id": "kdfg2", "idModel": "yet_another_board"},
             {"id": "kdfg3", "idModel": "this_board"}]
         webhooks = target.delete_webhook()
-        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks'),
-            call(target.config, 'DELETE', 'webhooks/kdfg3')]
+        expected = [call('GET', 'tokens/jkl/webhooks'),
+            call('DELETE', 'webhooks/kdfg3')]
         self.assertEqual(t_pr.mock_calls, expected)
         target.config = None
 
@@ -722,7 +735,7 @@ class TestDeleteWebhook(unittest.TestCase):
         t_pr.return_value = [{"id": "kdfg1", "idModel": "other_board"},
             {"id": "kdfg2", "idModel": "yet_another_board"}]
         webhooks = target.delete_webhook()
-        expected = [call(target.config, 'GET', 'tokens/jkl/webhooks')]
+        expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
         target.config = None
 

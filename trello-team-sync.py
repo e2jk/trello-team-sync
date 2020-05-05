@@ -47,11 +47,11 @@ def output_summary(args, summary):
             summary["new_slave_card"],
             "would have been " if args.dry_run else ""))
 
-def get_card_attachments(config, card):
+def get_card_attachments(card):
     card_attachments = []
     if card["badges"]["attachments"] > 0:
         logging.debug("Getting %d attachments on master card %s" % (card["badges"]["attachments"], card["id"]))
-        for a in perform_request(config, "GET", "cards/%s/attachments" % card["id"]):
+        for a in perform_request("GET", "cards/%s/attachments" % card["id"]):
             # Only keep attachments that are links to other Trello cards
             card_shorturl_regex = "https://trello.com/c/([a-zA-Z0-9_-]{8})/.*"
             card_shorturl_regex_match = re.match(card_shorturl_regex, a["url"])
@@ -60,28 +60,28 @@ def get_card_attachments(config, card):
                 card_attachments.append(a)
     return card_attachments
 
-def cleanup_test_boards(config, master_cards):
+def cleanup_test_boards(master_cards):
     logging.debug("Removing slave cards attachments on the master cards")
     cleaned_up_master_cards = 0
     for idx, master_card in enumerate(master_cards):
         logging.debug("="*64)
         logging.info("Cleaning up master card %d/%d - %s" %(idx+1, len(master_cards), master_card["name"]))
-        master_card_attachments = get_card_attachments(config, master_card)
+        master_card_attachments = get_card_attachments(master_card)
         if len(master_card_attachments) > 0:
             cleaned_up_master_cards += 1
             for a in master_card_attachments:
                 logging.debug("Deleting attachment %s from master card %s" %(a["id"], master_card["id"]))
-                perform_request(config, "DELETE", "cards/%s/attachments/%s" % (master_card["id"], a["id"]))
+                perform_request("DELETE", "cards/%s/attachments/%s" % (master_card["id"], a["id"]))
 
         # Removing teams checklist from the master card
         logging.debug("Retrieving checklists from card %s" % master_card["id"])
-        for c in perform_request(config, "GET", "cards/%s/checklists" % master_card["id"]):
+        for c in perform_request("GET", "cards/%s/checklists" % master_card["id"]):
             if "Involved Teams" == c["name"]:
                 logging.debug("Deleting checklist %s (%s) from master card %s" %(c["name"], c["id"], master_card["id"]))
-                perform_request(config, "DELETE", "checklists/%s" % (c["id"]))
+                perform_request("DELETE", "checklists/%s" % (c["id"]))
 
         # Removing metadata from the master cards
-        update_master_card_metadata(config, master_card, "")
+        update_master_card_metadata(master_card, "")
 
     logging.debug("Deleting slave cards")
     erased_slave_boards = []
@@ -97,7 +97,7 @@ def cleanup_test_boards(config, master_cards):
             logging.debug("="*64)
             num_lists_inspected += 1
             logging.debug("Retrieve cards from list %s|%s (list %d/%d)" % (sb, l, num_lists_inspected, num_lists_to_cleanup))
-            slave_cards = perform_request(config, "GET", "lists/%s/cards" % config["slave_boards"][sb][l])
+            slave_cards = perform_request("GET", "lists/%s/cards" % config["slave_boards"][sb][l])
             logging.debug(slave_cards)
             logging.debug("List %s/%s has %d cards to delete" % (sb, l, len(slave_cards)))
             if len(slave_cards) > 0:
@@ -107,7 +107,7 @@ def cleanup_test_boards(config, master_cards):
             for sc in slave_cards:
                 logging.debug("Deleting slave card %s" % sc["id"])
                 deleted_slave_cards += 1
-                perform_request(config, "DELETE", "cards/%s" % sc["id"])
+                perform_request("DELETE", "cards/%s" % sc["id"])
     return {"cleaned_up_master_cards": cleaned_up_master_cards,
             "deleted_slave_cards": deleted_slave_cards,
             "erased_slave_boards": len(erased_slave_boards),
@@ -128,7 +128,7 @@ def split_master_card_metadata(master_card_desc):
         match = re.search(regex_pattern, master_card_desc, re.DOTALL)
         return [match.group(1), match.group(3)]
 
-def update_master_card_metadata(config, master_card, new_master_card_metadata):
+def update_master_card_metadata(master_card, new_master_card_metadata):
     (main_desc, current_master_card_metadata) = split_master_card_metadata(master_card["desc"])
     if new_master_card_metadata != current_master_card_metadata:
         logging.debug("Updating master card metadata")
@@ -138,24 +138,24 @@ def update_master_card_metadata(config, master_card, new_master_card_metadata):
             # Also remove the metadata separator when removing the metadata
             new_full_desc = main_desc
         logging.debug(new_full_desc)
-        perform_request(config, "PUT", "cards/%s" % master_card["id"], {"desc": new_full_desc})
+        perform_request("PUT", "cards/%s" % master_card["id"], {"desc": new_full_desc})
 
-def get_name(config, record_type, record_id):
+def get_name(record_type, record_id):
     global cached_names
     if record_id not in cached_names[record_type]:
-        cached_names[record_type][record_id] = perform_request(config, "GET", "%s/%s" % (record_type, record_id))["name"]
+        cached_names[record_type][record_id] = perform_request("GET", "%s/%s" % (record_type, record_id))["name"]
     return cached_names[record_type][record_id]
 
-def generate_master_card_metadata(config, slave_cards):
+def generate_master_card_metadata(slave_cards):
     mcm = ""
     for sc in slave_cards:
         mcm += "\n- '%s' on list '**%s|%s**'" % (sc["name"],
-            get_name(config, "board", sc["idBoard"]),
-            get_name(config, "list", sc["idList"]))
+            get_name("board", sc["idBoard"]),
+            get_name("list", sc["idList"]))
     logging.debug("New master card metadata: %s" % mcm)
     return mcm
 
-def perform_request(config, method, url, query=None):
+def perform_request(method, url, query=None):
     if method not in ("GET", "POST", "PUT", "DELETE"):
         logging.critical("HTTP method '%s' not supported. Exiting..." % method)
         sys.exit(30)
@@ -173,7 +173,7 @@ def perform_request(config, method, url, query=None):
     response.raise_for_status()
     return response.json()
 
-def create_new_slave_card(config, master_card, slave_board):
+def create_new_slave_card(master_card, slave_board):
     logging.debug("Creating new slave card")
     query = {
        "idList": slave_board["lists"]["backlog"],
@@ -183,12 +183,12 @@ def create_new_slave_card(config, master_card, slave_board):
         # Explicitly don't keep labels,members
         "keepFromSource": "attachments,checklists,comments,due,stickers"
     }
-    new_slave_card = perform_request(config, "POST", "cards", query)
+    new_slave_card = perform_request("POST", "cards", query)
     if new_slave_card:
         logging.debug("New slave card ID: %s" % new_slave_card["id"])
     return new_slave_card
 
-def process_master_card(config, master_card):
+def process_master_card(master_card):
     logging.debug("="*64)
     logging.debug("Process master card '%s'" % master_card["name"])
     # Check if this card is to be synced on a slave board
@@ -212,9 +212,9 @@ def process_master_card(config, master_card):
 
     # Check if slave cards are already attached to this master card
     linked_slave_cards = []
-    master_card_attachments = get_card_attachments(config, master_card)
+    master_card_attachments = get_card_attachments(master_card)
     for mca in master_card_attachments:
-        attached_card = perform_request(config, "GET", "cards/%s" % mca["card_shortUrl"])
+        attached_card = perform_request("GET", "cards/%s" % mca["card_shortUrl"])
         linked_slave_cards.append(attached_card)
 
     new_master_card_metadata = ""
@@ -241,28 +241,28 @@ def process_master_card(config, master_card):
             else:
                 # A new slave card needs to be created for this slave board
                 num_new_cards += 1
-                card = create_new_slave_card(config, master_card, sb)
+                card = create_new_slave_card(master_card, sb)
                 if card:
                     # Link cards between each other
                     logging.debug("Attaching master card %s to slave card %s" % (master_card["id"], card["id"]))
-                    perform_request(config, "POST", "cards/%s/attachments" % card["id"], {"url": master_card["url"]})
+                    perform_request("POST", "cards/%s/attachments" % card["id"], {"url": master_card["url"]})
                     logging.debug("Attaching slave card %s to master card %s" % (card["id"], master_card["id"]))
-                    perform_request(config, "POST", "cards/%s/attachments" % master_card["id"], {"url": card["url"]})
+                    perform_request("POST", "cards/%s/attachments" % master_card["id"], {"url": card["url"]})
             slave_cards.append(card)
         if card:
             # Generate master card metadata based on the slave cards info
-            new_master_card_metadata = generate_master_card_metadata(config, slave_cards)
+            new_master_card_metadata = generate_master_card_metadata(slave_cards)
         logging.info("This master card has %d slave cards (%d newly created)" % (len(slave_cards), num_new_cards))
     else:
         logging.info("This master card has no slave cards")
 
     # Update the master card's metadata if needed
-    update_master_card_metadata(config, master_card, new_master_card_metadata)
+    update_master_card_metadata(master_card, new_master_card_metadata)
 
     # Add a checklist for each team on the master card
     if len(slave_boards) > 0 and not args.dry_run:
         logging.debug("Retrieving checklists from card %s" % master_card["id"])
-        master_card_checklists = perform_request(config, "GET", "cards/%s/checklists" % master_card["id"])
+        master_card_checklists = perform_request("GET", "cards/%s/checklists" % master_card["id"])
         create_checklist = True
         if master_card_checklists:
             logging.debug("Already %d checklists on this master card: %s" % (len(master_card_checklists), ", ".join([c["name"] for c in master_card_checklists])))
@@ -273,11 +273,11 @@ def process_master_card(config, master_card):
                     logging.debug("Master card already contains a checklist name 'Involved Teams', skipping checklist creation")
         if create_checklist:
             logging.debug("Creating new checklist")
-            cl = perform_request(config, "POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
+            cl = perform_request("POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
             logging.debug(cl)
             for sb in slave_boards:
                 logging.debug("Adding new checklistitem %s to checklist %s" % (sb["name"], cl["id"]))
-                new_checklistitem = perform_request(config, "POST", "checklists/%s/checkItems" % cl["id"], {"name": sb["name"]})
+                new_checklistitem = perform_request("POST", "checklists/%s/checkItems" % cl["id"], {"name": sb["name"]})
                 logging.debug(new_checklistitem)
 
         #TODO: Mark checklist item as Complete if slave card is Done
@@ -318,7 +318,7 @@ def create_new_config():
     config["token"] = trello_token
 
     # Get the boards associated with the passed Trello credentials
-    boards = perform_request(config, "GET", "members/me/boards")
+    boards = perform_request("GET", "members/me/boards")
     print("These are your boards and their associated IDs:")
     print("           ID             |  Name")
     print("\n".join(["%s  |  %s" % (b["id"], b["name"]) for b in boards]))
@@ -348,7 +348,7 @@ def create_new_config():
             board_name = b["name"]
         else:
             lists_output += "\n\nLists from board '%s':\n           ID             |  Name" % b["name"]
-            boards_lists = perform_request(config, "GET", "boards/%s/lists" % b["id"])
+            boards_lists = perform_request("GET", "boards/%s/lists" % b["id"])
             for l in boards_lists:
                 lists_from_other_boards.append(l["id"])
                 lists_output += "\n%s  |  '%s' (from board '%s')" % (l["id"], l["name"], b["name"])
@@ -365,7 +365,7 @@ def create_new_config():
     config["name"] = config_name
 
     # Get the labels associated with the master board
-    labels = perform_request(config, "GET", "boards/%s/labels" % master_board)
+    labels = perform_request("GET", "boards/%s/labels" % master_board)
     print("These are the labels from the selected board and their associated IDs:")
     print("           ID             |  Label")
     label_names = []
@@ -437,12 +437,12 @@ def new_webhook():
         "callbackURL": "https://webhook.site/04b7baf0-1a59-41e2-b41a-245abeabc847?c=config",
         "idModel": config["master_board"]
     }
-    webhooks = perform_request(config, "POST", "webhooks", query)
+    webhooks = perform_request("POST", "webhooks", query)
     logging.debug(json.dumps(webhooks, indent=2))
 
 def list_webhooks():
     logging.debug("Existing webhooks:")
-    webhooks = perform_request(config, "GET", "tokens/%s/webhooks" % config["token"])
+    webhooks = perform_request("GET", "tokens/%s/webhooks" % config["token"])
     logging.debug(json.dumps(webhooks, indent=2))
     return webhooks
 
@@ -451,7 +451,7 @@ def delete_webhook():
     for w in list_webhooks():
         if w["idModel"] == config["master_board"]:
             # Delete the webhook for that config's master model
-            perform_request(config, "DELETE", "webhooks/%s" % w["id"])
+            perform_request("DELETE", "webhooks/%s" % w["id"])
             logging.debug("Webhook %s deleted" % w["id"])
 
 def load_config(config_file):
@@ -558,22 +558,22 @@ def init():
                     if s.lower() in ("yes", "oui", "ok", "yep", "no problemo", "aye"):
                         warning_acknowledged = True
             logging.debug("Get list of cards on the master Trello board")
-            master_cards = perform_request(config, "GET", "boards/%s/cards" % config["master_board"])
+            master_cards = perform_request("GET", "boards/%s/cards" % config["master_board"])
             # Delete all the master card attachments and cards on the slave boards
-            summary = cleanup_test_boards(config, master_cards)
+            summary = cleanup_test_boards(master_cards)
         elif args.propagate:
             summary = {"master_cards": 0, "active_master_cards": 0, "slave_card": 0, "new_slave_card": 0}
             if args.card:
                 # Validate that this specific card is on the master board
                 try:
-                    master_card = perform_request(config, "GET", "cards/%s" % args.card)
+                    master_card = perform_request("GET", "cards/%s" % args.card)
                 except requests.exceptions.HTTPError:
                     logging.critical("Invalid card ID %s, card not found. Exiting..." % args.card)
                     sys.exit(33)
                 if master_card["idBoard"] == config["master_board"]:
                     logging.debug("Card %s/%s is on the master board" % (master_card["id"], master_card["shortLink"]))
                     # Process that single card
-                    output = process_master_card(config, master_card)
+                    output = process_master_card(master_card)
                     summary["master_cards"] = 1
                     summary["active_master_cards"] = output[0]
                     summary["slave_card"] += output[1]
@@ -585,25 +585,25 @@ def init():
             else:
                 if args.list:
                     # Validate that this specific list is on the master board
-                    master_lists = perform_request(config, "GET", "boards/%s/lists" % config["master_board"])
+                    master_lists = perform_request("GET", "boards/%s/lists" % config["master_board"])
                     valid_master_list = False
                     for master_list in master_lists:
                         if args.list == master_list["id"]:
                             logging.debug("List %s is on the master board" % master_list["id"])
                             valid_master_list = True
                             # Get the list of cards on this master list
-                            master_cards = perform_request(config, "GET", "lists/%s/cards" % master_list["id"])
+                            master_cards = perform_request("GET", "lists/%s/cards" % master_list["id"])
                             break
                     if not valid_master_list:
                         logging.critical("List %s is not on the master board %s. Exiting..." % (args.list, config["master_board"]))
                         sys.exit(32)
                 else:
                     logging.debug("Get list of cards on the master Trello board")
-                    master_cards = perform_request(config, "GET", "boards/%s/cards" % config["master_board"])
+                    master_cards = perform_request("GET", "boards/%s/cards" % config["master_board"])
                 # Loop over all cards on the master board or list to sync the slave boards
                 for idx, master_card in enumerate(master_cards):
                     logging.info("Processing master card %d/%d - %s" %(idx+1, len(master_cards), master_card["name"]))
-                    output = process_master_card(config, master_card)
+                    output = process_master_card(master_card)
                     summary["master_cards"] = len(master_cards)
                     summary["active_master_cards"] += output[0]
                     summary["slave_card"] += output[1]
