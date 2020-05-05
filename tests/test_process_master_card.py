@@ -9,7 +9,6 @@
 import unittest
 import sys
 from unittest.mock import patch
-from unittest.mock import call
 import inspect
 
 sys.path.append('.')
