@@ -1231,7 +1231,7 @@ Exiting...
         Test the initialization code with --webhook new
         """
         target.__name__ = "__main__"
-        target.sys.argv = ["scriptname.py", "--debug", "--webhook", "new"]
+        target.sys.argv = ["scriptname.py", "--debug", "--config", "data/sample_config.json", "--webhook", "new"]
         target.init()
         # Confirm we called new_webhook()
         self.assertEqual(t_nw.mock_calls, [call()])
@@ -1242,7 +1242,7 @@ Exiting...
         Test the initialization code with --webhook list
         """
         target.__name__ = "__main__"
-        target.sys.argv = ["scriptname.py", "--debug", "--webhook", "list"]
+        target.sys.argv = ["scriptname.py", "--debug", "--config", "data/sample_config.json", "--webhook", "list"]
         target.init()
         # Confirm we called list_webhooks()
         self.assertEqual(t_lw.mock_calls, [call()])
@@ -1253,7 +1253,7 @@ Exiting...
         Test the initialization code with --webhook delete
         """
         target.__name__ = "__main__"
-        target.sys.argv = ["scriptname.py", "--debug", "--webhook", "delete"]
+        target.sys.argv = ["scriptname.py", "--debug", "--config", "data/sample_config.json", "--webhook", "delete"]
         target.init()
         # Confirm we called delete_webhook()
         self.assertEqual(t_dw.mock_calls, [call()])
