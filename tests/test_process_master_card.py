@@ -30,7 +30,6 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:Process master card 'Card name'",
             'DEBUG:root:Master card is to be synced on 0 destination lists',
             'INFO:root:This master card has no slave cards'])
-        target.config = None
 
     def test_process_master_card_unknown_label(self):
         """
@@ -54,7 +53,6 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:Process master card 'Card name'",
             'DEBUG:root:Master card is to be synced on 0 destination lists',
             'INFO:root:This master card has no slave cards'])
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_one_label(self, t_pr):
@@ -83,7 +81,6 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "Board name"},
             {"name": "List name"},
             {}]
-        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -100,7 +97,6 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
         self.assertEqual(cm.output, expected)
         target.args = None
-        target.config = None
 
     def test_process_master_card_label_multiple(self):
         """
@@ -132,7 +128,6 @@ class TestProcessMasterCard(unittest.TestCase):
             'INFO:root:This master card has 2 slave cards (2 newly created)']
         self.assertEqual(cm.output, expected)
         target.args = None
-        target.config = None
 
     def test_process_master_card_label_multiple_and_duplicate_single(self):
         """
@@ -164,7 +159,6 @@ class TestProcessMasterCard(unittest.TestCase):
             'INFO:root:This master card has 2 slave cards (2 newly created)']
         self.assertEqual(cm.output, expected)
         target.args = None
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_dummy_attachment(self, t_pr):
@@ -194,7 +188,6 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "Board name"},
             {"name": "List name"},
             {}]
-        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -212,7 +205,6 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
         self.assertEqual(cm.output, expected)
         target.args = None
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_attachment(self, t_pr):
@@ -233,7 +225,6 @@ class TestProcessMasterCard(unittest.TestCase):
             "labels": [{"name": "Label One"}], "badges": {"attachments": 1},
             "shortUrl": "https://trello.com/c/eoK0Rngb",
             "url": "https://trello.com/c/eoK0Rngb/blablabla"}
-        target.cached_names = {"board": {}, "list": {}}
         t_pr.side_effect = [[{"id": "rrr", "url": "https://trello.com/c/abcd1234/blablabla4"}],
             {"id": "q"*24, "name": "Slave card One",
                 "idBoard": "k"*24, "idList": "aaa"},
@@ -255,7 +246,6 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
         self.assertEqual(cm.output, expected)
         target.args = None
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_attachment_no_label(self, t_pr):
@@ -293,7 +283,6 @@ class TestProcessMasterCard(unittest.TestCase):
             "INFO:root:This master card has no slave cards"]
         self.assertEqual(cm.output, expected)
         target.args = None
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_one_label_wet_run_no_checklist(self, t_pr):
@@ -327,7 +316,6 @@ class TestProcessMasterCard(unittest.TestCase):
             {"idBoard": "hhh"},
             {"name": "Destination board name"},
             {"name": "New checklist item"}]
-        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -338,7 +326,6 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:{'name': 'New checklist item'}"])
         self.assertTrue(expected in "\n".join(cm.output))
         target.args = None
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_one_label_wet_run_unrelated_checklist(self, t_pr):
@@ -372,7 +359,6 @@ class TestProcessMasterCard(unittest.TestCase):
             {"idBoard": "hhh"},
             {"name": "Destination board name"},
             {"name": "New checklist item"}]
-        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -384,7 +370,6 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:{'name': 'New checklist item'}"])
         self.assertTrue(expected in "\n".join(cm.output))
         target.args = None
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_process_master_card_one_label_wet_run_related_checklist(self, t_pr):
@@ -414,7 +399,6 @@ class TestProcessMasterCard(unittest.TestCase):
             {"name": "List name"},
             {},
             [{"name": "Involved Teams"}]]
-        target.cached_names = {"board": {}, "list": {}}
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))

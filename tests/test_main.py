@@ -31,6 +31,12 @@ def setUpModule():
         return mock_raw_input_values[mock_raw_input_counter - 1]
     target.input = mock_raw_input
 
+# Ensure config and cached values are empty before each new test
+def setUp(cls):
+    target.config = None
+    target.cached_values = {"board": {}, "list": {}}
+# Use this for all the tests
+unittest.TestCase.setUp = setUp
 
 class TestOutputSummary(unittest.TestCase):
     def test_output_summary_propagate(self):
@@ -188,7 +194,6 @@ class TestCleanupTestBoards(unittest.TestCase):
                 ]
             }}
         master_cards = []
-        target.cached_names = {"board": {}, "list": {}}
         t_pr.side_effect = [
             {"idBoard": "h"*24},
             {"name": "Destination board name 1"},
@@ -215,8 +220,6 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:[]",
             "DEBUG:root:List Destination board name 2/Destination list name 2 has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
-        target.config = None
-        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_no_mc_yes_sc(self, t_pr):
@@ -233,7 +236,6 @@ class TestCleanupTestBoards(unittest.TestCase):
                 ]
             }}
         master_cards = []
-        target.cached_names = {"board": {}, "list": {}}
         t_pr.side_effect = [
             {"idBoard": "h"*24},
             {"name": "Destination board name 1"},
@@ -264,8 +266,6 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:List Destination board name 2/Destination list name 2 has 1 cards to delete",
             "DEBUG:root:Deleting slave card jjjjjjjjjjjjjjjjjjjjjjjj"]
         self.assertEqual(cm.output, expected)
-        target.config = None
-        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_master_card_no_attach(self, t_pr):
@@ -283,7 +283,6 @@ class TestCleanupTestBoards(unittest.TestCase):
             }}
         master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
             "badges": {"attachments": 0}}]
-        target.cached_names = {"board": {}, "list": {}}
         t_pr.side_effect = [
             [],
             {"idBoard": "h"*24},
@@ -314,8 +313,6 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:[]",
             "DEBUG:root:List Destination board name 2/Destination list name 2 has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
-        target.config = None
-        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_master_card_attach(self, t_pr):
@@ -333,7 +330,6 @@ class TestCleanupTestBoards(unittest.TestCase):
             }}
         master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
             "badges": {"attachments": 1}}]
-        target.cached_names = {"board": {}, "list": {}}
         t_pr.side_effect = [
             [{"id": "a"*24, "url": "https://trello.com/c/eoK0Rngb/blablabla"}],
             {},
@@ -371,8 +367,6 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:[]",
             "DEBUG:root:List Destination board name 2/Destination list name 2 has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
-        target.config = None
-        target.cached_names = {"board": {}, "list": {}}
 
 
 class TestUpdateMasterCardMetadata(unittest.TestCase):
@@ -484,64 +478,56 @@ class TestGetName(unittest.TestCase):
         """
         Test getting a board's name, uncached
         """
-        target.cached_names = {"board": {}, "list": {}}
         target.get_name("board", "a1b2c3")
         expected = call('GET', 'board/a1b2c3')
         self.assertEqual(t_pr.mock_calls[0], expected)
-        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_get_name_board_cached(self, t_pr):
         """
         Test getting a board's name, cached
         """
-        target.cached_names = {"board": {}, "list": {}}
         expected_name = "Board name to be cached"
         # First call, expect network query and answer to be cached
         t_pr.side_effect = [{"name": expected_name}]
-        self.assertEqual(target.cached_names["board"], {})
+        self.assertEqual(target.cached_values["board"], {})
         board_name = target.get_name("board", "a1b2c3")
         expected_call = call('GET', 'board/a1b2c3')
         self.assertEqual(t_pr.mock_calls[0], expected_call)
         self.assertEqual(board_name, expected_name)
-        self.assertEqual(target.cached_names["board"], {"a1b2c3": "Board name to be cached"})
+        self.assertEqual(target.cached_values["board"], {"a1b2c3": "Board name to be cached"})
         # Second call, no new network call, value from the cache
         board_name = target.get_name("board", "a1b2c3")
         self.assertEqual(len(t_pr.mock_calls), 1)
         self.assertEqual(board_name, expected_name)
-        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_get_name_list_uncached(self, t_pr):
         """
         Test getting a list's name, uncached
         """
-        target.cached_names = {"board": {}, "list": {}}
         target.get_name("list", "d4e5f6")
         expected = call('GET', 'list/d4e5f6')
         self.assertEqual(t_pr.mock_calls[0], expected)
-        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_get_name_list_cached(self, t_pr):
         """
         Test getting a list's name, cached
         """
-        target.cached_names = {"board": {}, "list": {}}
         expected_name = "List name to be cached"
         # First call, expect network query and answer to be cached
         t_pr.side_effect = [{"name": expected_name}]
-        self.assertEqual(target.cached_names["list"], {})
+        self.assertEqual(target.cached_values["list"], {})
         board_name = target.get_name("list", "d4e5f6")
         expected_call = call('GET', 'list/d4e5f6')
         self.assertEqual(t_pr.mock_calls[0], expected_call)
         self.assertEqual(board_name, expected_name)
-        self.assertEqual(target.cached_names["list"], {"d4e5f6": "List name to be cached"})
+        self.assertEqual(target.cached_values["list"], {"d4e5f6": "List name to be cached"})
         # Second call, no new network call, value from the cache
         board_name = target.get_name("list", "d4e5f6")
         self.assertEqual(len(t_pr.mock_calls), 1)
         self.assertEqual(board_name, expected_name)
-        target.cached_names = {"board": {}, "list": {}}
 
 
 class TestGenerateMasterCardMetadata(unittest.TestCase):
@@ -605,7 +591,6 @@ class TestPerformRequest(unittest.TestCase):
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
-        target.config = None
 
     @patch("requests.request")
     def test_perform_request_get_dry_run(self, r_r):
@@ -620,7 +605,6 @@ class TestPerformRequest(unittest.TestCase):
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
-        target.config = None
 
     @patch("requests.request")
     def test_perform_request_post(self, r_r):
@@ -635,7 +619,6 @@ class TestPerformRequest(unittest.TestCase):
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
-        target.config = None
 
     @patch("requests.request")
     def test_perform_request_post_dry_run(self, r_r):
@@ -650,7 +633,6 @@ class TestPerformRequest(unittest.TestCase):
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
         target.args = None
-        target.config = None
 
     @patch("requests.request")
     def test_perform_request_put(self, r_r):
@@ -665,7 +647,6 @@ class TestPerformRequest(unittest.TestCase):
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
-        target.config = None
 
     @patch("requests.request")
     def test_perform_request_put_dry_run(self, r_r):
@@ -680,7 +661,6 @@ class TestPerformRequest(unittest.TestCase):
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
         target.args = None
-        target.config = None
 
     @patch("requests.request")
     def test_perform_request_delete(self, r_r):
@@ -695,7 +675,6 @@ class TestPerformRequest(unittest.TestCase):
             call().json()]
         self.assertEqual(r_r.mock_calls, expected)
         target.args = None
-        target.config = None
 
     @patch("requests.request")
     def test_perform_request_delete_dry_run(self, r_r):
@@ -710,7 +689,6 @@ class TestPerformRequest(unittest.TestCase):
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
         target.args = None
-        target.config = None
 
 
 class TestCreateNewSlaveCard(unittest.TestCase):
@@ -731,7 +709,6 @@ class TestCreateNewSlaveCard(unittest.TestCase):
             'keepFromSource': 'attachments,checklists,comments,due,stickers'})]
         self.assertEqual(t_pr.mock_calls, expected)
         self.assertEqual(card, t_pr.return_value)
-        target.config = None
 
 
 class TestGlobals(unittest.TestCase):
@@ -759,7 +736,6 @@ class TestNewWebhook(unittest.TestCase):
         target.new_webhook()
         expected = [call('POST', 'webhooks', {'callbackURL': 'https://webhook.site/04b7baf0-1a59-41e2-b41a-245abeabc847?c=config', 'idModel': 'cde'})]
         self.assertEqual(t_pr.mock_calls, expected)
-        target.config = None
 
 
 class TestListWebhooks(unittest.TestCase):
@@ -774,7 +750,6 @@ class TestListWebhooks(unittest.TestCase):
         expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
         self.assertEqual(webhooks, t_pr.return_value)
-        target.config = None
 
 
 class TestDeleteWebhook(unittest.TestCase):
@@ -788,7 +763,6 @@ class TestDeleteWebhook(unittest.TestCase):
         webhooks = target.delete_webhook()
         expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_delete_webhook_one_ok(self, t_pr):
@@ -801,7 +775,6 @@ class TestDeleteWebhook(unittest.TestCase):
         expected = [call('GET', 'tokens/jkl/webhooks'),
             call('DELETE', 'webhooks/kdfg')]
         self.assertEqual(t_pr.mock_calls, expected)
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_delete_webhook_one_nok(self, t_pr):
@@ -813,7 +786,6 @@ class TestDeleteWebhook(unittest.TestCase):
         webhooks = target.delete_webhook()
         expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_delete_webhook_multiple_ok(self, t_pr):
@@ -828,7 +800,6 @@ class TestDeleteWebhook(unittest.TestCase):
         expected = [call('GET', 'tokens/jkl/webhooks'),
             call('DELETE', 'webhooks/kdfg3')]
         self.assertEqual(t_pr.mock_calls, expected)
-        target.config = None
 
     @patch("trello-team-sync.perform_request")
     def test_delete_webhook_multiple_ok(self, t_pr):
@@ -841,7 +812,6 @@ class TestDeleteWebhook(unittest.TestCase):
         webhooks = target.delete_webhook()
         expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
-        target.config = None
 
 
 class TestParseArgs(unittest.TestCase):
@@ -1153,7 +1123,6 @@ class TestInitMain(unittest.TestCase):
         target.__name__ = "__main__"
         # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--cleanup", "--debug", "--config", "data/sample_config.json"]
-        target.cached_names = {"board": {}, "list": {}}
         t_pr.side_effect = [
             {},
             {"idBoard": "h"*24},
@@ -1172,7 +1141,6 @@ class TestInitMain(unittest.TestCase):
         self.assertTrue("DEBUG:root:Loading configuration data/sample_config.json" in cm.output)
         self.assertEqual(cm.output[-1], "INFO:root:Summary: cleaned up 0 master cards and deleted 0 slave cards from 0 slave boards/0 slave lists.")
         self.assertEqual(f.getvalue(), "WARNING: this will delete all cards on the slave lists. Type 'YES' to confirm, or 'q' to quit:\u0020\n")
-        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_init_cleanup_no(self, t_pr):
@@ -1212,7 +1180,6 @@ Exiting...
         target.__name__ = "__main__"
         # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--cleanup", "--debug", "--dry-run"]
-        target.cached_names = {"board": {}, "list": {}}
         t_pr.side_effect = [
             {},
             {"idBoard": "h"*24},
@@ -1236,7 +1203,6 @@ Exiting...
             with self.assertRaises(FileNotFoundError) as cm1, self.assertLogs(level='DEBUG') as cm2:
                 target.init()
             self.assertEqual(str(cm1.exception), "[Errno 2] No such file or directory: 'data/config.json'")
-        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_init_new_config(self, t_pr):
