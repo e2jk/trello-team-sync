@@ -34,7 +34,7 @@ def setUpModule():
 # Ensure config and cached values are empty before each new test
 def setUp(cls):
     target.config = None
-    target.cached_values = {"board": {}, "list": {}}
+    target.cached_values = {"board": {}, "list": {}, "board_of_list": {}}
 # Use this for all the tests
 unittest.TestCase.setUp = setUp
 
@@ -493,6 +493,7 @@ class TestGetName(unittest.TestCase):
         self.assertEqual(target.cached_values["board"], {})
         board_name = target.get_name("board", "a1b2c3")
         expected_call = call('GET', 'board/a1b2c3')
+        self.assertEqual(len(t_pr.mock_calls), 1)
         self.assertEqual(t_pr.mock_calls[0], expected_call)
         self.assertEqual(board_name, expected_name)
         self.assertEqual(target.cached_values["board"], {"a1b2c3": "Board name to be cached"})
@@ -519,14 +520,49 @@ class TestGetName(unittest.TestCase):
         # First call, expect network query and answer to be cached
         t_pr.side_effect = [{"name": expected_name}]
         self.assertEqual(target.cached_values["list"], {})
-        board_name = target.get_name("list", "d4e5f6")
+        list_name = target.get_name("list", "d4e5f6")
         expected_call = call('GET', 'list/d4e5f6')
+        self.assertEqual(len(t_pr.mock_calls), 1)
         self.assertEqual(t_pr.mock_calls[0], expected_call)
-        self.assertEqual(board_name, expected_name)
+        self.assertEqual(list_name, expected_name)
         self.assertEqual(target.cached_values["list"], {"d4e5f6": "List name to be cached"})
         # Second call, no new network call, value from the cache
-        board_name = target.get_name("list", "d4e5f6")
+        list_name = target.get_name("list", "d4e5f6")
         self.assertEqual(len(t_pr.mock_calls), 1)
+        self.assertEqual(list_name, expected_name)
+
+
+class TestGetBoardNameFromList(unittest.TestCase):
+    @patch("trello-team-sync.perform_request")
+    def test_get_board_name_from_list_uncached(self, t_pr):
+        """
+        Test getting a board's name from one of it's list ID, uncached
+        """
+        expected_name = "Board name"
+        t_pr.side_effect = [{"idBoard": "x"*24}, {"name": expected_name}]
+        board_name = target.get_board_name_from_list("z"*24)
+        expected_calls =[call('GET', 'lists/zzzzzzzzzzzzzzzzzzzzzzzz'),
+            call('GET', 'board/xxxxxxxxxxxxxxxxxxxxxxxx')]
+        self.assertEqual(board_name, expected_name)
+        self.assertEqual(t_pr.mock_calls, expected_calls)
+
+    @patch("trello-team-sync.perform_request")
+    def test_get_board_name_from_list_cached(self, t_pr):
+        """
+        Test getting a board's name from one of it's list ID, cached
+        """
+        expected_name = "Board name to be cached"
+        # First call, two expect network query and answer to be cached
+        t_pr.side_effect = [{"idBoard": "x"*24}, {"name": expected_name}]
+        board_name = target.get_board_name_from_list("z"*24)
+        expected_calls =[call('GET', 'lists/zzzzzzzzzzzzzzzzzzzzzzzz'),
+            call('GET', 'board/xxxxxxxxxxxxxxxxxxxxxxxx')]
+        self.assertEqual(len(t_pr.mock_calls), 2)
+        self.assertEqual(t_pr.mock_calls, expected_calls)
+        self.assertEqual(board_name, expected_name)
+        # Second call, no new network call, value from the cache
+        board_name = target.get_board_name_from_list("z"*24)
+        self.assertEqual(len(t_pr.mock_calls), 2)
         self.assertEqual(board_name, expected_name)
 
 

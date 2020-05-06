@@ -15,7 +15,7 @@ import readline
 
 METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
 METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
-cached_values = {"board": {}, "list": {}}
+cached_values = {"board": {}, "list": {}, "board_of_list": {}}
 
 def rlinput(prompt, prefill=''):
     """Provide an editable input string
@@ -153,9 +153,10 @@ def get_name(record_type, record_id):
     return cached_values[record_type][record_id]
 
 def get_board_name_from_list(list_id):
-    #TODO: Cache the board ID from this list's ID
-    board = perform_request("GET", "lists/%s" % list_id)
-    return get_name("board", board["idBoard"])
+    global cached_values
+    if list_id not in cached_values["board_of_list"]:
+        cached_values["board_of_list"][list_id] = perform_request("GET", "lists/%s" % list_id)["idBoard"]
+    return get_name("board", cached_values["board_of_list"][list_id])
 
 def generate_master_card_metadata(slave_cards):
     mcm = ""
