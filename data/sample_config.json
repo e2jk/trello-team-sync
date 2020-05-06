@@ -3,22 +3,12 @@
   "key": "abc",
   "token": "def",
   "master_board": "ghi",
-  "slave_boards": {
-    "Label One": {
-      "backlog": "a1a1a1a1a1a1a1a1a1a1a1a1",
-      "in_progress": "bbb",
-      "complete": "ccc"
-    },
-    "Label Two": {
-      "backlog": "ddd",
-      "in_progress": "eee",
-      "complete": "fff"
-    }
-  },
-  "multiple_teams": {
+  "destination_lists": {
+    "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+    "Label Two": ["ddd"],
     "All Teams": [
-      "Label One",
-      "Label Two"
+      "a1a1a1a1a1a1a1a1a1a1a1a1",
+      "ddd"
     ]
   }
 }

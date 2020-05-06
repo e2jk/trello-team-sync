@@ -36,8 +36,8 @@ def output_summary(args, summary):
             " [DRY RUN]: would have " if args.dry_run else ": ",
             summary["cleaned_up_master_cards"],
             summary["deleted_slave_cards"],
-            summary["erased_slave_boards"],
-            summary["erased_slave_lists"]))
+            summary["erased_destination_boards"],
+            summary["erased_destination_lists"]))
     elif args.propagate:
         logging.info("Summary%s: processed %d master cards (of which %d active) that have %d slave cards (of which %d %snew)." % (
             " [DRY RUN]" if args.dry_run else "",
@@ -84,34 +84,40 @@ def cleanup_test_boards(master_cards):
         update_master_card_metadata(master_card, "")
 
     logging.debug("Deleting slave cards")
-    erased_slave_boards = []
+    erased_destination_boards = []
     num_lists_to_cleanup = 0
     num_lists_inspected = 0
-    num_erased_slave_lists = 0
+    num_erased_destination_lists = 0
     deleted_slave_cards = 0
-    for sb in config["slave_boards"]:
-        for l in config["slave_boards"][sb]:
-            num_lists_to_cleanup += 1
-    for sb in config["slave_boards"]:
-        for l in config["slave_boards"][sb]:
-            logging.debug("="*64)
-            num_lists_inspected += 1
-            logging.debug("Retrieve cards from list %s|%s (list %d/%d)" % (sb, l, num_lists_inspected, num_lists_to_cleanup))
-            slave_cards = perform_request("GET", "lists/%s/cards" % config["slave_boards"][sb][l])
-            logging.debug(slave_cards)
-            logging.debug("List %s/%s has %d cards to delete" % (sb, l, len(slave_cards)))
-            if len(slave_cards) > 0:
-                num_erased_slave_lists += 1
-                if not sb in erased_slave_boards:
-                    erased_slave_boards.append(sb)
-            for sc in slave_cards:
-                logging.debug("Deleting slave card %s" % sc["id"])
-                deleted_slave_cards += 1
-                perform_request("DELETE", "cards/%s" % sc["id"])
+    #TODO: In addition to cleaning up the lists defined in the configuration,
+    # also clean up the other lists on the boards of the lists in the config
+    destination_lists = []
+    for dl in config["destination_lists"]:
+        for l in config["destination_lists"][dl]:
+            if l not in destination_lists:
+                destination_lists.append(l)
+                num_lists_to_cleanup += 1
+    for l in destination_lists:
+        logging.debug("="*64)
+        num_lists_inspected += 1
+        board_name = get_board_name_from_list(l)
+        list_name = get_name("list", l)
+        logging.debug("Retrieve cards from list %s|%s (list %d/%d)" % (board_name, list_name, num_lists_inspected, num_lists_to_cleanup))
+        slave_cards = perform_request("GET", "lists/%s/cards" % l)
+        logging.debug(slave_cards)
+        logging.debug("List %s/%s has %d cards to delete" % (board_name, list_name, len(slave_cards)))
+        if len(slave_cards) > 0:
+            num_erased_destination_lists += 1
+            if not board_name in erased_destination_boards:
+                erased_destination_boards.append(board_name)
+        for sc in slave_cards:
+            logging.debug("Deleting slave card %s" % sc["id"])
+            deleted_slave_cards += 1
+            perform_request("DELETE", "cards/%s" % sc["id"])
     return {"cleaned_up_master_cards": cleaned_up_master_cards,
             "deleted_slave_cards": deleted_slave_cards,
-            "erased_slave_boards": len(erased_slave_boards),
-            "erased_slave_lists": num_erased_slave_lists}
+            "erased_destination_boards": len(erased_destination_boards),
+            "erased_destination_lists": num_erased_destination_lists}
 
 def split_master_card_metadata(master_card_desc):
     if METADATA_SEPARATOR not in master_card_desc:
@@ -146,6 +152,11 @@ def get_name(record_type, record_id):
         cached_names[record_type][record_id] = perform_request("GET", "%s/%s" % (record_type, record_id))["name"]
     return cached_names[record_type][record_id]
 
+def get_board_name_from_list(list_id):
+    #TODO: Cache the board ID from this list's ID
+    board = perform_request("GET", "lists/%s" % list_id)
+    return get_name("board", board["idBoard"])
+
 def generate_master_card_metadata(slave_cards):
     mcm = ""
     for sc in slave_cards:
@@ -173,10 +184,10 @@ def perform_request(method, url, query=None):
     response.raise_for_status()
     return response.json()
 
-def create_new_slave_card(master_card, slave_board):
+def create_new_slave_card(master_card, destination_list):
     logging.debug("Creating new slave card")
     query = {
-       "idList": slave_board["lists"]["backlog"],
+       "idList": destination_list,
        "desc": "%s\n\nCreated from master card %s" % (master_card["desc"], master_card["shortUrl"]),
        "pos": "bottom",
        "idCardSource": master_card["id"],
@@ -191,24 +202,14 @@ def create_new_slave_card(master_card, slave_board):
 def process_master_card(master_card):
     logging.debug("="*64)
     logging.debug("Process master card '%s'" % master_card["name"])
-    # Check if this card is to be synced on a slave board
-    full_slave_boards = []
+    # Check if this card is to be synced on a destination list
+    destination_lists = []
     for l in master_card["labels"]:
-        # Handle labels that add to multiple lists at once
-        if l["name"] in config["multiple_teams_names"]:
-            logging.debug("Syncing this master card to multiple boards at once")
-            for sb in config["multiple_teams"][l["name"]]:
-                full_slave_boards.append({"name": sb, "lists": config["slave_boards"][sb]})
-        else:
-            if l["name"] in config["slave_boards"]:
-                full_slave_boards.append({"name": l["name"], "lists": config["slave_boards"][l["name"]]})
-    # Remove duplicates (could happen is a team listed in a multiple_teams list is also added individually)
-    slave_boards = []
-    for fsb in full_slave_boards:
-        if fsb["name"] not in [sb["name"] for sb in slave_boards]:
-            slave_boards.append(fsb)
-    sb_list = ", ".join([sb["name"] for sb in slave_boards])
-    logging.debug("Master card is to be synced on %d slave boards (%s)" % (len(slave_boards), sb_list))
+        if l["name"] in config["destination_lists"]:
+            for list in config["destination_lists"][l["name"]]:
+                if list not in destination_lists:
+                    destination_lists.append(list)
+    logging.debug("Master card is to be synced on %d destination lists" % len(destination_lists))
 
     # Check if slave cards are already attached to this master card
     linked_slave_cards = []
@@ -219,7 +220,7 @@ def process_master_card(master_card):
 
     new_master_card_metadata = ""
     # Check if slave cards need to be unlinked
-    if len(slave_boards) == 0 and len(linked_slave_cards) > 0:
+    if len(destination_lists) == 0 and len(linked_slave_cards) > 0:
         logging.debug("Master card has been unlinked from slave cards")
         # Information on the master card needs to be updated to remove the reference to the slave cards
         new_master_card_metadata = ""
@@ -227,21 +228,20 @@ def process_master_card(master_card):
 
     num_new_cards = 0
     slave_cards = []
-    if len(slave_boards) > 0:
-        for sb in slave_boards:
+    if len(destination_lists) > 0:
+        for dl in destination_lists:
             existing_slave_card = None
             for lsc in linked_slave_cards:
-                for l in sb["lists"]:
-                    if sb["lists"][l] == lsc["idList"]:
-                        existing_slave_card = lsc
+                if dl == lsc["idList"]:
+                    existing_slave_card = lsc
             if existing_slave_card:
-                logging.debug("Slave card %s already exists on board %s" % (existing_slave_card["id"], sb["name"]))
+                logging.debug("Slave card %s already exists on list %s" % (existing_slave_card["id"], dl))
                 logging.debug(existing_slave_card)
                 card = existing_slave_card
             else:
                 # A new slave card needs to be created for this slave board
                 num_new_cards += 1
-                card = create_new_slave_card(master_card, sb)
+                card = create_new_slave_card(master_card, dl)
                 if card:
                     # Link cards between each other
                     logging.debug("Attaching master card %s to slave card %s" % (master_card["id"], card["id"]))
@@ -260,7 +260,7 @@ def process_master_card(master_card):
     update_master_card_metadata(master_card, new_master_card_metadata)
 
     # Add a checklist for each team on the master card
-    if len(slave_boards) > 0 and not args.dry_run:
+    if len(destination_lists) > 0 and not args.dry_run:
         logging.debug("Retrieving checklists from card %s" % master_card["id"])
         master_card_checklists = perform_request("GET", "cards/%s/checklists" % master_card["id"])
         create_checklist = True
@@ -275,14 +275,17 @@ def process_master_card(master_card):
             logging.debug("Creating new checklist")
             cl = perform_request("POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
             logging.debug(cl)
-            for sb in slave_boards:
-                logging.debug("Adding new checklistitem %s to checklist %s" % (sb["name"], cl["id"]))
-                new_checklistitem = perform_request("POST", "checklists/%s/checkItems" % cl["id"], {"name": sb["name"]})
+            for dl in destination_lists:
+                #TODO: Support more friendly name in the config than the destination board's name
+                # Use that list's board's name as checklist name
+                checklistitem_name = get_board_name_from_list(dl)
+                logging.debug("Adding new checklistitem '%s' to checklist %s" % (checklistitem_name, cl["id"]))
+                new_checklistitem = perform_request("POST", "checklists/%s/checkItems" % cl["id"], {"name": checklistitem_name})
                 logging.debug(new_checklistitem)
 
         #TODO: Mark checklist item as Complete if slave card is Done
 
-    return (1 if len(slave_boards) > 0 else 0, len(slave_cards), num_new_cards)
+    return (1 if len(destination_lists) > 0 else 0, len(slave_cards), num_new_cards)
 
 def create_new_config():
     config = {"name": ""}
@@ -376,7 +379,7 @@ def create_new_config():
             label_names.append(l["name"])
 
     # Associate labels with lists
-    config["slave_boards"] = {}
+    config["destination_lists"] = {}
     error_message = ""
     continue_label = "yes"
     label = None
@@ -389,7 +392,7 @@ def create_new_config():
             elif label not in label_names:
                 label = None
                 error_message = "This is not a valid label name for the selected board. "
-        config["slave_boards"][label] = {}
+        config["destination_lists"][label] = []
         # Get list ID to associate with this label
         error_message = ""
         list_id = None
@@ -402,7 +405,8 @@ def create_new_config():
             if not re.match("^[0-9a-fA-F]{24}$", list_id):
                 list_id = None
                 error_message = "Invalid list ID, must be 24 characters. "
-        config["slave_boards"][label]["backlog"] = list_id
+        config["destination_lists"][label].append(list_id)
+        #TODO: Support labels that point to multiple lists
 
         error_message = ""
         continue_label = None
@@ -414,9 +418,6 @@ def create_new_config():
             if continue_label not in ("yes", "no"):
                 continue_label = None
             label = None
-
-    config["multiple_teams"] = {}
-    #TODO: Support labels that point to multiple lists ("multiple_teams")
 
     logging.debug(config)
 
@@ -458,7 +459,6 @@ def load_config(config_file):
     logging.debug("Loading configuration %s" % config_file)
     with open(config_file, "r") as json_file:
         config = json.load(json_file)
-    config["multiple_teams_names"] = list(config["multiple_teams"].keys())
     logging.info("Config '%s' loaded" % config["name"])
     logging.debug(config)
     return config

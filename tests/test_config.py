@@ -425,9 +425,9 @@ New configuration saved to file 'data/config_config-name.json'
         self.assertEqual(target.config["key"], vals[0])
         self.assertEqual(target.config["token"], vals[1])
         self.assertEqual(target.config["master_board"], vals[2])
-        self.assertEqual(len(target.config["slave_boards"]), 2)
-        self.assertEqual(len(target.config["slave_boards"]["Label One"]), 1)
-        self.assertEqual(target.config["slave_boards"]["Label One"]["backlog"], vals[5])
+        self.assertEqual(len(target.config["destination_lists"]), 2)
+        self.assertEqual(len(target.config["destination_lists"]["Label One"]), 1)
+        self.assertEqual(target.config["destination_lists"]["Label One"][0], vals[5])
         target.config = None
 
 
@@ -441,9 +441,11 @@ class TestLoadConfig(unittest.TestCase):
         self.assertEqual(target.config["key"], "abc")
         self.assertEqual(target.config["token"], "def")
         self.assertEqual(target.config["master_board"], "ghi")
-        self.assertEqual(len(target.config["slave_boards"]), 2)
-        self.assertEqual(len(target.config["slave_boards"]["Label One"]), 3)
-        self.assertEqual(target.config["slave_boards"]["Label One"]["backlog"], "a1a1a1a1a1a1a1a1a1a1a1a1")
+        self.assertEqual(len(target.config["destination_lists"]), 3)
+        self.assertEqual(len(target.config["destination_lists"]["Label One"]), 1)
+        self.assertEqual(target.config["destination_lists"]["Label One"][0], "a1a1a1a1a1a1a1a1a1a1a1a1")
+        self.assertEqual(len(target.config["destination_lists"]["All Teams"]), 2)
+        self.assertEqual(target.config["destination_lists"]["All Teams"][1], "ddd")
         target.config = None
 
     def test_load_config_nonexisting(self):

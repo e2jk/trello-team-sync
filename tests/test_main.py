@@ -79,8 +79,8 @@ class TestOutputSummary(unittest.TestCase):
             "dry_run": False})()
         summary = {"cleaned_up_master_cards": 4,
             "deleted_slave_cards": 6,
-            "erased_slave_boards": 2,
-            "erased_slave_lists": 2}
+            "erased_destination_boards": 2,
+            "erased_destination_lists": 2}
         with self.assertLogs(level='INFO') as cm:
             target.output_summary(args, summary)
         self.assertEqual(cm.output, [
@@ -97,8 +97,8 @@ class TestOutputSummary(unittest.TestCase):
             "dry_run": True})()
         summary = {"cleaned_up_master_cards": 4,
             "deleted_slave_cards": 6,
-            "erased_slave_boards": 2,
-            "erased_slave_lists": 2}
+            "erased_destination_boards": 2,
+            "erased_destination_lists": 2}
         with self.assertLogs(level='INFO') as cm:
             target.output_summary(args, summary)
         self.assertEqual(cm.output, [
@@ -178,121 +178,182 @@ class TestCleanupTestBoards(unittest.TestCase):
         """
         Test cleaning up the test boards when there is no master card and no cards on the slave lists
         """
-        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
-            "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
+        target.config = {"key": "ghi", "token": "jkl",
+            "destination_lists": {
+                "Label One": ["aaa"],
+                "Label Two": ["ddd"],
+                "All Teams": [
+                  "aaa",
+                  "ddd"
+                ]
+            }}
         master_cards = []
-        t_pr.return_value = []
+        target.cached_names = {"board": {}, "list": {}}
+        t_pr.side_effect = [
+            {"idBoard": "h"*24},
+            {"name": "Destination board name 1"},
+            {"name": "Destination list name 1"},
+            [],
+            {"idBoard": "y"*24},
+            {"name": "Destination board name 2"},
+            {"name": "Destination list name 2"},
+            []]
         with self.assertLogs(level='DEBUG') as cm:
             summary = target.cleanup_test_boards(master_cards)
         self.assertEqual(summary, {"cleaned_up_master_cards": 0,
             "deleted_slave_cards": 0,
-            "erased_slave_boards": 0,
-            "erased_slave_lists": 0})
+            "erased_destination_boards": 0,
+            "erased_destination_lists": 0})
         expected = ["DEBUG:root:Removing slave cards attachments on the master cards",
             "DEBUG:root:Deleting slave cards",
             "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|backlog (list 1/3)",
+            "DEBUG:root:Retrieve cards from list Destination board name 1|Destination list name 1 (list 1/2)",
             "DEBUG:root:[]",
-            "DEBUG:root:List Label One/backlog has 0 cards to delete",
+            "DEBUG:root:List Destination board name 1/Destination list name 1 has 0 cards to delete",
             "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|in_progress (list 2/3)",
+            "DEBUG:root:Retrieve cards from list Destination board name 2|Destination list name 2 (list 2/2)",
             "DEBUG:root:[]",
-            "DEBUG:root:List Label One/in_progress has 0 cards to delete",
-            "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|complete (list 3/3)",
-            "DEBUG:root:[]",
-            "DEBUG:root:List Label One/complete has 0 cards to delete"]
+            "DEBUG:root:List Destination board name 2/Destination list name 2 has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
         target.config = None
+        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_no_mc_yes_sc(self, t_pr):
         """
         Test cleaning up the test boards when there is no master card and cards on the slave lists
         """
-        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
-            "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
+        target.config = {"key": "ghi", "token": "jkl",
+            "destination_lists": {
+                "Label One": ["aaa"],
+                "Label Two": ["ddd"],
+                "All Teams": [
+                  "aaa",
+                  "ddd"
+                ]
+            }}
         master_cards = []
-        t_pr.return_value = [{"id": "u"*24}]
+        target.cached_names = {"board": {}, "list": {}}
+        t_pr.side_effect = [
+            {"idBoard": "h"*24},
+            {"name": "Destination board name 1"},
+            {"name": "Destination list name 1"},
+            [{"id": "u"*24}],
+            {},
+            {"idBoard": "y"*24},
+            {"name": "Destination board name 2"},
+            {"name": "Destination list name 2"},
+            [{"id": "j"*24}],
+            {}]
         with self.assertLogs(level='DEBUG') as cm:
             summary = target.cleanup_test_boards(master_cards)
         self.assertEqual(summary, {"cleaned_up_master_cards": 0,
-            "deleted_slave_cards": 3,
-            "erased_slave_boards": 1,
-            "erased_slave_lists": 3})
+            "deleted_slave_cards": 2,
+            "erased_destination_boards": 2,
+            "erased_destination_lists": 2})
         expected = ["DEBUG:root:Removing slave cards attachments on the master cards",
             "DEBUG:root:Deleting slave cards",
             "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|backlog (list 1/3)",
+            "DEBUG:root:Retrieve cards from list Destination board name 1|Destination list name 1 (list 1/2)",
             "DEBUG:root:[{'id': 'uuuuuuuuuuuuuuuuuuuuuuuu'}]",
-            "DEBUG:root:List Label One/backlog has 1 cards to delete",
+            "DEBUG:root:List Destination board name 1/Destination list name 1 has 1 cards to delete",
             "DEBUG:root:Deleting slave card uuuuuuuuuuuuuuuuuuuuuuuu",
             "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|in_progress (list 2/3)",
-            "DEBUG:root:[{'id': 'uuuuuuuuuuuuuuuuuuuuuuuu'}]",
-            "DEBUG:root:List Label One/in_progress has 1 cards to delete",
-            "DEBUG:root:Deleting slave card uuuuuuuuuuuuuuuuuuuuuuuu",
-            "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|complete (list 3/3)",
-            "DEBUG:root:[{'id': 'uuuuuuuuuuuuuuuuuuuuuuuu'}]",
-            "DEBUG:root:List Label One/complete has 1 cards to delete",
-            "DEBUG:root:Deleting slave card uuuuuuuuuuuuuuuuuuuuuuuu"]
+            "DEBUG:root:Retrieve cards from list Destination board name 2|Destination list name 2 (list 2/2)",
+            "DEBUG:root:[{'id': 'jjjjjjjjjjjjjjjjjjjjjjjj'}]",
+            "DEBUG:root:List Destination board name 2/Destination list name 2 has 1 cards to delete",
+            "DEBUG:root:Deleting slave card jjjjjjjjjjjjjjjjjjjjjjjj"]
         self.assertEqual(cm.output, expected)
         target.config = None
+        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_master_card_no_attach(self, t_pr):
         """
         Test cleaning up the test boards with a master card without attachment
         """
-        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
-            "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
+        target.config = {"key": "ghi", "token": "jkl",
+            "destination_lists": {
+                "Label One": ["aaa"],
+                "Label Two": ["ddd"],
+                "All Teams": [
+                  "aaa",
+                  "ddd"
+                ]
+            }}
         master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
             "badges": {"attachments": 0}}]
-        t_pr.return_value = []
+        target.cached_names = {"board": {}, "list": {}}
+        t_pr.side_effect = [
+            [],
+            {"idBoard": "h"*24},
+            {"name": "Destination board name 1"},
+            {"name": "Destination list name 1"},
+            [],
+            {"idBoard": "y"*24},
+            {"name": "Destination board name 2"},
+            {"name": "Destination list name 2"},
+            []]
         with self.assertLogs(level='DEBUG') as cm:
             summary = target.cleanup_test_boards(master_cards)
         self.assertEqual(summary, {"cleaned_up_master_cards": 0,
             "deleted_slave_cards": 0,
-            "erased_slave_boards": 0,
-            "erased_slave_lists": 0})
+            "erased_destination_boards": 0,
+            "erased_destination_lists": 0})
         expected = ["DEBUG:root:Removing slave cards attachments on the master cards",
             "DEBUG:root:================================================================",
             "INFO:root:Cleaning up master card 1/1 - Card name",
             "DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
             "DEBUG:root:Deleting slave cards",
             "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|backlog (list 1/3)",
+            "DEBUG:root:Retrieve cards from list Destination board name 1|Destination list name 1 (list 1/2)",
             "DEBUG:root:[]",
-            "DEBUG:root:List Label One/backlog has 0 cards to delete",
+            "DEBUG:root:List Destination board name 1/Destination list name 1 has 0 cards to delete",
             "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|in_progress (list 2/3)",
+            "DEBUG:root:Retrieve cards from list Destination board name 2|Destination list name 2 (list 2/2)",
             "DEBUG:root:[]",
-            "DEBUG:root:List Label One/in_progress has 0 cards to delete",
-            "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|complete (list 3/3)",
-            "DEBUG:root:[]",
-            "DEBUG:root:List Label One/complete has 0 cards to delete"]
+            "DEBUG:root:List Destination board name 2/Destination list name 2 has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
         target.config = None
+        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_master_card_attach(self, t_pr):
         """
         Test cleaning up the test boards with a master card with related attachment
         """
-        target.config = {"key": "ghi", "token": "jkl", "multiple_teams": {}, "multiple_teams_names": [],
-            "slave_boards": {"Label One": {"backlog": "aaa", "in_progress": "bbb", "complete": "ccc"}}}
+        target.config = {"key": "ghi", "token": "jkl",
+            "destination_lists": {
+                "Label One": ["aaa"],
+                "Label Two": ["ddd"],
+                "All Teams": [
+                  "aaa",
+                  "ddd"
+                ]
+            }}
         master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
             "badges": {"attachments": 1}}]
-        t_pr.side_effect = [[{"id": "a"*24, "url": "https://trello.com/c/eoK0Rngb/blablabla"}],
-            {}, [{"id": "b"*24, "name": "Involved Teams"}], {}, [], [], []]
+        target.cached_names = {"board": {}, "list": {}}
+        t_pr.side_effect = [
+            [{"id": "a"*24, "url": "https://trello.com/c/eoK0Rngb/blablabla"}],
+            {},
+            [{"id": "b"*24, "name": "Involved Teams"}],
+            {},
+
+            {"idBoard": "h"*24},
+            {"name": "Destination board name 1"},
+            {"name": "Destination list name 1"},
+            [],
+            {"idBoard": "y"*24},
+            {"name": "Destination board name 2"},
+            {"name": "Destination list name 2"},
+            []]
         with self.assertLogs(level='DEBUG') as cm:
             summary = target.cleanup_test_boards(master_cards)
         self.assertEqual(summary, {"cleaned_up_master_cards": 1,
             "deleted_slave_cards": 0,
-            "erased_slave_boards": 0,
-            "erased_slave_lists": 0})
+            "erased_destination_boards": 0,
+            "erased_destination_lists": 0})
         expected = ["DEBUG:root:Removing slave cards attachments on the master cards",
             "DEBUG:root:================================================================",
             "INFO:root:Cleaning up master card 1/1 - Card name",
@@ -302,19 +363,16 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:Deleting checklist Involved Teams (bbbbbbbbbbbbbbbbbbbbbbbb) from master card tttttttttttttttttttttttt",
             "DEBUG:root:Deleting slave cards",
             "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|backlog (list 1/3)",
+            "DEBUG:root:Retrieve cards from list Destination board name 1|Destination list name 1 (list 1/2)",
             "DEBUG:root:[]",
-            "DEBUG:root:List Label One/backlog has 0 cards to delete",
+            "DEBUG:root:List Destination board name 1/Destination list name 1 has 0 cards to delete",
             "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|in_progress (list 2/3)",
+            "DEBUG:root:Retrieve cards from list Destination board name 2|Destination list name 2 (list 2/2)",
             "DEBUG:root:[]",
-            "DEBUG:root:List Label One/in_progress has 0 cards to delete",
-            "DEBUG:root:================================================================",
-            "DEBUG:root:Retrieve cards from list Label One|complete (list 3/3)",
-            "DEBUG:root:[]",
-            "DEBUG:root:List Label One/complete has 0 cards to delete"]
+            "DEBUG:root:List Destination board name 2/Destination list name 2 has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
         target.config = None
+        target.cached_names = {"board": {}, "list": {}}
 
 
 class TestUpdateMasterCardMetadata(unittest.TestCase):
@@ -617,9 +675,9 @@ class TestCreateNewSlaveCard(unittest.TestCase):
         """
         target.config = {"key": "ghi", "token": "jkl"}
         master_card = {"id": "1a2b3c", "desc": "abc", "shortUrl": "https://trello.com/c/eoK0Rngb"}
-        slave_board = {"lists": {"backlog": "a"*24}}
+        destination_list = "a"*24
         t_pr.return_value = {"id": "b"*24}
-        card = target.create_new_slave_card(master_card, slave_board)
+        card = target.create_new_slave_card(master_card, destination_list)
         expected = [call('POST', 'cards',
             {'idList': 'aaaaaaaaaaaaaaaaaaaaaaaa',
             'desc': 'abc\n\nCreated from master card https://trello.com/c/eoK0Rngb',
@@ -1049,8 +1107,17 @@ class TestInitMain(unittest.TestCase):
         target.__name__ = "__main__"
         # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--cleanup", "--debug", "--config", "data/sample_config.json"]
-        # All network requests return empty
-        t_pr.return_value = {}
+        target.cached_names = {"board": {}, "list": {}}
+        t_pr.side_effect = [
+            {},
+            {"idBoard": "h"*24},
+            {"name": "Destination board name 1"},
+            {"name": "Destination list name 1"},
+            [],
+            {"idBoard": "y"*24},
+            {"name": "Destination board name 2"},
+            {"name": "Destination list name 2"},
+            []]
         # Run the init(), will run the full --cleanup branch
         f = io.StringIO()
         with self.assertLogs(level='DEBUG') as cm, contextlib.redirect_stdout(f):
@@ -1059,6 +1126,7 @@ class TestInitMain(unittest.TestCase):
         self.assertTrue("DEBUG:root:Loading configuration data/sample_config.json" in cm.output)
         self.assertEqual(cm.output[-1], "INFO:root:Summary: cleaned up 0 master cards and deleted 0 slave cards from 0 slave boards/0 slave lists.")
         self.assertEqual(f.getvalue(), "WARNING: this will delete all cards on the slave lists. Type 'YES' to confirm, or 'q' to quit:\u0020\n")
+        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_init_cleanup_no(self, t_pr):
@@ -1098,8 +1166,17 @@ Exiting...
         target.__name__ = "__main__"
         # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--cleanup", "--debug", "--dry-run"]
-        # All network requests return empty
-        t_pr.return_value = {}
+        target.cached_names = {"board": {}, "list": {}}
+        t_pr.side_effect = [
+            {},
+            {"idBoard": "h"*24},
+            {"name": "Destination board name 1"},
+            {"name": "Destination list name 1"},
+            [],
+            {"idBoard": "y"*24},
+            {"name": "Destination board name 2"},
+            {"name": "Destination list name 2"},
+            []]
         # Run the init(), will run the full --cleanup branch
         # Handle cases where there is a default config file present (local dev) or not (remote CI)
         if os.path.isfile("data/config.json"):
@@ -1113,6 +1190,7 @@ Exiting...
             with self.assertRaises(FileNotFoundError) as cm1, self.assertLogs(level='DEBUG') as cm2:
                 target.init()
             self.assertEqual(str(cm1.exception), "[Errno 2] No such file or directory: 'data/config.json'")
+        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_init_new_config(self, t_pr):
