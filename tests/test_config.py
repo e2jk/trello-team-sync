@@ -294,7 +294,7 @@ dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
 eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Do you want to add a new label? (Enter 'yes' or 'no', 'q' to quit):\u0020
 Exiting...
 """
         expected_exception_code = 41
@@ -341,7 +341,7 @@ Exiting...
         expected_output = """Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
 Invalid entry. Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Do you want to add a new label? (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
 """
         expected_exception_code = None
@@ -371,7 +371,7 @@ dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
 eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Do you want to add a new label? (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
 """
         expected_exception_code = None
@@ -401,8 +401,8 @@ dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
 eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
 Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Do you want to add a new label? (Enter 'yes' or 'no', 'q' to quit):\u0020
+Invalid entry. Do you want to add a new label? (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
 """
         expected_exception_code = None

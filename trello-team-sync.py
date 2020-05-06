@@ -432,12 +432,13 @@ def create_new_config():
         error_message = ""
         continue_label = None
         while not continue_label:
-            continue_label = input("%sDo you want to add a new label (Enter 'yes' or 'no', 'q' to quit): " % error_message)
+            continue_label = input("%sDo you want to add a new label? (Enter 'yes' or 'no', 'q' to quit): " % error_message)
             if continue_label.lower() == "q":
                 print("Exiting...")
                 sys.exit(41)
             if continue_label not in ("yes", "no"):
                 continue_label = None
+                error_message = "Invalid entry. "
             label = None
 
     logging.debug(config)
