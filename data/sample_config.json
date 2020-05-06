@@ -10,5 +10,8 @@
       "a1a1a1a1a1a1a1a1a1a1a1a1",
       "ddd"
     ]
+  },
+  "friendly_names": {
+    "Label Two": "Nicer Label"
   }
 }

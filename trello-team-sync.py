@@ -277,9 +277,11 @@ def process_master_card(master_card):
             cl = perform_request("POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
             logging.debug(cl)
             for dl in destination_lists:
-                #TODO: Support more friendly name in the config than the destination board's name
                 # Use that list's board's name as checklist name
                 checklistitem_name = get_board_name_from_list(dl)
+                # Ability to define a more friendly name than the destination board's name
+                if checklistitem_name in config["friendly_names"].keys():
+                    checklistitem_name = config["friendly_names"][checklistitem_name]
                 logging.debug("Adding new checklistitem '%s' to checklist %s" % (checklistitem_name, cl["id"]))
                 new_checklistitem = perform_request("POST", "checklists/%s/checkItems" % cl["id"], {"name": checklistitem_name})
                 logging.debug(new_checklistitem)
@@ -408,6 +410,8 @@ def create_new_config():
                 error_message = "Invalid list ID, must be 24 characters. "
         config["destination_lists"][label].append(list_id)
         #TODO: Support labels that point to multiple lists
+
+        #TODO: Ability to define more friendly names than the destination board's names
 
         error_message = ""
         continue_label = None

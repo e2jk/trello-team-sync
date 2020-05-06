@@ -298,6 +298,9 @@ class TestProcessMasterCard(unittest.TestCase):
                   "a1a1a1a1a1a1a1a1a1a1a1a1",
                   "ddd"
                 ]
+            },
+            "friendly_names": {
+                "Label Two": "Nicer Label"
             }}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
             "labels": [{"name": "Label One"}], "badges": {"attachments": 0},
@@ -341,6 +344,9 @@ class TestProcessMasterCard(unittest.TestCase):
                   "aaa",
                   "ddd"
                 ]
+            },
+            "friendly_names": {
+                "Label Two": "Nicer Label"
             }}
         master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
             "labels": [{"name": "Label One"}], "badges": {"attachments": 0},
@@ -367,6 +373,54 @@ class TestProcessMasterCard(unittest.TestCase):
             "DEBUG:root:Creating new checklist",
             "DEBUG:root:{'id': 'wwwwwwwwwwwwwwwwwwwwwwww', 'name': 'New checklist'}",
             "DEBUG:root:Adding new checklistitem 'Destination board name' to checklist wwwwwwwwwwwwwwwwwwwwwwww",
+            "DEBUG:root:{'name': 'New checklist item'}"])
+        self.assertTrue(expected in "\n".join(cm.output))
+        target.args = None
+
+
+    @patch("trello-team-sync.perform_request")
+    def test_process_master_card_one_label_wet_run_friendly_name_checklist(self, t_pr):
+        """
+        Test processing a new master card with one recognized label, no dry_run,
+        without a checklist and using a friendly name as checklist item instead of the board's name
+        """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
+        target.config = {"key": "ghi", "token": "jkl",
+            "destination_lists": {
+                "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+                "Label Two": ["ddd"],
+                "All Teams": [
+                  "a1a1a1a1a1a1a1a1a1a1a1a1",
+                  "ddd"
+                ]
+            },
+            "friendly_names": {
+                "Destination board name": "Nicer Label"
+            }}
+        master_card = {"id": "t"*24, "desc": "abc", "name": "Card name",
+            "labels": [{"name": "Label One"}], "badges": {"attachments": 0},
+            "shortUrl": "https://trello.com/c/eoK0Rngb",
+            "url": "https://trello.com/c/eoK0Rngb/blablabla"}
+        t_pr.side_effect = [{"id": "b"*24, "name": "Slave card One",
+                "idBoard": "k"*24, "idList": "l"*24,
+                "url": "https://trello.com/c/abcd1234/blablabla2"},
+            {},
+            {},
+            {"name": "Board name"},
+            {"name": "List name"},
+            {},
+            [],
+            {"id": "w"*24, "name": "New checklist"},
+            {"idBoard": "hhh"},
+            {"name": "Destination board name"},
+            {"name": "New checklist item"}]
+        with self.assertLogs(level='DEBUG') as cm:
+            output = target.process_master_card(master_card)
+        self.assertEqual(output, (1, 1, 1))
+        expected = "\n".join(["DEBUG:root:Retrieving checklists from card tttttttttttttttttttttttt",
+            "DEBUG:root:Creating new checklist",
+            "DEBUG:root:{'id': 'wwwwwwwwwwwwwwwwwwwwwwww', 'name': 'New checklist'}",
+            "DEBUG:root:Adding new checklistitem 'Nicer Label' to checklist wwwwwwwwwwwwwwwwwwwwwwww",
             "DEBUG:root:{'name': 'New checklist item'}"])
         self.assertTrue(expected in "\n".join(cm.output))
         target.args = None
