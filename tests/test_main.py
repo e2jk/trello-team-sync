@@ -484,18 +484,64 @@ class TestGetName(unittest.TestCase):
         """
         Test getting a board's name, uncached
         """
+        target.cached_names = {"board": {}, "list": {}}
         target.get_name("board", "a1b2c3")
         expected = call('GET', 'board/a1b2c3')
         self.assertEqual(t_pr.mock_calls[0], expected)
+        target.cached_names = {"board": {}, "list": {}}
+
+    @patch("trello-team-sync.perform_request")
+    def test_get_name_board_cached(self, t_pr):
+        """
+        Test getting a board's name, cached
+        """
+        target.cached_names = {"board": {}, "list": {}}
+        expected_name = "Board name to be cached"
+        # First call, expect network query and answer to be cached
+        t_pr.side_effect = [{"name": expected_name}]
+        self.assertEqual(target.cached_names["board"], {})
+        board_name = target.get_name("board", "a1b2c3")
+        expected_call = call('GET', 'board/a1b2c3')
+        self.assertEqual(t_pr.mock_calls[0], expected_call)
+        self.assertEqual(board_name, expected_name)
+        self.assertEqual(target.cached_names["board"], {"a1b2c3": "Board name to be cached"})
+        # Second call, no new network call, value from the cache
+        board_name = target.get_name("board", "a1b2c3")
+        self.assertEqual(len(t_pr.mock_calls), 1)
+        self.assertEqual(board_name, expected_name)
+        target.cached_names = {"board": {}, "list": {}}
 
     @patch("trello-team-sync.perform_request")
     def test_get_name_list_uncached(self, t_pr):
         """
         Test getting a list's name, uncached
         """
-        target.get_name("list", "a1b2c3")
-        expected = call('GET', 'list/a1b2c3')
+        target.cached_names = {"board": {}, "list": {}}
+        target.get_name("list", "d4e5f6")
+        expected = call('GET', 'list/d4e5f6')
         self.assertEqual(t_pr.mock_calls[0], expected)
+        target.cached_names = {"board": {}, "list": {}}
+
+    @patch("trello-team-sync.perform_request")
+    def test_get_name_list_cached(self, t_pr):
+        """
+        Test getting a list's name, cached
+        """
+        target.cached_names = {"board": {}, "list": {}}
+        expected_name = "List name to be cached"
+        # First call, expect network query and answer to be cached
+        t_pr.side_effect = [{"name": expected_name}]
+        self.assertEqual(target.cached_names["list"], {})
+        board_name = target.get_name("list", "d4e5f6")
+        expected_call = call('GET', 'list/d4e5f6')
+        self.assertEqual(t_pr.mock_calls[0], expected_call)
+        self.assertEqual(board_name, expected_name)
+        self.assertEqual(target.cached_names["list"], {"d4e5f6": "List name to be cached"})
+        # Second call, no new network call, value from the cache
+        board_name = target.get_name("list", "d4e5f6")
+        self.assertEqual(len(t_pr.mock_calls), 1)
+        self.assertEqual(board_name, expected_name)
+        target.cached_names = {"board": {}, "list": {}}
 
 
 class TestGenerateMasterCardMetadata(unittest.TestCase):
