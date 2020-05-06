@@ -408,8 +408,24 @@ def create_new_config():
             if not re.match("^[0-9a-fA-F]{24}$", list_id):
                 list_id = None
                 error_message = "Invalid list ID, must be 24 characters. "
-        config["destination_lists"][label].append(list_id)
-        #TODO: Support labels that point to multiple lists
+            if list_id:
+                config["destination_lists"][label].append(list_id)
+                # Support labels that point to multiple lists
+                error_message2 = ""
+                other_list = None
+                while other_list == None:
+                    other_list = input("%sDo you want to associate another list to this label? ('Yes', 'No' or 'q' to quit): " % error_message2)
+                    if other_list.lower() == "q":
+                        print("Exiting...")
+                        sys.exit(42)
+                    if other_list.lower() == "yes":
+                        other_list = True
+                        list_id = None
+                    elif other_list.lower() == "no":
+                        other_list = False
+                    else:
+                        other_list = None
+                        error_message2 = "Invalid entry. "
 
         #TODO: Ability to define more friendly names than the destination board's names
 

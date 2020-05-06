@@ -248,7 +248,7 @@ Exiting...
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
     @patch("trello-team-sync.perform_request")
-    def test_create_new_config_vl_vl(self, t_pr):
+    def test_create_new_config_vl_vl_q(self, t_pr):
         """
         Test creating a new config file, valid label and list ID then quit
         """
@@ -267,6 +267,33 @@ Lists from board 'Board One':
 dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
 eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
+Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
+Exiting...
+"""
+        expected_exception_code = 42
+        run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_vl_vl_no(self, t_pr):
+        """
+        Test creating a new config file, valid label and list ID then no and quit
+        """
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "No", "q"]
+        expected_output = """Enter a label name ('q' to quit):\u0020
+These are the lists associated to the other boards:
+
+
+Lists from board 'Board One':
+           ID             |  Name
+dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
+eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
+Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
+Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Exiting...
 """
@@ -293,11 +320,11 @@ Lists from board 'Board One':
 dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
 eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
+Invalid entry. Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
 Exiting...
 """
-        expected_exception_code = 41
+        expected_exception_code = 42
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
     @patch("trello-team-sync.perform_request")
@@ -310,9 +337,10 @@ Exiting...
             [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "abc", "no"]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "abc", "no", "no"]
         expected_output = """Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
+Invalid entry. Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
 """
@@ -332,7 +360,7 @@ New configuration saved to file 'data/config_config-name.json'
             [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "no"]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "no", "no"]
         expected_output = """Enter a label name ('q' to quit):\u0020
 These are the lists associated to the other boards:
 
@@ -342,6 +370,38 @@ Lists from board 'Board One':
 dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
 eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
 Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
+Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
+New configuration saved to file 'data/config_config-name.json'
+"""
+        expected_exception_code = None
+        config_file = run_test_create_new_config(self, vals, expected_output, expected_exception_code)
+        self.assertTrue(os.path.isfile(config_file))
+        # Delete the temporary file
+        os.remove(config_file)
+
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_one_label_list_error_new_label(self, t_pr):
+        """
+        Test creating a new config file, only one valid label/list ID, error on question about new label
+        """
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "no", "abc", "no"]
+        expected_output = """Enter a label name ('q' to quit):\u0020
+These are the lists associated to the other boards:
+
+
+Lists from board 'Board One':
+           ID             |  Name
+dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
+eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
+Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
+Do you want to associate another list to this label? ('Yes', 'No' or 'q' to quit):\u0020
+Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
 New configuration saved to file 'data/config_config-name.json'
 """
@@ -361,7 +421,7 @@ New configuration saved to file 'data/config_config-name.json'
             [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "no"]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label Three", "d"*24, "no", "no"]
         existing_config_file = "data/config_config-name.json"
         Path(existing_config_file).touch()
         expected_output = "New configuration saved to file 'data/config_config-name.json.nxt'"
@@ -382,38 +442,7 @@ New configuration saved to file 'data/config_config-name.json'
             [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
             [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
         ]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label One", "d"*24, "yes", "Label Three", "e"*24, "no"]
-        expected_output = """Enter the list ID you want to associate with label 'Label One' ('q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
-Enter a label name ('q' to quit):\u0020
-These are the lists associated to the other boards:
-
-
-Lists from board 'Board One':
-           ID             |  Name
-dddddddddddddddddddddddd  |  'List One' (from board 'Board One')
-eeeeeeeeeeeeeeeeeeeeeeee  |  'List Two' (from board 'Board One')
-Enter the list ID you want to associate with label 'Label Three' ('q' to quit):\u0020
-Do you want to add a new label (Enter 'yes' or 'no', 'q' to quit):\u0020
-New configuration saved to file 'data/config_config-name.json'
-"""
-        expected_exception_code = None
-        config_file = run_test_create_new_config(self, vals, expected_output, expected_exception_code)
-        self.assertTrue(os.path.isfile(config_file))
-        # Delete the temporary file
-        os.remove(config_file)
-
-    @patch("trello-team-sync.perform_request")
-    def test_create_new_config_two_label_list(self, t_pr):
-        """
-        Test creating a new config file, two valid labels/list IDs
-        """
-        t_pr.side_effect = [
-            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
-            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
-            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
-        ]
-        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label One", "d"*24, "yes", "Label Three", "e"*24, "no"]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label One", "d"*24, "no", "yes", "Label Three", "e"*24, "no", "no"]
         config_file = run_test_create_new_config(self, vals, None, None)
         self.assertTrue(os.path.isfile(config_file))
         with open(config_file, "r") as json_file:
@@ -427,6 +456,34 @@ New configuration saved to file 'data/config_config-name.json'
         self.assertEqual(target.config["master_board"], vals[2])
         self.assertEqual(len(target.config["destination_lists"]), 2)
         self.assertEqual(len(target.config["destination_lists"]["Label One"]), 1)
+        self.assertEqual(target.config["destination_lists"]["Label One"][0], vals[5])
+        target.config = None
+
+    @patch("trello-team-sync.perform_request")
+    def test_create_new_config_two_label_one_multiple_list(self, t_pr):
+        """
+        Test creating a new config file, two valid labels including one with multiple list IDs
+        """
+        t_pr.side_effect = [
+            [{"name": "Board One", "id": "m"*24}, {"name": "Board Two", "id": "c"*24}],
+            [{"name": "List One", "id": "d"*24}, {"name": "List Two", "id": "e"*24}],
+            [{"name": "Label One", "id": "g"*24, "color": "color1"}, {"name": "", "id": "h"*24, "color": "color2"}, {"name": "Label Three", "id": "i"*24, "color": "color3"}]
+        ]
+        vals = ["a"*32, "b"*64, "c"*24, "Config name", "Label One", "d"*24, "yes", "e"*24, "no", "yes", "Label Three", "e"*24, "no", "no"]
+        config_file = run_test_create_new_config(self, vals, None, None)
+        self.assertTrue(os.path.isfile(config_file))
+        with open(config_file, "r") as json_file:
+            target.config = json.load(json_file)
+        # Delete the temporary file
+        os.remove(config_file)
+        # Validate the values loaded from the new config file
+        self.assertEqual(target.config["name"], vals[3])
+        self.assertEqual(target.config["key"], vals[0])
+        self.assertEqual(target.config["token"], vals[1])
+        self.assertEqual(target.config["master_board"], vals[2])
+        self.assertEqual(len(target.config["destination_lists"]), 2)
+        self.assertEqual(len(target.config["destination_lists"]["Label One"]), 2)
+        self.assertEqual(len(target.config["destination_lists"]["Label Three"]), 1)
         self.assertEqual(target.config["destination_lists"]["Label One"][0], vals[5])
         target.config = None
 
