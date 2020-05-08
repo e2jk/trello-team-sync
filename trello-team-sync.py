@@ -11,7 +11,11 @@ import os
 import sys
 import re
 from slugify import slugify
-import readline
+try:
+    import readline
+except ImportError:
+    # Windows
+    pass
 
 METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
 METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
@@ -21,11 +25,15 @@ def rlinput(prompt, prefill=''):
     """Provide an editable input string
     Inspired from https://stackoverflow.com/a/36607077
     """
-    readline.set_startup_hook(lambda: readline.insert_text(prefill))
-    try:
+    if "readline" not in sys.modules:
+        # For example on Windows
         return input(prompt)
-    finally:
-        readline.set_startup_hook()
+    else:
+        readline.set_startup_hook(lambda: readline.insert_text(prefill))
+        try:
+            return input(prompt)
+        finally:
+            readline.set_startup_hook()
 
 def output_summary(args, summary):
     if not summary:
