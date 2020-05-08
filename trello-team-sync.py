@@ -291,6 +291,7 @@ def process_master_card(master_card):
     return (1 if len(destination_lists) > 0 else 0, len(slave_cards), num_new_cards)
 
 def create_new_config():
+    global config
     config = {"name": ""}
     print("Welcome to the new configuration assistant.")
     print("Trello key and token can be created at https://trello.com/app-key")
