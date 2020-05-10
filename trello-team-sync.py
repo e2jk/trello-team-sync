@@ -97,14 +97,18 @@ def cleanup_test_boards(master_cards):
     num_lists_inspected = 0
     num_erased_destination_lists = 0
     deleted_slave_cards = 0
-    #TODO: In addition to cleaning up the lists defined in the configuration,
-    # also clean up the other lists on the boards of the lists in the config
     destination_lists = []
     for dl in config["destination_lists"]:
-        for l in config["destination_lists"][dl]:
+        for idx, l in enumerate((config["destination_lists"][dl])):
             if l not in destination_lists:
-                destination_lists.append(l)
-                num_lists_to_cleanup += 1
+                # Get the board which contains this destination list
+                board_id = perform_request("GET", "lists/%s/board" % config["destination_lists"][dl][idx])["id"]
+                # Get all the lists on that board which contains this destination list
+                lists = perform_request("GET", "boards/%s/lists" % board_id)
+                for ll in lists:
+                    if ll["id"] not in destination_lists:
+                        destination_lists.append(ll["id"])
+                        num_lists_to_cleanup += 1
     for l in destination_lists:
         logging.debug("="*64)
         num_lists_inspected += 1
@@ -464,7 +468,7 @@ def create_new_config():
 def new_webhook():
     logging.debug("Creating a new webhook for master board %s" % config["master_board"])
     query = {
-        #TODO: direct to our future web enpoint
+        #TODO: direct to our future web endpoint
         #TODO: pass config filename for easier retrieval when processing a webhook
         "callbackURL": "https://webhook.site/04b7baf0-1a59-41e2-b41a-245abeabc847?c=config",
         "idModel": config["master_board"]

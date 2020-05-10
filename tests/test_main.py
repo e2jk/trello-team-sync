@@ -195,6 +195,8 @@ class TestCleanupTestBoards(unittest.TestCase):
             }}
         master_cards = []
         t_pr.side_effect = [
+            {"id": "q"*24},
+            [{"id": "aaa"}, {"id": "ddd"}],
             {"idBoard": "h"*24},
             {"name": "Destination board name 1"},
             {"name": "Destination list name 1"},
@@ -237,6 +239,8 @@ class TestCleanupTestBoards(unittest.TestCase):
             }}
         master_cards = []
         t_pr.side_effect = [
+            {"id": "q"*24},
+            [{"id": "aaa"}, {"id": "ddd"}],
             {"idBoard": "h"*24},
             {"name": "Destination board name 1"},
             {"name": "Destination list name 1"},
@@ -285,6 +289,8 @@ class TestCleanupTestBoards(unittest.TestCase):
             "badges": {"attachments": 0}}]
         t_pr.side_effect = [
             [],
+            {"id": "q"*24},
+            [{"id": "aaa"}, {"id": "ddd"}],
             {"idBoard": "h"*24},
             {"name": "Destination board name 1"},
             {"name": "Destination list name 1"},
@@ -335,7 +341,8 @@ class TestCleanupTestBoards(unittest.TestCase):
             {},
             [{"id": "b"*24, "name": "Involved Teams"}],
             {},
-
+            {"id": "q"*24},
+            [{"id": "aaa"}, {"id": "ddd"}],
             {"idBoard": "h"*24},
             {"name": "Destination board name 1"},
             {"name": "Destination list name 1"},
@@ -1161,6 +1168,8 @@ class TestInitMain(unittest.TestCase):
         target.sys.argv = ["scriptname.py", "--cleanup", "--debug", "--config", "data/sample_config.json"]
         t_pr.side_effect = [
             {},
+            {"id": "q"*24},
+            [{"id": "a1a1a1a1a1a1a1a1a1a1a1a1"}, {"id": "ddd"}],
             {"idBoard": "h"*24},
             {"name": "Destination board name 1"},
             {"name": "Destination list name 1"},
@@ -1218,6 +1227,14 @@ Exiting...
         target.sys.argv = ["scriptname.py", "--cleanup", "--debug", "--dry-run"]
         t_pr.side_effect = [
             {},
+            {"id": "q"*24},
+            [{"id": "aaa"}, {"id": "ddd"}],
+            {"id": "q"*24},
+            [{"id": "aaa"}, {"id": "ddd"}],
+            {"id": "q"*24},
+            [{"id": "aaa"}, {"id": "ddd"}],
+            {"id": "q"*24},
+            [{"id": "aaa"}, {"id": "ddd"}],
             {"idBoard": "h"*24},
             {"name": "Destination board name 1"},
             {"name": "Destination list name 1"},
