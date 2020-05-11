@@ -13,5 +13,9 @@
   },
   "friendly_names": {
     "Label Two": "Nicer Label"
-  }
+  },
+  "cleanup_boards": [
+    "uuu",
+    "ddd"
+  ]
 }

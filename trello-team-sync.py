@@ -69,6 +69,11 @@ def get_card_attachments(card):
     return card_attachments
 
 def cleanup_test_boards(master_cards):
+    # Check if this config has been enabled for cleaning up
+    if "cleanup_boards" not in config:
+        logging.critical("This configuration has not been enabled to accept the --cleanup operation. See the `cleanup_boards` section in the config file. Exiting...")
+        sys.exit(43)
+
     logging.debug("Removing slave cards attachments on the master cards")
     cleaned_up_master_cards = 0
     for idx, master_card in enumerate(master_cards):
@@ -103,6 +108,11 @@ def cleanup_test_boards(master_cards):
             if l not in destination_lists:
                 # Get the board which contains this destination list
                 board_id = perform_request("GET", "lists/%s/board" % config["destination_lists"][dl][idx])["id"]
+                # Validate that this board has been whitelisted for cleanup, to
+                # prevent real data from being wiped out inadvertently
+                if board_id not in config["cleanup_boards"]:
+                    logging.critical("This board %s is not whitelisted to be cleaned up. See the `cleanup_boards` section in the config file. Exiting..." % board_id)
+                    sys.exit(44)
                 # Get all the lists on that board which contains this destination list
                 lists = perform_request("GET", "boards/%s/lists" % board_id)
                 for ll in lists:

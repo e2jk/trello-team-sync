@@ -128,6 +128,8 @@ The API provides the glue between the script and the website.\
 Configuration file
 ------------------
 
+The `--cleanup` argument will only work if the boards that are allowed to be cleaned up (i.e. all the cards on all their lists get deleted) are listed in the `cleanup_boards` section of the configuration file.
+
 [TODO: Give examples of config files]
 
 

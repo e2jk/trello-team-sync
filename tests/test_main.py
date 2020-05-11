@@ -180,6 +180,39 @@ class TestGetCardAttachments(unittest.TestCase):
 
 class TestCleanupTestBoards(unittest.TestCase):
     @patch("trello-team-sync.perform_request")
+    def test_cleanup_test_boards_not_configured(self, t_pr):
+        """
+        Test cleaning when the config has no whitelisted boards that are allowed to be cleaned up
+        """
+        target.config = {}
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
+            summary = target.cleanup_test_boards([])
+        self.assertEqual(cm1.exception.code, 43)
+        self.assertEqual(cm2.output, ["CRITICAL:root:This configuration has not been enabled to accept the --cleanup operation. See the `cleanup_boards` section in the config file. Exiting..."])
+
+    @patch("trello-team-sync.perform_request")
+    def test_cleanup_test_boards_not_whitelisted(self, t_pr):
+        """
+        Test cleaning up a board that is not whitelisted for cleaning up
+        """
+        target.config = {
+            "destination_lists": {
+                "Label One": ["aaa"],
+                "Label Two": ["ddd"],
+                "All Teams": [
+                  "aaa",
+                  "ddd"
+                ]
+            },
+            "cleanup_boards": ["r"*24]}
+        master_cards = []
+        t_pr.return_value = {"id": "q"*24}
+        with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='CRITICAL') as cm2:
+            summary = target.cleanup_test_boards(master_cards)
+        self.assertEqual(cm1.exception.code, 44)
+        self.assertEqual(cm2.output, ["CRITICAL:root:This board qqqqqqqqqqqqqqqqqqqqqqqq is not whitelisted to be cleaned up. See the `cleanup_boards` section in the config file. Exiting..."])
+
+    @patch("trello-team-sync.perform_request")
     def test_cleanup_test_boards_none(self, t_pr):
         """
         Test cleaning up the test boards when there is no master card and no cards on the slave lists
@@ -192,7 +225,8 @@ class TestCleanupTestBoards(unittest.TestCase):
                   "aaa",
                   "ddd"
                 ]
-            }}
+            },
+            "cleanup_boards": ["q"*24]}
         master_cards = []
         t_pr.side_effect = [
             {"id": "q"*24},
@@ -236,7 +270,8 @@ class TestCleanupTestBoards(unittest.TestCase):
                   "aaa",
                   "ddd"
                 ]
-            }}
+            },
+            "cleanup_boards": ["q"*24]}
         master_cards = []
         t_pr.side_effect = [
             {"id": "q"*24},
@@ -284,7 +319,8 @@ class TestCleanupTestBoards(unittest.TestCase):
                   "aaa",
                   "ddd"
                 ]
-            }}
+            },
+            "cleanup_boards": ["q"*24]}
         master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
             "badges": {"attachments": 0}}]
         t_pr.side_effect = [
@@ -333,7 +369,8 @@ class TestCleanupTestBoards(unittest.TestCase):
                   "aaa",
                   "ddd"
                 ]
-            }}
+            },
+            "cleanup_boards": ["q"*24]}
         master_cards = [{"id": "t"*24, "desc": "abc", "name": "Card name",
             "badges": {"attachments": 1}}]
         t_pr.side_effect = [
