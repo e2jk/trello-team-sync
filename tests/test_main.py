@@ -1153,8 +1153,9 @@ class TestParseArgs(unittest.TestCase):
 
 
 class TestInitMain(unittest.TestCase):
+    @patch("trello-team-sync.cleanup_test_boards")
     @patch("trello-team-sync.perform_request")
-    def test_init_cleanup(self, t_pr):
+    def test_init_cleanup(self, t_pr, t_ctb):
         """
         Test the initialization code with --cleanup parameter
         """
@@ -1162,30 +1163,14 @@ class TestInitMain(unittest.TestCase):
         global mock_raw_input_values
         mock_raw_input_counter = 0
         mock_raw_input_values = ["No problemo"]
-        # Make the script believe we ran it directly
         target.__name__ = "__main__"
-        # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--cleanup", "--debug", "--config", "data/sample_config.json"]
-        t_pr.side_effect = [
-            {},
-            {"id": "q"*24},
-            [{"id": "a1a1a1a1a1a1a1a1a1a1a1a1"}, {"id": "ddd"}],
-            {"idBoard": "h"*24},
-            {"name": "Destination board name 1"},
-            {"name": "Destination list name 1"},
-            [],
-            {"idBoard": "y"*24},
-            {"name": "Destination board name 2"},
-            {"name": "Destination list name 2"},
-            []]
-        # Run the init(), will run the full --cleanup branch
+        t_pr.side_effect = [[{"id": "a"*24}, {"id": "b"*24}]]
         f = io.StringIO()
-        with self.assertLogs(level='DEBUG') as cm, contextlib.redirect_stdout(f):
+        with contextlib.redirect_stdout(f):
             target.init()
-        # Validate which config file was used and last output line (summary)
-        self.assertTrue("DEBUG:root:Loading configuration data/sample_config.json" in cm.output)
-        self.assertEqual(cm.output[-1], "INFO:root:Summary: cleaned up 0 master cards and deleted 0 slave cards from 0 slave boards/0 slave lists.")
         self.assertEqual(f.getvalue(), "WARNING: this will delete all cards on the slave lists. Type 'YES' to confirm, or 'q' to quit:\u0020\n")
+        self.assertEqual(t_ctb.mock_calls[0], call([{'id': 'aaaaaaaaaaaaaaaaaaaaaaaa'}, {'id': 'bbbbbbbbbbbbbbbbbbbbbbbb'}]))
 
     @patch("trello-team-sync.perform_request")
     def test_init_cleanup_no(self, t_pr):
@@ -1196,13 +1181,8 @@ class TestInitMain(unittest.TestCase):
         global mock_raw_input_values
         mock_raw_input_counter = 0
         mock_raw_input_values = ["No", "q"]
-        # Make the script believe we ran it directly
         target.__name__ = "__main__"
-        # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--cleanup", "--debug", "--config", "data/sample_config.json"]
-        # All network requests return empty
-        t_pr.return_value = {}
-        # Run the init(), will run the full --cleanup branch
         f = io.StringIO()
         with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='DEBUG') as cm2, contextlib.redirect_stdout(f):
             target.init()
@@ -1216,42 +1196,19 @@ Exiting...
 """
         self.assertEqual(f.getvalue(), expected_output)
 
+    @patch("trello-team-sync.cleanup_test_boards")
     @patch("trello-team-sync.perform_request")
-    def test_init_cleanup_dry_run_default_config(self, t_pr):
+    def test_init_cleanup_dry_run_default_config(self, t_pr, t_ctb):
         """
         Test the initialization code with --cleanup parameter, --dry-run and default config file
         """
-        # Make the script believe we ran it directly
         target.__name__ = "__main__"
-        # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--cleanup", "--debug", "--dry-run"]
-        t_pr.side_effect = [
-            {},
-            {"id": "q"*24},
-            [{"id": "aaa"}, {"id": "ddd"}],
-            {"id": "q"*24},
-            [{"id": "aaa"}, {"id": "ddd"}],
-            {"id": "q"*24},
-            [{"id": "aaa"}, {"id": "ddd"}],
-            {"id": "q"*24},
-            [{"id": "aaa"}, {"id": "ddd"}],
-            {"idBoard": "h"*24},
-            {"name": "Destination board name 1"},
-            {"name": "Destination list name 1"},
-            [],
-            {"idBoard": "y"*24},
-            {"name": "Destination board name 2"},
-            {"name": "Destination list name 2"},
-            []]
-        # Run the init(), will run the full --cleanup branch
+        t_pr.side_effect = [[{"id": "a"*24}, {"id": "b"*24}]]
         # Handle cases where there is a default config file present (local dev) or not (remote CI)
         if os.path.isfile("data/config.json"):
-            f = io.StringIO()
-            with self.assertLogs(level='DEBUG') as cm, contextlib.redirect_stdout(f):
-                target.init()
-            # Validate which config file was used and last output line (summary)
-            self.assertTrue("DEBUG:root:Loading configuration data/config.json" in cm.output)
-            self.assertEqual(cm.output[-1], "INFO:root:Summary [DRY RUN]: would have cleaned up 0 master cards and deleted 0 slave cards from 0 slave boards/0 slave lists.")
+            target.init()
+            self.assertEqual(t_ctb.mock_calls[0], call([{'id': 'aaaaaaaaaaaaaaaaaaaaaaaa'}, {'id': 'bbbbbbbbbbbbbbbbbbbbbbbb'}]))
         else:
             with self.assertRaises(FileNotFoundError) as cm1, self.assertLogs(level='DEBUG') as cm2:
                 target.init()
@@ -1266,68 +1223,61 @@ Exiting...
         global mock_raw_input_values
         mock_raw_input_counter = 0
         mock_raw_input_values = ["q"]
-        # Make the script believe we ran it directly
         target.__name__ = "__main__"
-        # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--new-config", "--config", "data/sample_config.json"]
-        # All network requests return empty
         t_pr.return_value = {}
-        # Run the init(), will run the full --cleanup branch
         f = io.StringIO()
         with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='DEBUG') as cm2, contextlib.redirect_stdout(f):
             target.init()
         self.assertEqual(cm1.exception.code, 35)
 
+    @patch("trello-team-sync.process_master_card")
     @patch("trello-team-sync.perform_request")
-    def test_init_propagate_empty(self, t_pr):
+    def test_init_propagate_empty(self, t_pr, t_pmc):
         """
         Test the initialization code with --propagate with a single non-relevant master card
         """
-        # Make the script believe we ran it directly
         target.__name__ = "__main__"
-        # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--propagate", "--config", "data/sample_config.json"]
         t_pr.side_effect = [[{"id": "a"*24, "name": "Master card name", "labels": {}, "badges": {"attachments": 0}, "desc": "Desc"}]]
-        # Run the init(), will run the full --propagate branch
-        f = io.StringIO()
+        t_pmc.return_value = (20, 30, 40)
         with self.assertLogs(level='DEBUG') as cm:
             target.init()
-        self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 0 active) that have 0 slave cards (of which 0 new)." in cm.output)
+        self.assertEqual(len(t_pmc.mock_calls), 1)
+        self.assertEqual(t_pmc.mock_calls[0], call({'id': 'aaaaaaaaaaaaaaaaaaaaaaaa', 'name': 'Master card name', 'labels': {}, 'badges': {'attachments': 0}, 'desc': 'Desc'}))
+        self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 20 active) that have 30 slave cards (of which 40 new)." in cm.output)
 
     @patch("trello-team-sync.perform_request")
     def test_init_propagate_list_invalid(self, t_pr):
         """
         Test the initialization code with --propagate and --list that's not on the master board
         """
-        # Make the script believe we ran it directly
         target.__name__ = "__main__"
-        # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--propagate", "--config", "data/sample_config.json", "--list", "b2"*12]
-        t_pr.return_value = [{"id": "a"*24, "name": "Master card name", "labels": {}, "badges": {"attachments": 0}, "desc": "Desc"}]
-        # Run the init(), will run the full --propagate branch
         with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='DEBUG') as cm2:
             target.init()
         self.assertEqual(cm1.exception.code, 32)
         self.assertTrue("CRITICAL:root:List b2b2b2b2b2b2b2b2b2b2b2b2 is not on the master board ghi. Exiting..." in cm2.output)
 
+    @patch("trello-team-sync.process_master_card")
     @patch("trello-team-sync.perform_request")
-    def test_init_propagate_list(self, t_pr):
+    def test_init_propagate_list(self, t_pr, t_pmc):
         """
         Test the initialization code with --propagate and --list that's on the master board, then a single non-relevant master card
         """
-        # Make the script believe we ran it directly
         target.__name__ = "__main__"
-        # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--propagate", "--config", "data/sample_config.json", "--list", "c3"*12]
         t_pr.side_effect = [
             [{"id": "c3"*12}],
             [{"id": "a"*24, "name": "Master card name", "labels": {}, "badges": {"attachments": 0}, "desc": "Desc"}]
         ]
-        # Run the init(), will run the full --propagate branch
+        t_pmc.return_value = (30, 40, 50)
         f = io.StringIO()
         with self.assertLogs(level='DEBUG') as cm:
             target.init()
-        self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 0 active) that have 0 slave cards (of which 0 new)." in cm.output)
+        self.assertEqual(len(t_pmc.mock_calls), 1)
+        self.assertEqual(t_pmc.mock_calls[0], call({'id': 'aaaaaaaaaaaaaaaaaaaaaaaa', 'name': 'Master card name', 'labels': {}, 'badges': {'attachments': 0}, 'desc': 'Desc'}))
+        self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 30 active) that have 40 slave cards (of which 50 new)." in cm.output)
 
     @patch("trello-team-sync.perform_request")
     def test_init_propagate_card_invalid_404(self, t_pr):
@@ -1361,25 +1311,24 @@ Exiting...
         with self.assertRaises(SystemExit) as cm1, self.assertLogs(level='DEBUG') as cm2:
             target.init()
         self.assertEqual(cm1.exception.code, 31)
-        # print(cm2.output)
         self.assertTrue("CRITICAL:root:Card d4d4d4d4d4d4d4d4d4d4d4d4 is not located on the master board ghi. Exiting..." in cm2.output)
 
+    @patch("trello-team-sync.process_master_card")
     @patch("trello-team-sync.perform_request")
-    def test_init_propagate_card(self, t_pr):
+    def test_init_propagate_card(self, t_pr, t_pmc):
         """
         Test the initialization code with --propagate and valid --card
         """
-        # Make the script believe we ran it directly
         target.__name__ = "__main__"
-        # Pass it the --cleanup and related arguments
         target.sys.argv = ["scriptname.py", "--propagate", "--config", "data/sample_config.json", "--card", "d4"*12]
-        # All network requests return empty
         t_pr.side_effect = [{"idBoard": "ghi", "id": "odn", "shortLink": "eoK0Rngb", "name": "Master card name", "labels": {}, "badges": {"attachments": 0}, "desc": "Desc"}]
-        # Run the init(), will run the full --propagate branch
+        t_pmc.return_value = (40, 50, 60)
         f = io.StringIO()
         with self.assertLogs(level='DEBUG') as cm:
             target.init()
-        self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 0 active) that have 0 slave cards (of which 0 new)." in cm.output)
+        self.assertEqual(len(t_pmc.mock_calls), 1)
+        self.assertEqual(t_pmc.mock_calls[0], call({'idBoard': 'ghi', 'id': 'odn', 'shortLink': 'eoK0Rngb', 'name': 'Master card name', 'labels': {}, 'badges': {'attachments': 0}, 'desc': 'Desc'}))
+        self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 40 active) that have 50 slave cards (of which 60 new)." in cm.output)
 
     @patch("trello-team-sync.new_webhook")
     def test_init_webhook_new(self, t_nw):
