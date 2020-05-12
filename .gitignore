@@ -1,4 +1,4 @@
-data/config.json
+data/*.json
 html_dev/coverage/
 startup.sh
 temp/
