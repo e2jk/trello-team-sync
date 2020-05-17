@@ -8,6 +8,7 @@ idna==2.9
 itsdangerous==1.1.0
 Jinja2==2.11.2
 MarkupSafe==1.1.1
+python-dotenv==0.13.0
 python-slugify==4.0.0
 requests==2.23.0
 text-unidecode==1.3
