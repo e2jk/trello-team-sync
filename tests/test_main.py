@@ -1410,6 +1410,10 @@ class TestLicense(unittest.TestCase):
             # Confirm it is the MIT License
             self.assertTrue("MIT License" in s)
             self.assertTrue("Copyright (c) 2020 Emilien Klein" in s)
+            # Confirm the statement about microblog is present in the LICENSE file
+            self.assertTrue("The website is originally based on microblog" in s)
+            self.assertTrue("Copyright (c) 2017 Miguel Grinberg" in s)
+            self.assertTrue("https://github.com/miguelgrinberg/microblog" in s)
 
     def test_license_mention(self):
         """Validate that the script file contain a mention of the license"""

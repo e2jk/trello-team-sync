@@ -115,9 +115,20 @@ optional arguments:
 
 Website
 -------
-**TO BE DEVELOPED**\
-The website allows users to set up, configure and manage the syncing of cards between boards to which they have access to.\
-[TODO: Create the website and explain its working here]
+The website allows users to set up, configure and manage the syncing of cards between boards to which they have access to.
+
+### Running the website
+
+  `$flask run`
+
+### How to test sending emails from the website
+
+The following section is copied from Miguel Grinberg's wonderful [Flask Mega-Tutorial, Part VII: Error Handling](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-vii-error-handling):\
+There are two approaches to test this feature. The easiest one is to use the SMTP debugging server from Python. This is a fake email server that accepts emails, but instead of sending them, it prints them to the console. To run this server, open a second terminal session and run the following command on it:
+
+  `$ python -m smtpd -n -c DebuggingServer localhost:8025`
+
+Leave the debugging SMTP server running and go back to your first terminal and set `export MAIL_SERVER=localhost` and `MAIL_PORT=8025` in the environment (use `set` instead of `export` if you are using Microsoft Windows). Make sure the `FLASK_DEBUG` variable is set to 0 or not set at all, since the application will not send emails in debug mode.
 
 API
 ---

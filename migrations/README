@@ -1,0 +1,19 @@
+Database management
+===================
+
+The database is managed through [SQLAlchemy](https://www.sqlalchemy.org/) with
+the help of the [Alembic](https://alembic.sqlalchemy.org/en/latest/) database
+migration framework and [Flask-Migrate](https://flask-migrate.readthedocs.io/en/latest/)
+as a wrapper for Alembic.
+
+* Create the migration repository:
+
+  `$ flask db init`
+
+* Create a new automatic migration:
+
+  `$ flask db migrate -m "<commit message>"`
+
+* Apply the changes to the database:
+
+  `$ flask db upgrade`
