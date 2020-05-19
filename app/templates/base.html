@@ -1,92 +1,102 @@
-{% extends 'bootstrap/base.html' %}
+<!doctype html>
+<html lang="en">
+  <head>
+    {% block head %}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 
-{% block title %}
-    {% if title %}{{ title }} - Trello Team Sync{% else %}{{ _('Welcome to Trello Team Sync') }}{% endif %}
-{% endblock %}
+    {% block styles %}
+    <!-- Bootstrap CSS -->
+    {{ bootstrap.load_css() }}
+    {% endblock %}
 
-{% block navbar %}
-    <nav class="navbar navbar-default">
-        <div class="container">
-            <div class="navbar-header">
-                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1" aria-expanded="false">
-                    <span class="sr-only">Toggle navigation</span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="navbar-brand" href="{{ url_for('main.index') }}">Trello Team Sync</a>
-            </div>
-            <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
-                <ul class="nav navbar-nav">
-                    <li><a href="{{ url_for('main.index') }}">{{ _('Home') }}</a></li>
-                </ul>
-                <ul class="nav navbar-nav navbar-right">
-                    {% if current_user.is_anonymous %}
-                    <li><a href="{{ url_for('auth.login') }}">{{ _('Login') }}</a></li>
-                    {% else %}
-                    <li><a href="{{ url_for('main.edit_profile') }}">{{ _('Profile') }}</a></li>
-                    <li><a href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a></li>
-                    {% endif %}
-                </ul>
-            </div>
-        </div>
+    <title>{% if title %}{{ title }} - Trello Team Sync{% else %}{{ _('Welcome to Trello Team Sync') }}{% endif %}</title>
+    {% endblock %}
+  </head>
+  <body>
+    {% block navbar %}
+    <nav class="navbar navbar-expand-md navbar-light bg-light">
+      <a class="navbar-brand" href="{{ url_for('main.index') }}">Trello Team Sync</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav mr-auto">
+          <li class="nav-item active">
+            <a class="nav-link" href="{{ url_for('main.index') }}">{{ _('Home') }} <span class="sr-only">({{ _('current') }})</span></a>
+          </li>
+        </ul>
+        <ul class="nav navbar-nav navbar-right">
+          {% if current_user.is_anonymous %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">{{ _('Login') }}</a></li>
+          {% else %}
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('main.edit_profile') }}">{{ _('Profile') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a></li>
+          {% endif %}
+        </ul>
+      </div>
     </nav>
-{% endblock %}
+    {% endblock %}
 
-{% block content %}
-    <div class="container">
-        {% if current_user.is_authenticated %}
-        {% with tasks = current_user.get_tasks_in_progress() %}
-        {% if tasks %}
-            {% for task in tasks %}
-            <div class="alert alert-success" role="alert">
-                {{ task.description }}
-                <span id="{{ task.id }}-progress">{{ task.get_progress() }}</span>%
-            </div>
-            {% endfor %}
-        {% endif %}
-        {% endwith %}
-        {% endif %}
-        {% with messages = get_flashed_messages() %}
-        {% if messages %}
-            {% for message in messages %}
-            <div class="alert alert-info" role="alert">{{ message }}</div>
-            {% endfor %}
-        {% endif %}
-        {% endwith %}
+    {% block content %}
+<div class="container">
+      {% if current_user.is_authenticated %}
+      {% with tasks = current_user.get_tasks_in_progress() %}
+      {% if tasks %}
+      {% for task in tasks %}
+      <div class="alert alert-success" role="alert">
+        {{ task.description }}
+        <span id="{{ task.id }}-progress">{{ task.get_progress() }}</span>%
+      </div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
+      {% endif %}
 
-        {# application content needs to be provided in the app_content block #}
-        {% block app_content %}{% endblock %}
-    </div>
-{% endblock %}
+      {% with messages = get_flashed_messages() %}
+      {% if messages %}
+      {% for message in messages %}
+      <div class="alert alert-info" role="alert">{{ message }}</div>
+      {% endfor %}
+      {% endif %}
+      {% endwith %}
 
-{% block scripts %}
-    {{ super() }}
+      {# application content needs to be provided in the app_content block #}
+      {% block app_content %}{% endblock %}
+</div>
+    {% endblock %}
+
+    {% block scripts %}
+    <!-- JavaScript by default at the bottom of the body, per https://developers.google.com/apps-script/guides/html/best-practices#load_javascript_last -->
+    {{ bootstrap.load_js() }}
     {{ moment.include_moment() }}
     {{ moment.lang(g.locale) }}
     <script>
-        function set_task_progress(task_id, progress) {
-            $('#' + task_id + '-progress').text(progress);
-        }
-        {% if current_user.is_authenticated %}
-        $(function() {
-            var since = 0;
-            setInterval(function() {
-                $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
-                    function(notifications) {
-                        for (var i = 0; i < notifications.length; i++) {
-                            switch (notifications[i].name) {
-                                case 'task_progress':
-                                    set_task_progress(notifications[i].data.task_id,
-                                        notifications[i].data.progress);
-                                    break;
-                            }
-                            since = notifications[i].timestamp;
-                        }
-                    }
-                );
-            }, 10000);
-        });
-        {% endif %}
+      function set_task_progress(task_id, progress) {
+        $('#' + task_id + '-progress').text(progress);
+      }
+      {% if current_user.is_authenticated %}
+      $(function() {
+        var since = 0;
+        setInterval(function() {
+          $.ajax('{{ url_for('main.notifications') }}?since=' + since).done(
+            function(notifications) {
+              for (var i = 0; i < notifications.length; i++) {
+                switch (notifications[i].name) {
+                  case 'task_progress':
+                    set_task_progress(notifications[i].data.task_id,
+                      notifications[i].data.progress);
+                    break;
+                }
+                since = notifications[i].timestamp;
+              }
+            }
+          );
+        }, 10000);
+      });
+      {% endif %}
     </script>
-{% endblock %}
+    {% endblock %}
+  </body>
+</html>
