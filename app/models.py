@@ -161,3 +161,13 @@ class Mapping(db.Model):
 
     def __repr__(self):
         return '<Mapping {}>'.format(self.name)
+
+    def get_num_labels(self):
+        return len(json.loads(self.destination_lists))
+
+    def get_num_dest_lists(self):
+        num_dest_lists = 0
+        dest_lists = json.loads(self.destination_lists)
+        for label in dest_lists:
+            num_dest_lists += len(dest_lists[label])
+        return num_dest_lists

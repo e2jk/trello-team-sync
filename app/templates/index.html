@@ -14,8 +14,9 @@
         <ul>
           {% for mapping in mappings %}
           <li>
-            {{ mapping.name }}
-            {% if mapping.description %}- {{ mapping.description }}{% endif %}
+            {{ mapping.name }}<br/>
+            {{ _('%(num_labels)d labels and %(num_dest_lists)d destination lists', num_labels=mapping.get_num_labels(), num_dest_lists=mapping.get_num_dest_lists()) }}
+            {% if mapping.description %}<br/>{{ mapping.description }}{% endif %}
           </li>
           {% endfor %}
         </ul>
