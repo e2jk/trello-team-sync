@@ -19,6 +19,13 @@ import rq
 from app import db, login
 
 
+mappings = db.Table(
+    'mappings',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('mapping_id', db.Integer, db.ForeignKey('mapping.id'))
+)
+
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
@@ -30,6 +37,9 @@ class User(UserMixin, db.Model):
     notifications = db.relationship('Notification', backref='user',
                                     lazy='dynamic')
     tasks = db.relationship('Task', backref='user', lazy='dynamic')
+    mappings = db.relationship(
+        'Mapping', secondary=mappings,
+        backref=db.backref('users', lazy='dynamic'), lazy='dynamic')
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
@@ -100,6 +110,9 @@ class User(UserMixin, db.Model):
             return None
         return user
 
+    def get_mappings(self):
+        return self.mappings.all()
+
 
 @login.user_loader
 def load_user(id):
@@ -134,3 +147,17 @@ class Task(db.Model):
     def get_progress(self):
         job = self.get_rq_job()
         return job.meta.get('progress', 0) if job is not None else 100
+
+
+class Mapping(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(128), index=True)
+    description = db.Column(db.String(128))
+    key = db.Column(db.String(128))
+    token = db.Column(db.String(128))
+    master_board = db.Column(db.String(128))
+    destination_lists = db.Column(db.Text())
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    def __repr__(self):
+        return '<Mapping {}>'.format(self.name)

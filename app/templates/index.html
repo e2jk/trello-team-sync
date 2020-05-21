@@ -1,5 +1,32 @@
 {% extends "base.html" %}
 
 {% block app_content %}
-    <h1>{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
+
+    <div class="row">
+      <h1>{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
+    </div>
+
+    <div class="row">
+      {% with mappings = current_user.get_mappings() %}
+      {% if mappings %}
+      <div class="col-md-6">
+        <h2>{{ _('Your mappings') }}</h2>
+        <ul>
+          {% for mapping in mappings %}
+          <li>
+            {{ mapping.name }}
+            {% if mapping.description %}- {{ mapping.description }}{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <div class="col-md-6">
+        <h2>{{ _('New mapping') }}</h2>
+        <a class="btn btn-info" href="{{ url_for('mapping.new') }}" role="button">{{ _('Create a new mapping') }}</a>
+      </div>
+
+    </div>
 {% endblock %}

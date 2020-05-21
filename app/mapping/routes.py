@@ -1,0 +1,168 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+#    This file is part of trello-team-sync and is MIT-licensed.
+
+from datetime import datetime
+from flask import render_template, flash, redirect, url_for, request, g, \
+    jsonify, current_app
+from flask_login import current_user, login_required
+from flask_babel import _, get_locale
+# from guess_language import guess_language
+from app import db
+from app.mapping.forms import NewMappingForm
+from app.models import Mapping
+from app.mapping import bp
+import requests
+import re
+from wtforms import BooleanField
+import json
+
+
+
+def perform_request(method, url, query=None, key=None, token=None):
+    if method not in ("GET", "POST", "PUT", "DELETE"):
+        logging.critical("HTTP method '%s' not supported. Exiting..." % method)
+        sys.exit(30)
+    url = "https://api.trello.com/1/%s" % url
+    url += "?key=%s&token=%s" % (key, token)
+    response = requests.request(
+        method,
+        url,
+        params=query
+    )
+    # Raise an exception if the response status code indicates an issue
+    response.raise_for_status()
+    return response.json()
+
+
+@bp.before_app_request
+def before_request():
+    if current_user.is_authenticated:
+        current_user.last_seen = datetime.utcnow()
+        db.session.commit()
+    g.locale = str(get_locale())
+
+
+@bp.route('/new', methods=['GET', 'POST'])
+@login_required
+def new():
+    form = NewMappingForm()
+
+    # Check if the fields from each fields are valid
+    step = 1
+    selected_labels = []
+    if request.method == 'POST':
+        # Check elements from the first step
+        if form.name.validate(form) and \
+            form.description.validate(form) and \
+            form.key.validate(form) and \
+            form.token.validate(form):
+            # Go to next step
+            step = 2
+        # If the first step cleared, go on to check elements from the second step
+        if step == 2:
+            if form.master_board.data and \
+                re.match("^[0-9a-fA-F]{24}$", form.master_board.data):
+                # Go to next step
+                step = 3
+        # If the second step cleared, go on to check elements from the third step
+        if step == 3:
+            step_3_ok = len(form.labels.data) > 0000
+            for l in form.labels.data:
+                if not re.match("^[0-9a-fA-F]{24}$", l):
+                    step_3_ok = False
+                    break
+                selected_labels.append(l)
+            if step_3_ok:
+                # Go to next step
+                step = 4
+        # If the third step cleared, go on to check elements from the fourth step
+        if step == 4:
+            step_4_ok = len(form.labels.data) > 0
+            destination_lists = {}
+            i = 0
+            for label_id in selected_labels:
+                if not re.match("^[0-9a-fA-F]{24}$", label_id):
+                    step_4_ok = False
+                    break
+                if len(getattr(form, "map_label%d_lists" % i).data) == 0:
+                    step_4_ok = False
+                    break
+                destination_lists[label_id] = []
+                for list_id in getattr(form, "map_label%d_lists" % i).data:
+                    if not re.match("^[0-9a-fA-F]{24}$", list_id):
+                        step_4_ok = False
+                        break
+                    destination_lists[label_id].append(list_id)
+                i += 1
+            if step_4_ok:
+                # Go to next step
+                step = 5
+
+        # All the steps have valid information, add this mapping to the database!
+        if step == 5:
+            mapping = Mapping(
+                name=form.name.data,
+                description=form.description.data,
+                key=form.key.data,
+                token=form.token.data,
+                master_board=form.master_board.data,
+                destination_lists = json.dumps(destination_lists),
+                user_id = current_user.id)
+            current_user.mappings.append(mapping)
+            db.session.add(mapping)
+            db.session.commit()
+            flash(_('Your new mapping has been created.'))
+            return redirect(url_for('main.index'))
+
+    # Populate conditional form elements
+    labels_names = {}
+    if step > 1:
+        # TODO: Cache the board IDs
+        if not hasattr(form.master_board, "choice") or \
+            not form.master_board.choice:
+            # Get the list of boards for this user/key-token combination
+            boards = perform_request("GET", "members/me/boards", \
+                key=form.key.data, token=form.token.data)
+            form.master_board.choices = [(b["id"], b["name"]) for b in boards]
+        if not form.master_board.data:
+            form.master_board.data = form.master_board.choices[0][0]
+    if step > 2:
+        # TODO: Cache the labels
+        if not hasattr(form.master_board, "choice") or \
+            not form.master_board.choice:
+            labels = perform_request("GET", "boards/%s/labels" % \
+                form.master_board.data, key=form.key.data, token=form.token.data)
+            form.labels.choices = [(l["id"], l["name"]) for l in labels if l["name"]]
+            for l in labels:
+                if l["name"]:
+                    labels_names[l["id"]] = l["name"]
+    if step > 3:
+        # TODO: Cache the lists on each board
+        lists_on_boards = []
+        for b in boards:
+            boards_lists = perform_request("GET", "boards/%s/lists" % b["id"], \
+                key=form.key.data, token=form.token.data)
+            for l in boards_lists:
+                lists_on_boards.append((l["id"], "%s | %s" % (b["name"], l["name"])))
+        i = 0
+        for l in selected_labels:
+            field = getattr(form, "map_label%d_lists" % i)
+            field.choices = [(l[0], l[1]) for l in lists_on_boards]
+            field.label.text = field.label.text.replace("XX", \
+                '"%s"'% labels_names[selected_labels[i]])
+            i+= 1
+
+    # Remove fields from later steps
+    if step < 2:
+        del form.master_board
+    if step < 3:
+        del form.labels
+    # Remove all the surplus "map_labelN_lists" fields
+    map_label_lists = [mll for mll in dir(form) if mll.startswith("map_label")]
+    for i in range(len(selected_labels), len(map_label_lists)):
+        delattr(form, "map_label%d_lists" % i)
+
+    return render_template('mapping/new.html',
+        title=_('New mapping, Step %(step_nr)s/4', step_nr=step), form=form)

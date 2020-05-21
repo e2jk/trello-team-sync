@@ -22,7 +22,7 @@ target = __import__("website")
 class TestMakeShellContext(unittest.TestCase):
     def test_make_shell_context(self):
         return_value = target.make_shell_context()
-        for i in ("db", "User", "Notification", "Task"):
+        for i in ("db", "User", "Notification", "Task", "Mapping"):
             self.assertTrue(i in return_value)
 
 
