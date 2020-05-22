@@ -76,12 +76,16 @@ class User(UserMixin, db.Model):
         db.session.add(n)
         return n
 
-    def launch_task(self, name, description, *args, **kwargs):
-        rq_job = current_app.task_queue.enqueue('app.tasks.' + name, self.id,
-                                                *args, **kwargs)
-        task = Task(id=rq_job.get_id(), name=name, description=description,
-                    user=self)
-        db.session.add(task)
+    def launch_task(self, name, argument, description, *args, **kwargs):
+        task = None
+        rq_job = None
+        if name == "run_mapping" and len(argument) == 3:
+            rq_job = current_app.task_queue.enqueue('app.tasks.' + name,
+                argument[0], argument[1], argument[2], *args, **kwargs)
+        if rq_job:
+            task = Task(id=rq_job.get_id(), name=name, description=description,
+                        user=self)
+            db.session.add(task)
         return task
 
     def get_tasks_in_progress(self):

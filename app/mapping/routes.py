@@ -10,7 +10,8 @@ from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 # from guess_language import guess_language
 from app import db
-from app.mapping.forms import NewMappingForm, DeleteMappingForm
+from app.mapping.forms import NewMappingForm, DeleteMappingForm, \
+    RunMappingForm
 from app.models import Mapping, mappings as users_mappings_links
 from app.mapping import bp
 import requests
@@ -226,3 +227,61 @@ def delete(mapping_id):
     form = DeleteMappingForm()
     title = _('Delete mapping "%(name)s" ?', name=mapping.name)
     return render_template('mapping/delete.html', title=title, form=form)
+
+
+@bp.route('/<int:mapping_id>', methods=['GET', 'POST'])
+@login_required
+def run(mapping_id):
+    # Check if this user has access to this mapping
+    (valid_mapping, val1, val2) = check_mapping_ownership(mapping_id)
+    if not valid_mapping:
+        return val1, val2
+    else:
+        this_users_mappings = val1
+        mapping = val2
+
+    rmf = RunMappingForm()
+    lists = perform_request("GET", "boards/%s/lists" % mapping.master_board, \
+        key=mapping.key, token=mapping.token)
+    rmf.lists.choices = [(l["id"], l["name"]) for l in lists]
+    list_names = {}
+    card_names = {}
+    for l in lists:
+        list_names[l["id"]] = l["name"]
+        cards = perform_request("GET", "lists/%s/cards" % l["id"], \
+            key=mapping.key, token=mapping.token)
+        cards_choices = [(c["id"], "%s | %s" % (l["name"], c["name"])) for c in cards]
+        if not rmf.cards.choices:
+            rmf.cards.choices = cards_choices
+        else:
+            rmf.cards.choices = rmf.cards.choices + cards_choices
+        for c in cards:
+            card_names[c["id"]] = "%s | %s" % (l["name"], c["name"])
+
+    if request.method == 'POST':
+        if current_user.get_task_in_progress('run_mapping'):
+            flash(_('A run is currently in progress, please wait...'))
+        else:
+            rmf.validate_on_submit()
+            if rmf.submit_board.data:
+                current_user.launch_task('run_mapping',
+                    (mapping.id, "board", mapping.master_board),
+                    _('Processing the full "%(mapping_name)s" master board...',
+                        mapping_name=mapping.name))
+            if rmf.submit_list.data and rmf.lists.validate(rmf):
+                current_user.launch_task('run_mapping',
+                    (mapping.id, "list", rmf.lists.data),
+                    _('Processing all cards on list "%(list_name)s"...',
+                        list_name=list_names[rmf.lists.data]))
+            if rmf.submit_card.data and rmf.cards.validate(rmf):
+                current_user.launch_task('run_mapping',
+                    (mapping.id, "card", rmf.cards.data),
+                    _('Processing card "%(card_name)s"...',
+                        card_name=card_names[rmf.cards.data]))
+            db.session.commit()
+        return redirect(url_for('mapping.run', mapping_id=mapping_id))
+
+
+    title = _('Run mapping "%(name)s"', name=mapping.name)
+    return render_template('mapping/run.html', title=title, mapping=mapping,
+        rmf=rmf)

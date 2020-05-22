@@ -10,11 +10,35 @@ import time
 from flask import render_template
 from rq import get_current_job
 from app import create_app, db
-from app.models import Task
+from app.models import Task, Mapping
 from app.email import send_email
 
 app = create_app()
 app.app_context().push()
+
+
+def run_mapping(mapping_id, run_type, elem_id):
+    seconds = 5
+    mapping = Mapping.query.filter_by(id=mapping_id).first()
+    try:
+        job = get_current_job()
+        _set_task_progress(0)
+        print('Starting task for mapping %d, %s %s' % (mapping_id, run_type,
+            elem_id))
+        for i in range(seconds):
+            _set_task_progress(int(100.0 * i / seconds))
+            job.save_meta()
+            print("%d/%d" % (i+1, seconds))
+            time.sleep(1)
+        _set_task_progress(100)
+        job.save_meta()
+        print('Task for mapping %d, %s %s completed' % (mapping_id, run_type,
+            elem_id))
+    except:
+        _set_task_progress(100)
+        app.logger.error(
+            'run_mapping: Unhandled exception while running task %d %s %s' % \
+            (mapping_id, run_type, elem_id), exc_info=sys.exc_info())
 
 
 def _set_task_progress(progress):

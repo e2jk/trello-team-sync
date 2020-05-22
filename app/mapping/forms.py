@@ -50,3 +50,15 @@ setattr(NewMappingForm, "submit", SubmitField(_l('Submit')))
 
 class DeleteMappingForm(FlaskForm):
     submit = SubmitField(_l('Delete mapping'))
+
+
+class RunMappingForm(FlaskForm):
+    submit_board = SubmitField(_l('Process the entire master board'))
+    lists = SelectField(_l('List'), coerce=str,
+        validators=[Regexp("^[0-9a-fA-F]{24}$",
+        message=_l('Invalid Trello list ID format, it must be a 24 character string.'))])
+    submit_list = SubmitField(_l('Process all cards on this list'))
+    cards = SelectField(_l('Card'), coerce=str,
+        validators=[Regexp("^[0-9a-fA-F]{24}$",
+        message=_l('Invalid Trello card ID format, it must be a 24 character string.'))])
+    submit_card = SubmitField(_l('Process only this specific card'))

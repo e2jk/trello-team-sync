@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% import 'bootstrap/form.html' as wtf %}
+
+{% block app_content %}
+    <h1>{{ title }}</h1>
+    <div class="row" id="mapping_run_in_progress">
+      <div class="col-lg-8">
+        {{ _('Would you like to:') }}<br/><br/>
+        {{ wtf.render_form(rmf) }}
+      </div>
+    </div>
+{% endblock %}

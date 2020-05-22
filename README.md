@@ -121,6 +121,16 @@ The website allows users to set up, configure and manage the syncing of cards be
 
   `$flask run`
 
+### Running tasks
+
+Launch a worker:
+
+`$ rq worker trello-team-sync-tasks`
+
+You will need to have installed Redis on your system beforehand. For example, on a Debian-based machine:
+
+  `$ sudo apt install redis`
+
 ### How to test sending emails from the website
 
 The following section is copied from Miguel Grinberg's wonderful [Flask Mega-Tutorial, Part VII: Error Handling](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-vii-error-handling):\

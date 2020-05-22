@@ -14,6 +14,7 @@
         <ul>
           {% for mapping in mappings %}
           <li>
+            <a class="btn btn-success btn-sm" href="{{ url_for('mapping.run', mapping_id=mapping.id) }}" role="button">{{ _('Run') }}</a>
             {{ mapping.name }}<br/>
             {{ _('%(num_labels)d labels and %(num_dest_lists)d destination lists', num_labels=mapping.get_num_labels(), num_dest_lists=mapping.get_num_dest_lists()) }}<br/>
             {% if mapping.description %}{{ mapping.description }}<br/>{% endif %}
