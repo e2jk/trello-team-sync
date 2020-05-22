@@ -199,11 +199,11 @@ def check_mapping_ownership(mapping_id):
     if this_users_mappings:
         mapping = Mapping.query.filter_by(id=mapping_id).first()
     if not this_users_mappings or not mapping:
-        # Return a 401 error if this mapping is not related to this user
-        # Return a 401 error even if the ID doesn't exist (should technically
+        # Return a 403 error if this mapping is not related to this user
+        # Return a 403 error even if the ID doesn't exist (should technically
         # have been a 404 error, but no need to expose that info to users)
         return (False, render_template('mapping/invalid.html',
-            title=_("Invalid mapping")), 401)
+            title=_("Invalid mapping")), 403)
     return (True, this_users_mappings, mapping)
 
 
