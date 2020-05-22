@@ -31,5 +31,5 @@ MS Windows equivalents:
 mkdir Documents\devel\venv\trello-team-sync
 AppData\Local\Programs\Python\Python38-32\python.exe -m venv Documents\devel\venv\trello-team-sync
 Documents\devel\venv\trello-team-sync\Scripts\pip3.exe install -r Documents\devel\trello-team-sync\requirements.txt
-Documents\devel\venv\trello-team-sync4\Scripts\activate.bat
+Documents\devel\venv\trello-team-sync\Scripts\activate.bat
 ```

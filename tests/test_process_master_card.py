@@ -12,7 +12,7 @@ from unittest.mock import patch
 import inspect
 
 sys.path.append('.')
-target = __import__("trello-team-sync")
+target = __import__("trello_team_sync")
 
 
 class TestProcessMasterCard(unittest.TestCase):
@@ -54,7 +54,7 @@ class TestProcessMasterCard(unittest.TestCase):
             'DEBUG:root:Master card is to be synced on 0 destination lists',
             'INFO:root:This master card has no slave cards'])
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_process_master_card_one_label(self, t_pr):
         """
         Test processing a new master card with one recognized label
@@ -160,7 +160,7 @@ class TestProcessMasterCard(unittest.TestCase):
         self.assertEqual(cm.output, expected)
         target.args = None
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_process_master_card_dummy_attachment(self, t_pr):
         """
         Test processing a new master card with one non-Trello attachment
@@ -206,7 +206,7 @@ class TestProcessMasterCard(unittest.TestCase):
         self.assertEqual(cm.output, expected)
         target.args = None
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_process_master_card_attachment(self, t_pr):
         """
         Test processing a new master card with one Trello attachment
@@ -247,7 +247,7 @@ class TestProcessMasterCard(unittest.TestCase):
         self.assertEqual(cm.output, expected)
         target.args = None
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_process_master_card_attachment_no_label(self, t_pr):
         """
         Test processing a new master card with one Trello attachment but no label
@@ -284,7 +284,7 @@ class TestProcessMasterCard(unittest.TestCase):
         self.assertEqual(cm.output, expected)
         target.args = None
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_process_master_card_one_label_wet_run_no_checklist(self, t_pr):
         """
         Test processing a new master card with one recognized label, no dry_run, without a checklist
@@ -330,7 +330,7 @@ class TestProcessMasterCard(unittest.TestCase):
         self.assertTrue(expected in "\n".join(cm.output))
         target.args = None
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_process_master_card_one_label_wet_run_unrelated_checklist(self, t_pr):
         """
         Test processing a new master card with one recognized label, no dry_run, with one unrelated checklist
@@ -378,7 +378,7 @@ class TestProcessMasterCard(unittest.TestCase):
         target.args = None
 
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_process_master_card_one_label_wet_run_friendly_name_checklist(self, t_pr):
         """
         Test processing a new master card with one recognized label, no dry_run,
@@ -425,7 +425,7 @@ class TestProcessMasterCard(unittest.TestCase):
         self.assertTrue(expected in "\n".join(cm.output))
         target.args = None
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_process_master_card_one_label_wet_run_related_checklist(self, t_pr):
         """
         Test processing a new master card with one recognized label, no dry_run, with already the related checklist

@@ -16,7 +16,7 @@ import contextlib
 from pathlib import Path
 
 sys.path.append('.')
-target = __import__("trello-team-sync")
+target = __import__("trello_team_sync")
 
 # Used to test manual entry
 def setUpModule():
@@ -101,7 +101,7 @@ Exiting...
         expected_exception_code = 36
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_t(self, t_pr):
         """
         Test creating a new config file, valid token then quit
@@ -118,7 +118,7 @@ Exiting...
         expected_exception_code = 37
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_ibf(self, t_pr):
         """
         Test creating a new config file, invalid board ID format then quit
@@ -136,7 +136,7 @@ Exiting...
         expected_exception_code = 37
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_vb_not_own(self, t_pr):
         """
         Test creating a new config file, valid board ID format but not in list of own boards, then quit
@@ -154,7 +154,7 @@ Exiting...
         expected_exception_code = 37
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_b(self, t_pr):
         """
         Test creating a new config file, valid board then quit
@@ -172,7 +172,7 @@ Exiting...
         expected_exception_code = 38
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_il(self, t_pr):
         """
         Test creating a new config file, invalid label then quit
@@ -194,7 +194,7 @@ Exiting...
         expected_exception_code = 39
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_l(self, t_pr):
         """
         Test creating a new config file, valid label then quit
@@ -229,7 +229,7 @@ Exiting...
         expected_exception_code = 40
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_vl_il(self, t_pr):
         """
         Test creating a new config file, valid label, invalid list ID then quit
@@ -247,7 +247,7 @@ Exiting...
         expected_exception_code = 40
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_vl_vl_q(self, t_pr):
         """
         Test creating a new config file, valid label and list ID then quit
@@ -273,7 +273,7 @@ Exiting...
         expected_exception_code = 42
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_vl_vl_no(self, t_pr):
         """
         Test creating a new config file, valid label and list ID then no and quit
@@ -300,7 +300,7 @@ Exiting...
         expected_exception_code = 41
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_one_label_list_error_q(self, t_pr):
         """
         Test creating a new config file, one valid label/list ID then error and quit
@@ -327,7 +327,7 @@ Exiting...
         expected_exception_code = 42
         run_test_create_new_config(self, vals, expected_output, expected_exception_code)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_one_label_list_error_no(self, t_pr):
         """
         Test creating a new config file, one valid label/list ID then error and continue
@@ -350,7 +350,7 @@ New configuration saved to file 'data/config_config-name.json'
         # Delete the temporary file
         os.remove(config_file)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_one_label_list(self, t_pr):
         """
         Test creating a new config file, only one valid label/list ID
@@ -380,7 +380,7 @@ New configuration saved to file 'data/config_config-name.json'
         # Delete the temporary file
         os.remove(config_file)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_one_label_list_error_new_label(self, t_pr):
         """
         Test creating a new config file, only one valid label/list ID, error on question about new label
@@ -411,7 +411,7 @@ New configuration saved to file 'data/config_config-name.json'
         # Delete the temporary file
         os.remove(config_file)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_existing_filename(self, t_pr):
         """
         Test creating a new config file when there was already a config file with the same filename
@@ -432,7 +432,7 @@ New configuration saved to file 'data/config_config-name.json'
         os.remove(config_file)
         os.remove(existing_config_file)
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_two_label_list(self, t_pr):
         """
         Test creating a new config file, two valid labels/list IDs
@@ -459,7 +459,7 @@ New configuration saved to file 'data/config_config-name.json'
         self.assertEqual(target.config["destination_lists"]["Label One"][0], vals[5])
         target.config = None
 
-    @patch("trello-team-sync.perform_request")
+    @patch("trello_team_sync.perform_request")
     def test_create_new_config_two_label_one_multiple_list(self, t_pr):
         """
         Test creating a new config file, two valid labels including one with multiple list IDs
