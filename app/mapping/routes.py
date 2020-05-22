@@ -17,23 +17,7 @@ import requests
 import re
 from wtforms import BooleanField
 import json
-
-
-
-def perform_request(method, url, query=None, key=None, token=None):
-    if method not in ("GET", "POST", "PUT", "DELETE"):
-        logging.critical("HTTP method '%s' not supported. Exiting..." % method)
-        sys.exit(30)
-    url = "https://api.trello.com/1/%s" % url
-    url += "?key=%s&token=%s" % (key, token)
-    response = requests.request(
-        method,
-        url,
-        params=query
-    )
-    # Raise an exception if the response status code indicates an issue
-    response.raise_for_status()
-    return response.json()
+from trello_team_sync import perform_request
 
 
 @bp.before_app_request

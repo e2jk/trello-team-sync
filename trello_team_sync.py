@@ -189,15 +189,18 @@ def generate_master_card_metadata(slave_cards):
     logging.debug("New master card metadata: %s" % mcm)
     return mcm
 
-def perform_request(method, url, query=None):
+def perform_request(method, url, query=None, key=None, token=None):
     if method not in ("GET", "POST", "PUT", "DELETE"):
         logging.critical("HTTP method '%s' not supported. Exiting..." % method)
         sys.exit(30)
     url = "https://api.trello.com/1/%s" % url
-    if args.dry_run and method != "GET":
+    if "args" in globals() and args.dry_run and method != "GET":
         logging.debug("Skipping %s call to '%s' due to --dry-run parameter" % (method, url))
         return {}
-    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    if not (key and token) and "config" in globals():
+        key = config["key"]
+        token = config["token"]
+    url += "?key=%s&token=%s" % (key, token)
     response = requests.request(
         method,
         url,
