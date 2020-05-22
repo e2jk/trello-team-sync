@@ -11,7 +11,7 @@ from flask_babel import _, get_locale
 # from guess_language import guess_language
 from app import db
 from app.mapping.forms import NewMappingForm
-from app.models import Mapping
+from app.models import Mapping, mappings as users_mappings_links
 from app.mapping import bp
 import requests
 import re
@@ -44,15 +44,40 @@ def before_request():
     g.locale = str(get_locale())
 
 
+@bp.route('/<int:mapping_id>/edit', methods=['GET', 'POST'])
 @bp.route('/new', methods=['GET', 'POST'])
 @login_required
-def new():
-    form = NewMappingForm()
+def new_or_edit(mapping_id=None):
+    mapping = None
+    if mapping_id:
+        # Check if this user has access to this mapping
+        this_users_mappings = db.session.query(users_mappings_links).\
+            filter_by(user_id=current_user.id, mapping_id=mapping_id).all()
+        if this_users_mappings:
+            mapping = Mapping.query.filter_by(id=mapping_id).first()
+        if not this_users_mappings or not mapping:
+            # Return a 401 error if this mapping is not related to this user
+            # Return a 401 error even if the ID doesn't exist (should technically
+            # have been a 404 error, but no need to expose that detail to users)
+            return render_template('mapping/invalid.html',
+                title=_("Invalid mapping")), 401
+        # Set the items on the mapping object like they would come from the form
+        destination_lists = json.loads(mapping.destination_lists)
+        mapping.labels = list(destination_lists.keys())
+        i = 0
+        for label_id in destination_lists:
+            label_lists = []
+            for list_id in destination_lists[label_id]:
+                label_lists.append(list_id)
+            setattr(mapping, "map_label%d_lists" % i, label_lists)
+            i += 1
+
+    form = NewMappingForm(obj=mapping)
 
     # Check if the fields from each fields are valid
     step = 1
     selected_labels = []
-    if request.method == 'POST':
+    if request.method == 'POST' or mapping_id:
         # Check elements from the first step
         if form.name.validate(form) and \
             form.description.validate(form) and \
@@ -101,19 +126,29 @@ def new():
                 step = 5
 
         # All the steps have valid information, add this mapping to the database!
-        if step == 5:
-            mapping = Mapping(
-                name=form.name.data,
-                description=form.description.data,
-                key=form.key.data,
-                token=form.token.data,
-                master_board=form.master_board.data,
-                destination_lists = json.dumps(destination_lists),
-                user_id = current_user.id)
-            current_user.mappings.append(mapping)
+        if step == 5 and request.method == 'POST':
+            if mapping_id:
+                mapping.name = form.name.data
+                mapping.description=form.description.data
+                mapping.key=form.key.data
+                mapping.token=form.token.data
+                mapping.master_board=form.master_board.data
+                mapping.destination_lists = json.dumps(destination_lists)
+                mapping.user_id = current_user.id
+                flash(_('Your mapping "%(name)s" has been updated.', name=mapping.name))
+            else:
+                mapping = Mapping(
+                    name=form.name.data,
+                    description=form.description.data,
+                    key=form.key.data,
+                    token=form.token.data,
+                    master_board=form.master_board.data,
+                    destination_lists = json.dumps(destination_lists),
+                    user_id = current_user.id)
+                current_user.mappings.append(mapping)
+                flash(_('Your new mapping "%(name)s" has been created.', name=mapping.name))
             db.session.add(mapping)
             db.session.commit()
-            flash(_('Your new mapping has been created.'))
             return redirect(url_for('main.index'))
 
     # Populate conditional form elements
@@ -164,5 +199,14 @@ def new():
     for i in range(len(selected_labels), len(map_label_lists)):
         delattr(form, "map_label%d_lists" % i)
 
-    return render_template('mapping/new.html',
-        title=_('New mapping, Step %(step_nr)s/4', step_nr=step), form=form)
+    if mapping_id:
+        if request.method == 'GET':
+            title = _('Edit mapping %(mapping_id)s', mapping_id=mapping_id)
+        else:
+            # We're still on the edit page while POSTing, show the step number
+            title = _('Edit mapping %(mapping_id)s, Step %(step_nr)s/4',
+                mapping_id=mapping_id, step_nr=step)
+    else:
+        title = _('New mapping, Step %(step_nr)s/4', step_nr=step)
+
+    return render_template('mapping/new.html', title=title, form=form)
