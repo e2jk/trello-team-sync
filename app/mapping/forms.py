@@ -46,3 +46,7 @@ for i in range(100):
             render_kw={'style':'height: auto; list-style: none;'}))
 # Add the Submit button after all the fields
 setattr(NewMappingForm, "submit", SubmitField(_l('Submit')))
+
+
+class DeleteMappingForm(FlaskForm):
+    submit = SubmitField(_l('Delete mapping'))

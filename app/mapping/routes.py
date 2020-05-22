@@ -10,7 +10,7 @@ from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 # from guess_language import guess_language
 from app import db
-from app.mapping.forms import NewMappingForm
+from app.mapping.forms import NewMappingForm, DeleteMappingForm
 from app.models import Mapping, mappings as users_mappings_links
 from app.mapping import bp
 import requests
@@ -212,3 +212,28 @@ def new_or_edit(mapping_id=None):
         form.submit.label.text = _('Continue')
 
     return render_template('mapping/new.html', title=title, form=form)
+
+
+@bp.route('/<int:mapping_id>/delete', methods=['GET', 'POST'])
+@login_required
+def delete(mapping_id):
+    # Check if this user has access to this mapping
+    this_users_mappings = db.session.query(users_mappings_links).\
+        filter_by(user_id=current_user.id, mapping_id=mapping_id).all()
+    if this_users_mappings:
+        mapping = Mapping.query.filter_by(id=mapping_id).first()
+    if not this_users_mappings or not mapping:
+        # Return a 401 error if this mapping is not related to this user
+        # Return a 401 error even if the ID doesn't exist (should technically
+        # have been a 404 error, but no need to expose that info to users)
+        return render_template('mapping/invalid.html',
+            title=_("Invalid mapping")), 401
+    if request.method == 'POST':
+        # This also deletes the many-to-many user-mapping relationship
+        db.session.delete(mapping)
+        db.session.commit()
+        return redirect(url_for('main.index'))
+
+    form = DeleteMappingForm()
+    title = _('Delete mapping "%(name)s" ?', name=mapping.name)
+    return render_template('mapping/delete.html', title=title, form=form)

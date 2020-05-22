@@ -5,4 +5,5 @@
     <div class="alert alert-danger">
       <strong>{{ _('Error!') }}</strong> {{ _("You don't have access to this mapping.") }}
     </div>
+    <a href="{{ url_for('main.index') }}">{{ _('Back to Home') }}</a>
 {% endblock %}

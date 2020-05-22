@@ -17,7 +17,8 @@
             {{ mapping.name }}<br/>
             {{ _('%(num_labels)d labels and %(num_dest_lists)d destination lists', num_labels=mapping.get_num_labels(), num_dest_lists=mapping.get_num_dest_lists()) }}<br/>
             {% if mapping.description %}{{ mapping.description }}<br/>{% endif %}
-            <a href="{{ url_for('mapping.new_or_edit', mapping_id=mapping.id) }}">{{ _('Edit') }}</a>
+            <a href="{{ url_for('mapping.new_or_edit', mapping_id=mapping.id) }}">{{ _('Edit') }}</a> -
+            <a href="{{ url_for('mapping.delete', mapping_id=mapping.id) }}">{{ _('Delete') }}</a>
           </li>
           {% endfor %}
         </ul>
