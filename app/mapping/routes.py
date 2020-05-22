@@ -208,5 +208,7 @@ def new_or_edit(mapping_id=None):
                 mapping_id=mapping_id, step_nr=step)
     else:
         title = _('New mapping, Step %(step_nr)s/4', step_nr=step)
+    if step < 5:
+        form.submit.label.text = _('Continue')
 
     return render_template('mapping/new.html', title=title, form=form)
