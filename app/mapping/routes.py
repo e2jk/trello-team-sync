@@ -35,16 +35,12 @@ def new_or_edit(mapping_id=None):
     mapping = None
     if mapping_id:
         # Check if this user has access to this mapping
-        this_users_mappings = db.session.query(users_mappings_links).\
-            filter_by(user_id=current_user.id, mapping_id=mapping_id).all()
-        if this_users_mappings:
-            mapping = Mapping.query.filter_by(id=mapping_id).first()
-        if not this_users_mappings or not mapping:
-            # Return a 401 error if this mapping is not related to this user
-            # Return a 401 error even if the ID doesn't exist (should technically
-            # have been a 404 error, but no need to expose that detail to users)
-            return render_template('mapping/invalid.html',
-                title=_("Invalid mapping")), 401
+        (valid_mapping, val1, val2) = check_mapping_ownership(mapping_id)
+        if not valid_mapping:
+            return val1, val2
+        else:
+            this_users_mappings = val1
+            mapping = val2
         # Set the items on the mapping object like they would come from the form
         destination_lists = json.loads(mapping.destination_lists)
         mapping.labels = list(destination_lists.keys())
@@ -197,11 +193,7 @@ def new_or_edit(mapping_id=None):
 
     return render_template('mapping/new.html', title=title, form=form)
 
-
-@bp.route('/<int:mapping_id>/delete', methods=['GET', 'POST'])
-@login_required
-def delete(mapping_id):
-    # Check if this user has access to this mapping
+def check_mapping_ownership(mapping_id):
     this_users_mappings = db.session.query(users_mappings_links).\
         filter_by(user_id=current_user.id, mapping_id=mapping_id).all()
     if this_users_mappings:
@@ -210,8 +202,21 @@ def delete(mapping_id):
         # Return a 401 error if this mapping is not related to this user
         # Return a 401 error even if the ID doesn't exist (should technically
         # have been a 404 error, but no need to expose that info to users)
-        return render_template('mapping/invalid.html',
-            title=_("Invalid mapping")), 401
+        return (False, render_template('mapping/invalid.html',
+            title=_("Invalid mapping")), 401)
+    return (True, this_users_mappings, mapping)
+
+
+@bp.route('/<int:mapping_id>/delete', methods=['GET', 'POST'])
+@login_required
+def delete(mapping_id):
+    # Check if this user has access to this mapping
+    (valid_mapping, val1, val2) = check_mapping_ownership(mapping_id)
+    if not valid_mapping:
+        return val1, val2
+    else:
+        this_users_mappings = val1
+        mapping = val2
     if request.method == 'POST':
         # This also deletes the many-to-many user-mapping relationship
         db.session.delete(mapping)
