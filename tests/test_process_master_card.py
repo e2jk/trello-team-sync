@@ -20,7 +20,7 @@ class TestProcessMasterCard(unittest.TestCase):
         """
         Test processing a new master card without labels or attachments
         """
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"key": "ghi", "token": "jkl", "destination_lists": []}
         master_card = {"id": "1a2b3c", "desc": "abc", "name": "Card name",
             "labels": [], "badges": {"attachments": 0}}
         with self.assertLogs(level='DEBUG') as cm:

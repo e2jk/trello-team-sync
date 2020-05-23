@@ -12,6 +12,7 @@ from rq import get_current_job
 from app import create_app, db
 from app.models import Task, Mapping
 from app.email import send_email
+from trello_team_sync import perform_request, process_master_card
 
 app = create_app()
 app.app_context().push()
@@ -25,11 +26,21 @@ def run_mapping(mapping_id, run_type, elem_id):
         _set_task_progress(0)
         print('Starting task for mapping %d, %s %s' % (mapping_id, run_type,
             elem_id))
-        for i in range(seconds):
-            _set_task_progress(int(100.0 * i / seconds))
-            job.save_meta()
-            print("%d/%d" % (i+1, seconds))
-            time.sleep(1)
+        if run_type == "card":
+            master_card = perform_request("GET", "cards/%s" % elem_id, \
+                key=mapping.key, token=mapping.token)
+            args_from_app = {
+                "destination_lists": json.loads(mapping.destination_lists),
+                "key": mapping.key,
+                "token": mapping.token
+            }
+            output = process_master_card(master_card, args_from_app)
+        else:
+            for i in range(seconds):
+                _set_task_progress(int(100.0 * i / seconds))
+                job.save_meta()
+                print("%d/%d" % (i+1, seconds))
+                time.sleep(1)
         _set_task_progress(100)
         job.save_meta()
         print('Task for mapping %d, %s %s completed' % (mapping_id, run_type,
