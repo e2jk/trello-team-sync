@@ -1,5 +1,7 @@
+data/*.db
 data/*.json
 html_dev/coverage/
+logs/
 startup.sh
 temp/
 

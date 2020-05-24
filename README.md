@@ -50,50 +50,50 @@ See below for examples calling the script, and the full help text of the script 
 
   * Create a new config file
 
-    `$python3 trello-team-sync.py --new-config`
+    `$python3 trello_team_sync.py --new-config`
 
 * Synchronization
 
   * Synchronize all cards on the master board
 
-    `$python3 trello-team-sync.py --propagate`
+    `$python3 trello_team_sync.py --propagate`
 
   * Synchronize all cards on the master board, indicating what is going on
 
-    `$python3 trello-team-sync.py --propagate --verbose`
+    `$python3 trello_team_sync.py --propagate --verbose`
 
   * Synchronize all cards from a specific list (which itself is on the master board) [replace `<list_id>` with the ID of the list]
 
-    `$python3 trello-team-sync.py --propagate --list <list_id>`
+    `$python3 trello_team_sync.py --propagate --list <list_id>`
 
   * Synchronize a specific card (which is on the master board) [replace `<card_id>` with the ID of the card]
 
-    `$python3 trello-team-sync.py --propagate --card <card_id>`
+    `$python3 trello_team_sync.py --propagate --card <card_id>`
 
 * Webhooks
 
   * Set up a webhook that gets called each time an element on the master board gets modified
 
-    `$python3 trello-team-sync.py --webhook --new`
+    `$python3 trello_team_sync.py --webhook --new`
 
   * List all the webhooks present for you account
 
-    `$python3 trello-team-sync.py --webhook --list`
+    `$python3 trello_team_sync.py --webhook --list`
 
   * Delete the webhook for your master board
 
-    `$python3 trello-team-sync.py --webhook --delete`
+    `$python3 trello_team_sync.py --webhook --delete`
 
 * Cleaning up (to be used in DEMO MODE only)
 
   * Delete all the cards from the destination lists and clean up the cards on the main board. **WARNING**: only to be used while testing, **YOU WILL LOSE ALL THE DATA** on the destination lists!
 
-    `$python3 trello-team-sync.py --cleanup --debug`
+    `$python3 trello_team_sync.py --cleanup --debug`
 
 ### Script help text
 ```
-$python3 trello-team-sync.py --help
-usage: trello-team-sync.py [-h] (-p | -cu | -nc | -w {new,list,delete}) [-c CARD] [-l LIST] [-dr] [-cfg CONFIG] [-d] [-v]
+$python3 trello_team_sync.py --help
+usage: trello_team_sync.py [-h] (-p | -cu | -nc | -w {new,list,delete}) [-c CARD] [-l LIST] [-dr] [-cfg CONFIG] [-d] [-v]
 
 Sync cards between different teams' Trello boards
 
@@ -115,9 +115,30 @@ optional arguments:
 
 Website
 -------
-**TO BE DEVELOPED**\
-The website allows users to set up, configure and manage the syncing of cards between boards to which they have access to.\
-[TODO: Create the website and explain its working here]
+The website allows users to set up, configure and manage the syncing of cards between boards to which they have access to.
+
+### Running the website
+
+  `$flask run`
+
+### Running tasks
+
+Launch a worker:
+
+`$ rq worker trello-team-sync-tasks`
+
+You will need to have installed Redis on your system beforehand. For example, on a Debian-based machine:
+
+  `$ sudo apt install redis`
+
+### How to test sending emails from the website
+
+The following section is copied from Miguel Grinberg's wonderful [Flask Mega-Tutorial, Part VII: Error Handling](https://blog.miguelgrinberg.com/post/the-flask-mega-tutorial-part-vii-error-handling):\
+There are two approaches to test this feature. The easiest one is to use the SMTP debugging server from Python. This is a fake email server that accepts emails, but instead of sending them, it prints them to the console. To run this server, open a second terminal session and run the following command on it:
+
+  `$ python -m smtpd -n -c DebuggingServer localhost:8025`
+
+Leave the debugging SMTP server running and go back to your first terminal and set `export MAIL_SERVER=localhost` and `MAIL_PORT=8025` in the environment (use `set` instead of `export` if you are using Microsoft Windows). Make sure the `FLASK_DEBUG` variable is set to 0 or not set at all, since the application will not send emails in debug mode.
 
 API
 ---

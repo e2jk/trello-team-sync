@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+
+    <div class="row">
+      <h1>{{ _('Hi, %(username)s!', username=current_user.username) }}</h1>
+    </div>
+
+    <div class="row">
+      {% with mappings = current_user.get_mappings() %}
+      {% if mappings %}
+      <div class="col-md-6">
+        <h2>{{ _('Your mappings') }}</h2>
+        <ul>
+          {% for mapping in mappings %}
+          <li>
+            <a class="btn btn-success btn-sm" href="{{ url_for('mapping.run', mapping_id=mapping.id) }}" role="button">{{ _('Run') }}</a>
+            {{ mapping.name }}<br/>
+            {{ _('%(num_labels)d labels and %(num_dest_lists)d destination lists', num_labels=mapping.get_num_labels(), num_dest_lists=mapping.get_num_dest_lists()) }}<br/>
+            {% if mapping.description %}{{ mapping.description }}<br/>{% endif %}
+            <a href="{{ url_for('mapping.new_or_edit', mapping_id=mapping.id) }}">{{ _('Edit') }}</a> -
+            <a href="{{ url_for('mapping.delete', mapping_id=mapping.id) }}">{{ _('Delete') }}</a>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% endwith %}
+
+      <div class="col-md-6">
+        <h2>{{ _('New mapping') }}</h2>
+        <a class="btn btn-info" href="{{ url_for('mapping.new_or_edit') }}" role="button">{{ _('Create a new mapping') }}</a>
+      </div>
+
+    </div>
+{% endblock %}

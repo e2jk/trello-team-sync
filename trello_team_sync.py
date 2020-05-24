@@ -55,11 +55,11 @@ def output_summary(args, summary):
             summary["new_slave_card"],
             "would have been " if args.dry_run else ""))
 
-def get_card_attachments(card):
+def get_card_attachments(card, pr_args={}):
     card_attachments = []
     if card["badges"]["attachments"] > 0:
         logging.debug("Getting %d attachments on master card %s" % (card["badges"]["attachments"], card["id"]))
-        for a in perform_request("GET", "cards/%s/attachments" % card["id"]):
+        for a in perform_request("GET", "cards/%s/attachments" % card["id"], **pr_args):
             # Only keep attachments that are links to other Trello cards
             card_shorturl_regex = "https://trello.com/c/([a-zA-Z0-9_-]{8})/.*"
             card_shorturl_regex_match = re.match(card_shorturl_regex, a["url"])
@@ -156,7 +156,7 @@ def split_master_card_metadata(master_card_desc):
         match = re.search(regex_pattern, master_card_desc, re.DOTALL)
         return [match.group(1), match.group(3)]
 
-def update_master_card_metadata(master_card, new_master_card_metadata):
+def update_master_card_metadata(master_card, new_master_card_metadata, pr_args={}):
     (main_desc, current_master_card_metadata) = split_master_card_metadata(master_card["desc"])
     if new_master_card_metadata != current_master_card_metadata:
         logging.debug("Updating master card metadata")
@@ -166,38 +166,41 @@ def update_master_card_metadata(master_card, new_master_card_metadata):
             # Also remove the metadata separator when removing the metadata
             new_full_desc = main_desc
         logging.debug(new_full_desc)
-        perform_request("PUT", "cards/%s" % master_card["id"], {"desc": new_full_desc})
+        perform_request("PUT", "cards/%s" % master_card["id"], {"desc": new_full_desc}, **pr_args)
 
-def get_name(record_type, record_id):
+def get_name(record_type, record_id, pr_args={}):
     global cached_values
     if record_id not in cached_values[record_type]:
-        cached_values[record_type][record_id] = perform_request("GET", "%s/%s" % (record_type, record_id))["name"]
+        cached_values[record_type][record_id] = perform_request("GET", "%s/%s" % (record_type, record_id), **pr_args)["name"]
     return cached_values[record_type][record_id]
 
-def get_board_name_from_list(list_id):
+def get_board_name_from_list(list_id, pr_args={}):
     global cached_values
     if list_id not in cached_values["board_of_list"]:
-        cached_values["board_of_list"][list_id] = perform_request("GET", "lists/%s" % list_id)["idBoard"]
-    return get_name("board", cached_values["board_of_list"][list_id])
+        cached_values["board_of_list"][list_id] = perform_request("GET", "lists/%s" % list_id, **pr_args)["idBoard"]
+    return get_name("board", cached_values["board_of_list"][list_id], pr_args)
 
-def generate_master_card_metadata(slave_cards):
+def generate_master_card_metadata(slave_cards, pr_args={}):
     mcm = ""
     for sc in slave_cards:
         mcm += "\n- '%s' on list '**%s|%s**'" % (sc["name"],
-            get_name("board", sc["idBoard"]),
-            get_name("list", sc["idList"]))
+            get_name("board", sc["idBoard"], pr_args),
+            get_name("list", sc["idList"], pr_args))
     logging.debug("New master card metadata: %s" % mcm)
     return mcm
 
-def perform_request(method, url, query=None):
+def perform_request(method, url, query=None, key=None, token=None):
     if method not in ("GET", "POST", "PUT", "DELETE"):
         logging.critical("HTTP method '%s' not supported. Exiting..." % method)
         sys.exit(30)
     url = "https://api.trello.com/1/%s" % url
-    if args.dry_run and method != "GET":
+    if "args" in globals() and args.dry_run and method != "GET":
         logging.debug("Skipping %s call to '%s' due to --dry-run parameter" % (method, url))
         return {}
-    url += "?key=%s&token=%s" % (config["key"], config["token"])
+    if not (key and token) and "config" in globals():
+        key = config["key"]
+        token = config["token"]
+    url += "?key=%s&token=%s" % (key, token)
     response = requests.request(
         method,
         url,
@@ -207,7 +210,7 @@ def perform_request(method, url, query=None):
     response.raise_for_status()
     return response.json()
 
-def create_new_slave_card(master_card, destination_list):
+def create_new_slave_card(master_card, destination_list, pr_args={}):
     logging.debug("Creating new slave card")
     query = {
        "idList": destination_list,
@@ -217,28 +220,39 @@ def create_new_slave_card(master_card, destination_list):
         # Explicitly don't keep labels,members
         "keepFromSource": "attachments,checklists,comments,due,stickers"
     }
-    new_slave_card = perform_request("POST", "cards", query)
+    new_slave_card = perform_request("POST", "cards", query, **pr_args)
     if new_slave_card:
         logging.debug("New slave card ID: %s" % new_slave_card["id"])
     return new_slave_card
 
-def process_master_card(master_card):
+def process_master_card(master_card, args_from_app=None):
     logging.debug("="*64)
     logging.debug("Process master card '%s'" % master_card["name"])
     # Check if this card is to be synced on a destination list
     destination_lists = []
+    if not args_from_app:
+        conf_destination_lists = config["destination_lists"]
+        pr_args = {}
+    else:
+        conf_destination_lists = args_from_app["destination_lists"]
+        pr_args = {"key": args_from_app["key"], "token": args_from_app["token"]}
     for l in master_card["labels"]:
-        if l["name"] in config["destination_lists"]:
-            for list in config["destination_lists"][l["name"]]:
+        if not args_from_app:
+            # TODO: Change script config setup from label Name to label ID (#37)
+            tracked_label_value = l["name"]
+        else:
+            tracked_label_value = l["id"]
+        if tracked_label_value in conf_destination_lists:
+            for list in conf_destination_lists[tracked_label_value]:
                 if list not in destination_lists:
                     destination_lists.append(list)
     logging.debug("Master card is to be synced on %d destination lists" % len(destination_lists))
 
     # Check if slave cards are already attached to this master card
     linked_slave_cards = []
-    master_card_attachments = get_card_attachments(master_card)
+    master_card_attachments = get_card_attachments(master_card, pr_args)
     for mca in master_card_attachments:
-        attached_card = perform_request("GET", "cards/%s" % mca["card_shortUrl"])
+        attached_card = perform_request("GET", "cards/%s" % mca["card_shortUrl"], **pr_args)
         linked_slave_cards.append(attached_card)
 
     new_master_card_metadata = ""
@@ -264,28 +278,28 @@ def process_master_card(master_card):
             else:
                 # A new slave card needs to be created for this slave board
                 num_new_cards += 1
-                card = create_new_slave_card(master_card, dl)
+                card = create_new_slave_card(master_card, dl, pr_args)
                 if card:
                     # Link cards between each other
                     logging.debug("Attaching master card %s to slave card %s" % (master_card["id"], card["id"]))
-                    perform_request("POST", "cards/%s/attachments" % card["id"], {"url": master_card["url"]})
+                    perform_request("POST", "cards/%s/attachments" % card["id"], {"url": master_card["url"]}, **pr_args)
                     logging.debug("Attaching slave card %s to master card %s" % (card["id"], master_card["id"]))
-                    perform_request("POST", "cards/%s/attachments" % master_card["id"], {"url": card["url"]})
+                    perform_request("POST", "cards/%s/attachments" % master_card["id"], {"url": card["url"]}, **pr_args)
             slave_cards.append(card)
         if card:
             # Generate master card metadata based on the slave cards info
-            new_master_card_metadata = generate_master_card_metadata(slave_cards)
+            new_master_card_metadata = generate_master_card_metadata(slave_cards, pr_args)
         logging.info("This master card has %d slave cards (%d newly created)" % (len(slave_cards), num_new_cards))
     else:
         logging.info("This master card has no slave cards")
 
     # Update the master card's metadata if needed
-    update_master_card_metadata(master_card, new_master_card_metadata)
+    update_master_card_metadata(master_card, new_master_card_metadata, pr_args)
 
     # Add a checklist for each team on the master card
-    if len(destination_lists) > 0 and not args.dry_run:
+    if len(destination_lists) > 0 and not ("args" in globals() and args.dry_run):
         logging.debug("Retrieving checklists from card %s" % master_card["id"])
-        master_card_checklists = perform_request("GET", "cards/%s/checklists" % master_card["id"])
+        master_card_checklists = perform_request("GET", "cards/%s/checklists" % master_card["id"], **pr_args)
         create_checklist = True
         if master_card_checklists:
             logging.debug("Already %d checklists on this master card: %s" % (len(master_card_checklists), ", ".join([c["name"] for c in master_card_checklists])))
@@ -296,16 +310,17 @@ def process_master_card(master_card):
                     logging.debug("Master card already contains a checklist name 'Involved Teams', skipping checklist creation")
         if create_checklist:
             logging.debug("Creating new checklist")
-            cl = perform_request("POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"})
+            cl = perform_request("POST", "cards/%s/checklists" % master_card["id"], {"name": "Involved Teams"}, **pr_args)
             logging.debug(cl)
             for dl in destination_lists:
                 # Use that list's board's name as checklist name
-                checklistitem_name = get_board_name_from_list(dl)
+                checklistitem_name = get_board_name_from_list(dl, pr_args)
                 # Ability to define a more friendly name than the destination board's name
-                if checklistitem_name in config["friendly_names"].keys():
+                #TODO: Support friendly names from the website (#38)
+                if "config" in globals() and checklistitem_name in config["friendly_names"].keys():
                     checklistitem_name = config["friendly_names"][checklistitem_name]
                 logging.debug("Adding new checklistitem '%s' to checklist %s" % (checklistitem_name, cl["id"]))
-                new_checklistitem = perform_request("POST", "checklists/%s/checkItems" % cl["id"], {"name": checklistitem_name})
+                new_checklistitem = perform_request("POST", "checklists/%s/checkItems" % cl["id"], {"name": checklistitem_name}, **pr_args)
                 logging.debug(new_checklistitem)
 
         #TODO: Mark checklist item as Complete if slave card is Done
