@@ -24,31 +24,37 @@ def run_mapping(mapping_id, run_type, elem_id):
     try:
         job = get_current_job()
         _set_task_progress(0)
-        print('Starting task for mapping %d, %s %s' % (mapping_id, run_type,
-            elem_id))
-        if run_type == "card":
-            master_card = perform_request("GET", "cards/%s" % elem_id, \
-                key=mapping.key, token=mapping.token)
+        app.logger.info('Starting task for mapping %d, %s %s' %
+            (mapping_id, run_type, elem_id))
+        if run_type in ("card", "list", "board"):
             args_from_app = {
                 "destination_lists": json.loads(mapping.destination_lists),
                 "key": mapping.key,
                 "token": mapping.token
             }
-            output = process_master_card(master_card, args_from_app)
+            if run_type == "card":
+                master_cards = [perform_request("GET", "cards/%s" % elem_id,
+                    key=mapping.key, token=mapping.token)]
+            elif run_type in ("list", "board"):
+                master_cards = perform_request("GET", "%s/%s/cards" %
+                    (run_type, elem_id),
+                    key=mapping.key, token=mapping.token)
+            for idx, master_card in enumerate(master_cards):
+                app.logger.info("Processing master card %d/%d - %s" %
+                    (idx+1, len(master_cards), master_card["name"]))
+                output = process_master_card(master_card, args_from_app)
+                if idx < len(master_cards)-1:
+                    _set_task_progress(int(100.0 * (idx+1) / len(master_cards)))
         else:
-            for i in range(seconds):
-                _set_task_progress(int(100.0 * i / seconds))
-                job.save_meta()
-                print("%d/%d" % (i+1, seconds))
-                time.sleep(1)
+            app.logger.error("Invalid task, ignoring")
         _set_task_progress(100)
         job.save_meta()
-        print('Task for mapping %d, %s %s completed' % (mapping_id, run_type,
-            elem_id))
+        app.logger.info('Completed task for mapping %d, %s %s' %
+            (mapping_id, run_type, elem_id))
     except:
         _set_task_progress(100)
         app.logger.error(
-            'run_mapping: Unhandled exception while running task %d %s %s' % \
+            'run_mapping: Unhandled exception while running task %d %s %s' %
             (mapping_id, run_type, elem_id), exc_info=sys.exc_info())
 
 
