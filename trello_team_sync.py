@@ -37,23 +37,32 @@ def rlinput(prompt, prefill=''):
 
 def output_summary(args, summary):
     if not summary:
-        return
-    logging.info("="*64)
-    if args.cleanup:
-        logging.info("Summary%scleaned up %d master cards and deleted %d slave cards from %d slave boards/%d slave lists." % (
-            " [DRY RUN]: would have " if args.dry_run else ": ",
-            summary["cleaned_up_master_cards"],
-            summary["deleted_slave_cards"],
-            summary["erased_destination_boards"],
-            summary["erased_destination_lists"]))
-    elif args.propagate:
-        logging.info("Summary%s: processed %d master cards (of which %d active) that have %d slave cards (of which %d %snew)." % (
-            " [DRY RUN]" if args.dry_run else "",
+        return ""
+    if not args:
+        # Called from the website
+        return "Processed %d master cards (of which %d active) that have %d slave cards (of which %d new)." % (
             summary["master_cards"],
             summary["active_master_cards"],
             summary["slave_card"],
-            summary["new_slave_card"],
-            "would have been " if args.dry_run else ""))
+            summary["new_slave_card"])
+    else:
+        # Called from the script
+        logging.info("="*64)
+        if args.cleanup:
+            logging.info("Summary%scleaned up %d master cards and deleted %d slave cards from %d slave boards/%d slave lists." % (
+                " [DRY RUN]: would have " if args.dry_run else ": ",
+                summary["cleaned_up_master_cards"],
+                summary["deleted_slave_cards"],
+                summary["erased_destination_boards"],
+                summary["erased_destination_lists"]))
+        elif args.propagate:
+            logging.info("Summary%s: processed %d master cards (of which %d active) that have %d slave cards (of which %d %snew)." % (
+                " [DRY RUN]" if args.dry_run else "",
+                summary["master_cards"],
+                summary["active_master_cards"],
+                summary["slave_card"],
+                summary["new_slave_card"],
+                "would have been " if args.dry_run else ""))
 
 def get_card_attachments(card, pr_args={}):
     card_attachments = []

@@ -9,7 +9,7 @@
     <div class="row">
       {% with mappings = current_user.get_mappings() %}
       {% if mappings %}
-      <div class="col-md-6">
+      <div class="col-md-9">
         <h2>{{ _('Your mappings') }}</h2>
         <ul>
           {% for mapping in mappings %}
@@ -27,10 +27,32 @@
       {% endif %}
       {% endwith %}
 
-      <div class="col-md-6">
+      <div class="col-md-3">
         <h2>{{ _('New mapping') }}</h2>
         <a class="btn btn-info" href="{{ url_for('mapping.new_or_edit') }}" role="button">{{ _('Create a new mapping') }}</a>
       </div>
-
     </div>
+
+    {% with recent_tasks = current_user.get_recent_tasks() %}
+    {% if recent_tasks %}
+    <div class="row">
+      <div class="col">
+        <h2>{{ _('Recent runs') }}</h2>
+        <ul>
+          {% for t in recent_tasks %}
+          <li>
+            {% if t.status %}{{ t.status }}{% else %}{{ _('Job running...') }}{% endif %}
+            {% if t.complete %}
+            {{ _('Ran %(time_ago)s in %(duration)s.', time_ago=moment(t.timestamp_end).fromNow(), duration=t.get_duration()) }}
+            {% else %}
+            {{ _('Started %(time_ago)s.', time_ago=moment(t.timestamp_end).fromNow()) }}
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+    {% endif %}
+    {% endwith %}
+
 {% endblock %}

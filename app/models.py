@@ -117,6 +117,9 @@ class User(UserMixin, db.Model):
     def get_mappings(self):
         return self.mappings.all()
 
+    def get_recent_tasks(self):
+        return self.tasks.order_by(Task.timestamp_start.desc()).limit(10).all()
+
 
 @login.user_loader
 def load_user(id):
@@ -140,6 +143,9 @@ class Task(db.Model):
     description = db.Column(db.String(128))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     complete = db.Column(db.Boolean, default=False)
+    timestamp_start = db.Column(db.DateTime, index=True, default=datetime.utcnow)
+    timestamp_end = db.Column(db.DateTime)
+    status = db.Column(db.String(128))
 
     def get_rq_job(self):
         try:
@@ -151,6 +157,15 @@ class Task(db.Model):
     def get_progress(self):
         job = self.get_rq_job()
         return job.meta.get('progress', 0) if job is not None else 100
+
+    def get_duration(self):
+        difference = self.timestamp_end - self.timestamp_start
+        seconds_in_day = 24 * 60 * 60
+        minsec = divmod(difference.days * seconds_in_day + difference.seconds, 60)
+        duration = "%ds" % minsec[1]
+        if minsec[0] > 0:
+            duration = "%dm " % minsec[0] + duration
+        return duration
 
 
 class Mapping(db.Model):

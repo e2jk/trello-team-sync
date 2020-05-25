@@ -279,6 +279,7 @@ def run(mapping_id):
                     _('Processing card "%(card_name)s"...',
                         card_name=card_names[rmf.cards.data]))
             db.session.commit()
+            return redirect(url_for('main.index'))
         return redirect(url_for('mapping.run', mapping_id=mapping_id))
 
 
