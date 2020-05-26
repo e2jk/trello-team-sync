@@ -10,10 +10,11 @@ from datetime import datetime, timedelta
 import unittest
 from app import create_app, db
 from app.models import User
-from config import Config
+from config import Config, basedir
 import sys
 import io
 import contextlib
+import os
 
 sys.path.append('.')
 target = __import__("website")
@@ -54,6 +55,25 @@ class UserModelCase(unittest.TestCase):
         self.assertEqual(u.avatar(128), ('https://www.gravatar.com/avatar/'
                                          'd4c74594d841139328695756648b6bd6'
                                          '?d=identicon&s=128'))
+
+
+
+class ConfigCase(unittest.TestCase):
+    def test_config_values(self):
+        self.assertEqual(Config.SECRET_KEY, os.environ.get('SECRET_KEY') or \
+            'you-will-never-guess')
+        self.assertEqual(Config.SQLALCHEMY_DATABASE_URI, os.environ.get('DATABASE_URL') or \
+            'sqlite:///' + os.path.join(basedir, 'data', 'app.db'))
+        self.assertEqual(Config.SQLALCHEMY_TRACK_MODIFICATIONS, False)
+        self.assertEqual(Config.LOG_TO_STDOUT, os.environ.get('LOG_TO_STDOUT'))
+        self.assertEqual(Config.MAIL_SERVER, os.environ.get('MAIL_SERVER'))
+        self.assertEqual(Config.MAIL_PORT, int(os.environ.get('MAIL_PORT') or 25))
+        self.assertEqual(Config.MAIL_USE_TLS, os.environ.get('MAIL_USE_TLS') is not None)
+        self.assertEqual(Config.MAIL_USERNAME, os.environ.get('MAIL_USERNAME'))
+        self.assertEqual(Config.MAIL_PASSWORD, os.environ.get('MAIL_PASSWORD'))
+        self.assertEqual(Config.ADMINS, ['your-email@example.com'])
+        self.assertEqual(Config.LANGUAGES, ['en'])
+        self.assertEqual(Config.REDIS_URL, os.environ.get('REDIS_URL') or 'redis://')
 
 
 if __name__ == '__main__':
