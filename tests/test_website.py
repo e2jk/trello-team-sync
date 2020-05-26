@@ -34,7 +34,7 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
 
-class UserModelCase(unittest.TestCase):
+class ModelCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app(TestConfig)
         self.app_context = self.app.app_context()
@@ -136,6 +136,15 @@ class UserModelCase(unittest.TestCase):
         db.session.add(u)
         self.assertEqual(load_user(1), u)
 
+    def test_notification_get_data(self):
+        u = User(username='john', email='john@example.com')
+        db.session.add(u)
+        n1 = u.add_notification("First notification", {"aa": "abc", "bb": "def"})
+        data = n1.get_data()
+        self.assertEqual(data["aa"], "abc")
+        self.assertEqual(data["bb"], "def")
+
+
 
 class ConfigCase(unittest.TestCase):
     def test_config_values(self):
@@ -153,6 +162,7 @@ class ConfigCase(unittest.TestCase):
         self.assertEqual(Config.ADMINS, ['your-email@example.com'])
         self.assertEqual(Config.LANGUAGES, ['en'])
         self.assertEqual(Config.REDIS_URL, os.environ.get('REDIS_URL') or 'redis://')
+
 
 
 if __name__ == '__main__':
