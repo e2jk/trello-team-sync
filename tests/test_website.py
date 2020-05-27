@@ -44,7 +44,7 @@ class TestConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'sqlite://'
 
 
-class ModelCase(unittest.TestCase):
+class WebsiteTestCase(unittest.TestCase):
     def setUp(self):
         self.app = create_app(TestConfig)
         self.app_context = self.app.app_context()
@@ -56,6 +56,8 @@ class ModelCase(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
+
+class ModelCase(WebsiteTestCase):
     def test_password_hashing(self):
         u = User(username='susan')
         u.set_password('cat')
@@ -227,18 +229,7 @@ class ConfigCase(unittest.TestCase):
         self.assertEqual(Config.REDIS_URL, os.environ.get('REDIS_URL') or 'redis://')
 
 
-class TaskCase(unittest.TestCase):
-    def setUp(self):
-        self.app = create_app(TestConfig)
-        self.app_context = self.app.app_context()
-        self.app_context.push()
-        db.create_all()
-
-    def tearDown(self):
-        db.session.remove()
-        db.drop_all()
-        self.app_context.pop()
-
+class TaskCase(WebsiteTestCase):
     @patch("app.tasks.get_current_job")
     def test_run_task(self, rgcj):
         mock_job = MagicMock()
