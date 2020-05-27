@@ -9,7 +9,7 @@
 from datetime import datetime, timedelta
 import unittest
 from app import create_app, db
-from app.models import User, load_user, Task
+from app.models import User, load_user, Task, Mapping
 from config import Config, basedir
 import sys
 import io
@@ -20,6 +20,7 @@ from sqlalchemy.exc import IntegrityError
 from redis.exceptions import RedisError
 from rq.exceptions import NoSuchJobError
 from datetime import datetime, timedelta
+import json
 
 sys.path.append('.')
 target = __import__("website")
@@ -181,6 +182,25 @@ class ModelCase(unittest.TestCase):
         t = Task(timestamp_start=now)
         self.assertEqual(t.get_duration(), "unknown")
 
+    def test_mapping(self):
+        u = User(username='john', email='john@example.com')
+        destination_lists = {
+            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+            "Label Two": ["ddd"],
+            "All Teams": [
+                "a1a1a1a1a1a1a1a1a1a1a1a1",
+                "ddd"
+            ]
+        }
+        dl = json.dumps(destination_lists)
+        m1 = Mapping(name="abc", destination_lists=dl)
+        self.assertEqual(str(m1), "<Mapping abc>")
+        self.assertEqual(m1.get_num_labels(), 3)
+        self.assertEqual(m1.get_num_dest_lists(), 4)
+        u.mappings.append(m1)
+        m2 = Mapping(name="def")
+        u.mappings.append(m2)
+        self.assertEqual(u.get_mappings(), [m1, m2])
 
 
 class ConfigCase(unittest.TestCase):
@@ -199,7 +219,6 @@ class ConfigCase(unittest.TestCase):
         self.assertEqual(Config.ADMINS, ['your-email@example.com'])
         self.assertEqual(Config.LANGUAGES, ['en'])
         self.assertEqual(Config.REDIS_URL, os.environ.get('REDIS_URL') or 'redis://')
-
 
 
 if __name__ == '__main__':
