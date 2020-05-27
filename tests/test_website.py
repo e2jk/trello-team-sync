@@ -22,13 +22,19 @@ from rq.exceptions import NoSuchJobError
 from datetime import datetime, timedelta
 import json
 
-sys.path.append('.')
-target = __import__("website")
+if not os.environ.get("FLASK_DEBUG"):
+    # Suppress output when starting up app from website.py or app/tasks.py
+    with contextlib.redirect_stderr(io.StringIO()):
+        from app.tasks import _set_task_progress, run_mapping
+        from website import make_shell_context
+else:
+    from app.tasks import _set_task_progress, run_mapping
+    from website import make_shell_context
 
 
 class TestMakeShellContext(unittest.TestCase):
     def test_make_shell_context(self):
-        return_value = target.make_shell_context()
+        return_value = make_shell_context()
         for i in ("db", "User", "Notification", "Task", "Mapping"):
             self.assertTrue(i in return_value)
 
