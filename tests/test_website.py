@@ -42,6 +42,7 @@ class TestMakeShellContext(unittest.TestCase):
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite://'
+    WTF_CSRF_ENABLED = False
 
 
 class WebsiteTestCase(unittest.TestCase):
@@ -50,6 +51,7 @@ class WebsiteTestCase(unittest.TestCase):
         self.app_context = self.app.app_context()
         self.app_context.push()
         db.create_all()
+        self.client = self.app.test_client()
 
     def tearDown(self):
         db.session.remove()
@@ -354,6 +356,117 @@ class TaskCase(WebsiteTestCase):
                 'active) that have 13 slave cards (of which 15 new).')]
         self.assertEqual(atstp.mock_calls, expected_calls)
 
+
+class AuthCase(WebsiteTestCase):
+    def register(self, username, email, password, password2):
+        return self.client.post(
+            '/auth/register',
+            data=dict(username=username, email=email,
+                password=password, password2=password2),
+            follow_redirects=True
+        )
+
+    def create_user(self, username, password):
+        u = User(username=username)
+        u.set_password(password)
+        db.session.add(u)
+        db.session.commit()
+
+    def login(self, username, password, follow_redirects=True):
+        return self.client.post(
+            '/auth/login',
+            data=dict(username=username, password=password),
+            follow_redirects=follow_redirects
+        )
+
+    def test_register_invalid(self):
+        response = self.register(None, None, None, None)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<input class="form-control is-invalid" id="username" ' \
+                'name="username" required type="text" value="">',
+            '<div class="invalid-feedback">This field is required.</div>',
+            '<input class="form-control is-invalid" id="email" name="email" ' \
+                'required type="text" value="">',
+            '<input class="form-control is-invalid" id="password" ' \
+                'name="password" required type="password" value="">',
+            '<input class="form-control is-invalid" id="password2" ' \
+                'name="password2" required type="password" value="">'
+        ]
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_register(self):
+        # First registration is succesful
+        response = self.register("john", "john@example.com", "abc", "abc")
+        self.assertEqual(response.status_code, 200)
+        ec = '<div class="alert alert-info" role="alert">Congratulations, ' \
+            'you are now a registered user!</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Double registration fails
+        response = self.register("john", "john@example.com", "abc", "abc")
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<div class="invalid-feedback">Please use a different username.</div>',
+            '<div class="invalid-feedback">Please use a different email address.</div>'
+        ]
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_login_invalid(self):
+        self.create_user("john", "abc")
+        # Invalid username
+        response = self.login("johnny", "abc")
+        self.assertEqual(response.status_code, 200)
+        ec = '<div class="alert alert-info" role="alert">Invalid username or ' \
+            'password</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Invalid password, same error message
+        response = self.login("john", "def")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(str.encode(ec), response.data)
+
+    def test_login_valid(self):
+        self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<li class="nav-item"><a class="nav-link" href="/edit_profile">' \
+                'Profile</a></li>',
+            '<li class="nav-item"><a class="nav-link" href="/auth/logout">' \
+                'Logout</a></li>',
+            '<h2>New mapping</h2>',
+            '<a class="btn btn-info" href="/mapping/new" role="button">Create ' \
+                'a new mapping</a>'
+        ]
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_login_double(self):
+        self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        # Logging in while already logged in redirects to home
+        response = self.login("john", "abc", follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+
+    def test_login_register(self):
+        self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        # GETting the registration page while logged in redirects to home
+        response = self.client.get('/auth/register', follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+
+    def test_logout(self):
+        self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/auth/logout', follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
 
 
 if __name__ == '__main__':
