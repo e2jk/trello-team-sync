@@ -227,5 +227,143 @@ class ConfigCase(unittest.TestCase):
         self.assertEqual(Config.REDIS_URL, os.environ.get('REDIS_URL') or 'redis://')
 
 
+class TaskCase(unittest.TestCase):
+    def setUp(self):
+        self.app = create_app(TestConfig)
+        self.app_context = self.app.app_context()
+        self.app_context.push()
+        db.create_all()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        self.app_context.pop()
+
+    @patch("app.tasks.get_current_job")
+    def test_run_task(self, rgcj):
+        mock_job = MagicMock()
+        mock_job.get_id.return_value = "foobarbaz"
+        rgcj.return_value = mock_job
+        u = User(username='john', email='john@example.com')
+        db.session.add(u)
+        mock = MagicMock()
+        mock.get_id.return_value = 'foobarbaz'
+        with patch.object(self.app.task_queue, 'enqueue', return_value=mock) \
+            as mock_enqueue_method:
+            t = u.launch_task("run_mapping", (123, "board", "abc"), "Description")
+        db.session.add(t)
+        _set_task_progress(33)
+        self.assertEqual(rgcj.mock_calls[2], call().meta.__setitem__('progress', 33))
+        self.assertEqual(t.status, None)
+        _set_task_progress(66, "Nice message")
+        self.assertEqual(t.status, "Nice message")
+        self.assertFalse(t.complete)
+        _set_task_progress(100)
+        self.assertTrue(t.complete)
+
+    def test_run_mapping_invalid_mapping(self):
+        f = io.StringIO()
+        with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
+            run_mapping(0, "", "")
+        expected_logging = ['INFO:app:Starting task for mapping 0,  ',
+            'ERROR:app:Invalid task, ignoring',
+            'INFO:app:Completed task for mapping 0,  ']
+        self.assertEqual(cm.output, expected_logging)
+        for l in expected_logging:
+            self.assertTrue(l.split(":app:")[1] in f.getvalue())
+
+    def test_run_mapping_vm_invalid_args(self):
+        m = Mapping(name="def")
+        db.session.add(m)
+        db.session.commit()
+        f = io.StringIO()
+        with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
+            run_mapping(m.id, "", "")
+        expected_logging = ['INFO:app:Starting task for mapping 1,  ',
+            'ERROR:app:Invalid task, ignoring',
+            'INFO:app:Completed task for mapping 1,  ']
+        self.assertEqual(cm.output, expected_logging)
+        for l in expected_logging:
+            self.assertTrue(l.split(":app:")[1] in f.getvalue())
+
+    def test_run_mapping_vm_valid_args_invalid_json(self):
+        m = Mapping(name="def")
+        db.session.add(m)
+        db.session.commit()
+        f = io.StringIO()
+        with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
+            run_mapping(m.id, "card", "abc")
+        expected_logging = "TypeError: the JSON object must be str, bytes or "\
+            "bytearray, not NoneType"
+        self.assertTrue(expected_logging in cm.output[1])
+
+    @patch("app.tasks._set_task_progress")
+    @patch("app.tasks.process_master_card")
+    @patch("app.tasks.perform_request")
+    def test_run_mapping_vm_valid_args_card(self, atpr, atpmc, atstp):
+        destination_lists = {
+            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+            "Label Two": ["ddd"],
+            "All Teams": [
+                "a1a1a1a1a1a1a1a1a1a1a1a1",
+                "ddd"
+            ]
+        }
+        dl = json.dumps(destination_lists)
+        m = Mapping(name="abc", destination_lists=dl)
+        db.session.add(m)
+        db.session.commit()
+        atpr.return_value = {"name": "Card name"}
+        atpmc.return_value = (1, 2, 3)
+        f = io.StringIO()
+        with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
+            run_mapping(m.id, "card", "abc")
+        expected_calls = [call('GET', 'cards/abc', key=None, token=None)]
+        self.assertEqual(atpr.mock_calls, expected_calls)
+        expected_logging = "INFO:app:Processing master card 1/1 - Card name"
+        self.assertEqual(cm.output[1], expected_logging)
+        self.assertTrue(list(atpmc.mock_calls[0].args[1].keys()),
+            ['destination_lists', 'key', 'token'])
+        expected_call = call(100, 'Run complete. Processed 1 master cards (' \
+            'of which 1 active) that have 2 slave cards (of which 3 new).')
+        self.assertEqual(atstp.mock_calls[-1], expected_call)
+
+    @patch("app.tasks._set_task_progress")
+    @patch("app.tasks.process_master_card")
+    @patch("app.tasks.perform_request")
+    def test_run_mapping_vm_valid_args_list(self, atpr, atpmc, atstp):
+        destination_lists = {
+            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+            "Label Two": ["ddd"],
+            "All Teams": [
+                "a1a1a1a1a1a1a1a1a1a1a1a1",
+                "ddd"
+            ]
+        }
+        dl = json.dumps(destination_lists)
+        m = Mapping(name="abc", destination_lists=dl)
+        db.session.add(m)
+        db.session.commit()
+        atpr.return_value = [{"name": "Card name"}, {"name": "Second card"}]
+        atpmc.side_effect = [(4, 5, 6), (7, 8, 9)]
+        f = io.StringIO()
+        with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
+            run_mapping(m.id, "list", "def")
+        expected_calls = [call('GET', 'list/def/cards', key=None, token=None)]
+        self.assertEqual(atpr.mock_calls, expected_calls)
+        expected_logging = ['INFO:app:Starting task for mapping 1, list def',
+            'INFO:app:Processing master card 1/2 - Card name',
+            'INFO:app:Processing master card 2/2 - Second card',
+            'INFO:app:Completed task for mapping 1, list def']
+        self.assertEqual(cm.output, expected_logging)
+        expected_calls = [call(0),
+            call(0, 'Job running... Processing 2 cards.'),
+            call(50),
+            call(100, 'Run complete. Processed 2 master cards (of which 11 ' \
+                'active) that have 13 slave cards (of which 15 new).')]
+        self.assertEqual(atstp.mock_calls, expected_calls)
+
+
+
 if __name__ == '__main__':
     unittest.main()

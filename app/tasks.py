@@ -20,7 +20,6 @@ app.app_context().push()
 
 
 def run_mapping(mapping_id, run_type, elem_id):
-    seconds = 5
     mapping = Mapping.query.filter_by(id=mapping_id).first()
     try:
         job = get_current_job()
@@ -59,11 +58,11 @@ def run_mapping(mapping_id, run_type, elem_id):
                 summary["new_slave_card"] += output[2]
                 if idx < len(master_cards)-1:
                     _set_task_progress(int(100.0 * (idx+1) / len(master_cards)))
+            status_information = "Run complete. %s" % output_summary(None, summary)
         else:
             app.logger.error("Invalid task, ignoring")
-        status_information = "Run complete. %s" % output_summary(None, summary)
+            status_information = "Invalid task, ignored."
         _set_task_progress(100, status_information)
-        job.save_meta()
         app.logger.info('Completed task for mapping %d, %s %s' %
             (mapping_id, run_type, elem_id))
     except:
