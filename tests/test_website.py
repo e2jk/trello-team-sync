@@ -9,7 +9,7 @@
 from datetime import datetime, timedelta
 import unittest
 from app import create_app, db
-from app.models import User, load_user
+from app.models import User, load_user, Task
 from config import Config, basedir
 import sys
 import io
@@ -17,6 +17,9 @@ import contextlib
 import os
 from unittest.mock import patch, call, MagicMock
 from sqlalchemy.exc import IntegrityError
+from redis.exceptions import RedisError
+from rq.exceptions import NoSuchJobError
+from datetime import datetime, timedelta
 
 sys.path.append('.')
 target = __import__("website")
@@ -143,6 +146,40 @@ class ModelCase(unittest.TestCase):
         data = n1.get_data()
         self.assertEqual(data["aa"], "abc")
         self.assertEqual(data["bb"], "def")
+
+    @patch("rq.job.Job.fetch")
+    def test_task_get_rq_job(self, rjjf):
+        t = Task()
+        # First test Redis/rq errors, then mock a running Redis server
+        rjjf.side_effect = [RedisError(), NoSuchJobError(), "abc"]
+        self.assertEqual(t.get_rq_job(), None)
+        self.assertEqual(t.get_rq_job(), None)
+        self.assertEqual(t.get_rq_job(), "abc")
+
+    @patch("app.models.Task.get_rq_job")
+    def test_task_get_progress(self, tgrj):
+        t = Task()
+        mock_job = MagicMock()
+        mock_job.meta.get.return_value = 27
+        tgrj.side_effect = [None, mock_job]
+        # Non-existing job returns 100% done
+        self.assertEqual(t.get_progress(), 100)
+        self.assertEqual(t.get_progress(), 27)
+
+    def test_task_get_duration(self):
+        now = datetime.utcnow()
+        data = [
+            [now - timedelta(seconds=3),   now, "3s"],
+            [now - timedelta(seconds=60),  now, "1m 0s"],
+            [now - timedelta(seconds=61),  now, "1m 1s"],
+            [now - timedelta(seconds=627), now, "10m 27s"]
+        ]
+        for d in data:
+            t = Task(timestamp_start=d[0], timestamp_end=d[1])
+            self.assertEqual(t.get_duration(), d[2])
+        # No end timestamp
+        t = Task(timestamp_start=now)
+        self.assertEqual(t.get_duration(), "unknown")
 
 
 

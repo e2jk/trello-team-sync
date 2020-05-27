@@ -5,7 +5,7 @@
 #    Originally based on microblog, licensed under the MIT License.
 
 import base64
-from datetime import datetime, timedelta
+from datetime import datetime
 from hashlib import md5
 import json
 import os
@@ -140,6 +140,8 @@ class Task(db.Model):
         return job.meta.get('progress', 0) if job is not None else 100
 
     def get_duration(self):
+        if not (self.timestamp_start and self.timestamp_end):
+            return "unknown"
         difference = self.timestamp_end - self.timestamp_start
         seconds_in_day = 24 * 60 * 60
         minsec = divmod(difference.days * seconds_in_day + difference.seconds, 60)
