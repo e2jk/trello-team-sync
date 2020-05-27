@@ -50,6 +50,21 @@ def run_test_create_new_config(self, vals, expected_output, expected_exception_c
     return config_file
 
 class TestCreateNewConfig(unittest.TestCase):
+    def remove_test_config_files(self):
+        try:
+            if os.path.isfile("data/config_config-name.json"):
+                os.remove("data/config_config-name.json")
+            for p in Path("./data").glob("*.nxt"):
+                p.unlink()
+        except (PermissionError, FileNotFoundError):
+            pass
+
+    def setUp(self):
+        self.remove_test_config_files()
+
+    def tearDown(self):
+        self.remove_test_config_files()
+
     def test_create_new_config_q(self):
         """
         Test creating a new config file, invalid key then quit
