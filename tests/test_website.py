@@ -622,6 +622,15 @@ class AuthCase(WebsiteTestCase):
             self.assertIn(str.encode(ec), response.data)
         self.assertEqual(u1.username, "john")
 
+    def test_error_404(self):
+        response = self.client.get('/non_existent_route')
+        self.assertEqual(response.status_code, 404)
+        expected_content = [
+            '<title>Welcome to Trello Team Sync</title>',
+            '<h1>Not Found</h1>']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
 
 if __name__ == '__main__':
     unittest.main()
