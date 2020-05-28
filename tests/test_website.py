@@ -623,6 +623,81 @@ class AuthCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
+    def test_mapping_delete(self):
+        u = self.create_user("john", "abc")
+        destination_lists = {
+            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+            "Label Two": ["ddd"],
+            "All Teams": [
+                "a1a1a1a1a1a1a1a1a1a1a1a1",
+                "ddd"
+            ]
+        }
+        dl = json.dumps(destination_lists)
+        m = Mapping(name="abc", destination_lists=dl)
+        u.mappings.append(m)
+        db.session.commit()
+        self.assertEqual(u.get_mappings(), [m])
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+
+        # GET
+        response = self.client.get('/mapping/%d/delete' % m.id)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Delete mapping &#34;abc&#34; ? - Trello Team Sync</title>',
+            '<h1>Delete mapping &#34;abc&#34; ?</h1>',
+            '<input class="btn btn-danger btn-md" id="submit" name="submit" ' \
+                'type="submit" value="Delete mapping">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+        # POST
+        response = self.client.post('/mapping/%d/delete' % m.id)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+        self.assertEqual(u.get_mappings(), [])
+
+    def test_mapping_no_access(self):
+        # GETting these pages with a non-existing mapping ID or
+        # another user's mapping ID shows an error page
+        u1 = self.create_user("john", "abc")
+        destination_lists = {
+            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+            "Label Two": ["ddd"],
+            "All Teams": [
+                "a1a1a1a1a1a1a1a1a1a1a1a1",
+                "ddd"
+            ]
+        }
+        dl = json.dumps(destination_lists)
+        m1 = Mapping(name="abc", destination_lists=dl)
+        u1.mappings.append(m1)
+        u2 = self.create_user("john2", "def")
+        m2 = Mapping(name="def", destination_lists=dl)
+        u2.mappings.append(m2)
+        db.session.commit()
+        self.assertEqual(u1.get_mappings(), [m1])
+        self.assertEqual(u2.get_mappings(), [m2])
+        # Log in as u1
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+
+        expected_content = [
+        '<title>Invalid mapping - Trello Team Sync</title>',
+        '<h1>Invalid mapping</h1>',
+        '<div class="alert alert-danger">\n      <strong>Error!</strong> ' \
+        'You don\'t have access to this mapping.\n    </div>',
+        '<a href="/">Back to Home</a>']
+
+        for base_url in ("", "/delete", "/edit"):
+            for id in (999, m2.id):
+                url = "/mapping/%d%s" % (id, base_url)
+                response = self.client.get(url)
+                self.assertEqual(response.status_code, 403)
+                for ec in expected_content:
+                    self.assertIn(str.encode(ec), response.data)
+
 
 if __name__ == '__main__':
     unittest.main()
