@@ -14,6 +14,7 @@ from unittest.mock import patch
 import io
 import contextlib
 from pathlib import Path
+import time
 
 sys.path.append('.')
 target = __import__("trello_team_sync")
@@ -51,13 +52,17 @@ def run_test_create_new_config(self, vals, expected_output, expected_exception_c
 
 class TestCreateNewConfig(unittest.TestCase):
     def remove_test_config_files(self):
-        try:
-            if os.path.isfile("data/config_config-name.json"):
+        if os.path.isfile("data/config_config-name.json"):
+            time.sleep(0.5)
+            try:
                 os.remove("data/config_config-name.json")
-            for p in Path("./data").glob("*.nxt"):
+            except (PermissionError, FileNotFoundError):
+                pass
+        for p in Path("./data").glob("*.nxt"):
+            try:
                 p.unlink()
-        except (PermissionError, FileNotFoundError):
-            pass
+            except (PermissionError, FileNotFoundError):
+                pass
 
     def setUp(self):
         self.remove_test_config_files()
