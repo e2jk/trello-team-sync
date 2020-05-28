@@ -698,6 +698,94 @@ class AuthCase(WebsiteTestCase):
                 for ec in expected_content:
                     self.assertIn(str.encode(ec), response.data)
 
+    @patch("app.mapping.routes.current_user")
+    @patch("app.mapping.routes.perform_request")
+    def test_mapping_run(self, amrpr, amrcu):
+        u = self.create_user("john", "abc")
+        destination_lists = {
+            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+            "Label Two": ["ddd"],
+            "All Teams": [
+                "a1a1a1a1a1a1a1a1a1a1a1a1",
+                "ddd"
+            ]
+        }
+        dl = json.dumps(destination_lists)
+        m = Mapping(name="abc", destination_lists=dl)
+        u.mappings.append(m)
+        db.session.commit()
+        self.assertEqual(u.get_mappings(), [m])
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+
+        # GET
+        amrpr.return_value = [
+            {"id": "123", "name": "hij"},
+            {"id": "a"*24, "name": "klm"},
+            {"id": "789", "name": "nop"}]
+        amrcu.id = 1
+        response = self.client.get("/mapping/%d" % m.id)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Run mapping &#34;abc&#34; - Trello Team Sync</title>',
+            '<h1>Run mapping &#34;abc&#34;</h1>',
+            'Would you like to:<br/><br/>',
+            '<input class="btn btn-secondary btn-md" id="submit_board" name="' \
+                'submit_board" type="submit" value="Process the entire master board">',
+            '<select class="form-control" id="lists" name="lists"><option ' \
+                'value="123">hij</option><option value="%s">klm</option>' \
+                '<option value="789">nop</option></select>' % ("a"*24),
+            '<input class="btn btn-secondary btn-md" id="submit_list" name="' \
+                'submit_list" type="submit" value="Process all cards on this list">',
+            '<select class="form-control" id="cards" name="cards"><option ' \
+                'value="123">hij | hij</option><option value="%s">hij | klm' \
+                '</option><option value="789">hij | nop</option><option ' \
+                'value="123">klm | hij</option><option value="%s">klm | klm' \
+                '</option><option value="789">klm | nop</option><option value=' \
+                '"123">nop | hij</option><option value="%s">nop | klm</option>' \
+                '<option value="789">nop | nop</option></select>' % (("a"*24,)*3),
+            '<input class="btn btn-secondary btn-md" id="submit_card" name="' \
+                'submit_card" type="submit" value="Process only this specific card">'
+            ]
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+        # POST while task in progress
+        amrcu.get_task_in_progress.return_value = True
+        response = self.client.post("/mapping/%d" % m.id, follow_redirects = True)
+        self.assertEqual(response.status_code, 200)
+        ec = '<div class="alert alert-info" role="alert">A run is currently ' \
+            'in progress, please wait...</div>'
+        self.assertIn(str.encode(ec), response.data)
+
+        # POST entire master board
+        amrcu.get_task_in_progress.return_value = False
+        response = self.client.post("/mapping/%d" % m.id,
+            data=dict(submit_board="submit_board"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+        expected_call = call.launch_task('run_mapping', (1, 'board', None),
+            'Processing the full "abc" master board...')
+        self.assertEqual(amrcu.mock_calls[-1], expected_call)
+
+        # POST list
+        response = self.client.post("/mapping/%d" % m.id,
+            data=dict(submit_list="submit_list", lists="a"*24))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+        expected_call = call.launch_task('run_mapping', (1, 'list',
+            "a"*24), 'Processing all cards on list "klm"...')
+        self.assertEqual(amrcu.mock_calls[-1], expected_call)
+
+        # POST card
+        response = self.client.post("/mapping/%d" % m.id,
+            data=dict(submit_card="submit_card", cards="a"*24))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+        expected_call = call.launch_task('run_mapping', (1, 'card',
+            "a"*24), 'Processing card "nop | klm"...')
+        self.assertEqual(amrcu.mock_calls[-1], expected_call)
+
 
 if __name__ == '__main__':
     unittest.main()
