@@ -21,6 +21,7 @@ from redis.exceptions import RedisError
 from rq.exceptions import NoSuchJobError
 from datetime import datetime, timedelta
 import json
+from urllib.parse import quote
 
 if not os.environ.get("FLASK_DEBUG"):
     # Suppress output when starting up app from website.py or app/tasks.py
@@ -535,6 +536,91 @@ class AuthCase(WebsiteTestCase):
             follow_redirects=False)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
+
+    def test_main_routes_not_logged_in_redirects(self):
+        # GETting these pages without being logged in redirects to login page
+        for url in ("/", "/edit_profile", "/notifications"):
+            response = self.client.get(url, follow_redirects=False)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.headers["Location"],
+                "http://localhost/auth/login?next=%s" % quote(url, safe=''))
+
+    def test_main_routes_home(self):
+        u = self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/', follow_redirects=False)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Home - Trello Team Sync</title>',
+            '<li class="nav-item"><a class="nav-link" href="/auth/logout">' \
+                'Logout</a></li>',
+            '<h1>Hi, john!</h1>',
+            '<h2>New mapping</h2>',
+            '<a class="btn btn-info" href="/mapping/new" role="button">' \
+                'Create a new mapping</a>']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_main_routes_notifications(self):
+        u = self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/notifications', follow_redirects=False)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(b'[]\n', response.data)
+
+        n1 = u.add_notification("First notification", {"aa": "abc", "bb": "def"})
+        n2 = u.add_notification("Second notification", {"cc": "ghi"})
+        response = self.client.get('/notifications', follow_redirects=False)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '[{"data":{"aa":"abc","bb":"def"},"name":"First notification","timestamp":',
+            '},{"data":{"cc":"ghi"},"name":"Second notification","timestamp":']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_main_routes_edit_profile_get(self):
+        u = self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/edit_profile', follow_redirects=False)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Edit Profile - Trello Team Sync</title>',
+            '<h1>Edit Profile</h1>',
+            '<input class="form-control" id="username" name="username" ' \
+                'required type="text" value="john">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_main_routes_edit_profile_post(self):
+        u = self.create_user("john", "abc")
+        self.assertEqual(u.username, "john")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post('/edit_profile', data=dict(username="j2"),
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/edit_profile")
+        self.assertEqual(u.username, "j2")
+
+    def test_main_routes_edit_profile_post_collision(self):
+        u1 = self.create_user("john", "abc")
+        u2 = self.create_user("j2", "def")
+        self.assertEqual(u1.username, "john")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post('/edit_profile', data=dict(username="j2"),
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Edit Profile - Trello Team Sync</title>',
+            '<h1>Edit Profile</h1>',
+            '<div class="invalid-feedback">Please use a different username.</div>']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+        self.assertEqual(u1.username, "john")
 
 
 if __name__ == '__main__':
