@@ -458,7 +458,7 @@ class AuthCase(WebsiteTestCase):
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
         # GETting the registration page while logged in redirects to home
-        response = self.client.get('/auth/register', follow_redirects=False)
+        response = self.client.get('/auth/register')
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
 
@@ -466,7 +466,7 @@ class AuthCase(WebsiteTestCase):
         self.create_user("john", "abc")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.get('/auth/logout', follow_redirects=False)
+        response = self.client.get('/auth/logout')
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
 
@@ -474,8 +474,7 @@ class AuthCase(WebsiteTestCase):
         self.create_user("john", "abc", "a@a.com")
 
         # GETting the password reset form page while not logged in shows reset form
-        response = self.client.get('/auth/reset_password_request',
-            follow_redirects=False)
+        response = self.client.get('/auth/reset_password_request')
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<h1>Reset Password</h1>',
@@ -486,16 +485,14 @@ class AuthCase(WebsiteTestCase):
 
         # Valid form submission redirects to login page
         response = self.client.post('/auth/reset_password_request',
-            data=dict(email="a@a.com"),
-            follow_redirects=False)
+            data=dict(email="a@a.com"))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/auth/login")
 
         # GETting the password reset form page while logged in redirects to home
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.get('/auth/reset_password_request',
-            follow_redirects=False)
+        response = self.client.get('/auth/reset_password_request')
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
 
@@ -503,15 +500,13 @@ class AuthCase(WebsiteTestCase):
         u = self.create_user("john", "abc", "a@a.com")
 
         # GETting the password reset page with an invalid token redirects to home
-        response = self.client.get('/auth/reset_password/abc',
-            follow_redirects=False)
+        response = self.client.get('/auth/reset_password/abc')
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
 
         # GETting the password reset page with a valid token shows reset form
         token = u.get_reset_password_token()
-        response = self.client.get('/auth/reset_password/%s' % token,
-            follow_redirects=False)
+        response = self.client.get('/auth/reset_password/%s' % token)
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<h1>Reset Your Password</h1>',
@@ -523,8 +518,7 @@ class AuthCase(WebsiteTestCase):
         # Valid form submission redirects to login page
         self.assertTrue(u.check_password("abc"))
         response = self.client.post('/auth/reset_password/%s' % token,
-            data=dict(password="def", password2="def"),
-            follow_redirects=False)
+            data=dict(password="def", password2="def"))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/auth/login")
         self.assertTrue(u.check_password("def"))
@@ -532,15 +526,14 @@ class AuthCase(WebsiteTestCase):
         # GETting the password reset page while logged in redirects to home
         response = self.login("john", "def")
         self.assertEqual(response.status_code, 200)
-        response = self.client.get('/auth/reset_password/abc',
-            follow_redirects=False)
+        response = self.client.get('/auth/reset_password/abc')
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
 
     def test_main_routes_not_logged_in_redirects(self):
         # GETting these pages without being logged in redirects to login page
         for url in ("/", "/edit_profile", "/notifications"):
-            response = self.client.get(url, follow_redirects=False)
+            response = self.client.get(url)
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.headers["Location"],
                 "http://localhost/auth/login?next=%s" % quote(url, safe=''))
@@ -549,7 +542,7 @@ class AuthCase(WebsiteTestCase):
         u = self.create_user("john", "abc")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.get('/', follow_redirects=False)
+        response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<title>Home - Trello Team Sync</title>',
@@ -566,13 +559,13 @@ class AuthCase(WebsiteTestCase):
         u = self.create_user("john", "abc")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.get('/notifications', follow_redirects=False)
+        response = self.client.get('/notifications')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(b'[]\n', response.data)
 
         n1 = u.add_notification("First notification", {"aa": "abc", "bb": "def"})
         n2 = u.add_notification("Second notification", {"cc": "ghi"})
-        response = self.client.get('/notifications', follow_redirects=False)
+        response = self.client.get('/notifications')
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '[{"data":{"aa":"abc","bb":"def"},"name":"First notification","timestamp":',
@@ -584,7 +577,7 @@ class AuthCase(WebsiteTestCase):
         u = self.create_user("john", "abc")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.get('/edit_profile', follow_redirects=False)
+        response = self.client.get('/edit_profile')
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<title>Edit Profile - Trello Team Sync</title>',
@@ -599,8 +592,7 @@ class AuthCase(WebsiteTestCase):
         self.assertEqual(u.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.post('/edit_profile', data=dict(username="j2"),
-            follow_redirects=False)
+        response = self.client.post('/edit_profile', data=dict(username="j2"))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/edit_profile")
         self.assertEqual(u.username, "j2")
@@ -611,8 +603,7 @@ class AuthCase(WebsiteTestCase):
         self.assertEqual(u1.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.post('/edit_profile', data=dict(username="j2"),
-            follow_redirects=False)
+        response = self.client.post('/edit_profile', data=dict(username="j2"))
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<title>Edit Profile - Trello Team Sync</title>',
