@@ -369,11 +369,12 @@ class AuthCase(WebsiteTestCase):
             follow_redirects=True
         )
 
-    def create_user(self, username, password):
-        u = User(username=username)
+    def create_user(self, username, password, email=None):
+        u = User(username=username, email=email)
         u.set_password(password)
         db.session.add(u)
         db.session.commit()
+        return u
 
     def login(self, username, password, follow_redirects=True):
         return self.client.post(
@@ -394,8 +395,7 @@ class AuthCase(WebsiteTestCase):
             '<input class="form-control is-invalid" id="password" ' \
                 'name="password" required type="password" value="">',
             '<input class="form-control is-invalid" id="password2" ' \
-                'name="password2" required type="password" value="">'
-        ]
+                'name="password2" required type="password" value="">']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
@@ -411,8 +411,7 @@ class AuthCase(WebsiteTestCase):
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<div class="invalid-feedback">Please use a different username.</div>',
-            '<div class="invalid-feedback">Please use a different email address.</div>'
-        ]
+            '<div class="invalid-feedback">Please use a different email address.</div>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
@@ -440,8 +439,7 @@ class AuthCase(WebsiteTestCase):
                 'Logout</a></li>',
             '<h2>New mapping</h2>',
             '<a class="btn btn-info" href="/mapping/new" role="button">Create ' \
-                'a new mapping</a>'
-        ]
+                'a new mapping</a>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
@@ -468,6 +466,73 @@ class AuthCase(WebsiteTestCase):
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
         response = self.client.get('/auth/logout', follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+
+    def test_reset_password_request(self):
+        self.create_user("john", "abc", "a@a.com")
+
+        # GETting the password reset form page while not logged in shows reset form
+        response = self.client.get('/auth/reset_password_request',
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<h1>Reset Password</h1>',
+            '<input class="btn btn-secondary btn-md" id="submit" ' \
+                'name="submit" type="submit" value="Request Password Reset">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+        # Valid form submission redirects to login page
+        response = self.client.post('/auth/reset_password_request',
+            data=dict(email="a@a.com"),
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/auth/login")
+
+        # GETting the password reset form page while logged in redirects to home
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/auth/reset_password_request',
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+
+    def test_reset_password(self):
+        u = self.create_user("john", "abc", "a@a.com")
+
+        # GETting the password reset page with an invalid token redirects to home
+        response = self.client.get('/auth/reset_password/abc',
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+
+        # GETting the password reset page with a valid token shows reset form
+        token = u.get_reset_password_token()
+        response = self.client.get('/auth/reset_password/%s' % token,
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<h1>Reset Your Password</h1>',
+            '<input class="btn btn-secondary btn-md" id="submit" ' \
+                'name="submit" type="submit" value="Reset Password">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+        # Valid form submission redirects to login page
+        self.assertTrue(u.check_password("abc"))
+        response = self.client.post('/auth/reset_password/%s' % token,
+            data=dict(password="def", password2="def"),
+            follow_redirects=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/auth/login")
+        self.assertTrue(u.check_password("def"))
+
+        # GETting the password reset page while logged in redirects to home
+        response = self.login("john", "def")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/auth/reset_password/abc',
+            follow_redirects=False)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
 
