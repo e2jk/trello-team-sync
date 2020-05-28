@@ -286,9 +286,12 @@ class TaskCase(WebsiteTestCase):
         f = io.StringIO()
         with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
             run_mapping(m.id, "card", "abc")
-        expected_logging = "TypeError: the JSON object must be str, bytes or "\
-            "bytearray, not NoneType"
-        self.assertTrue(expected_logging in cm.output[1])
+        expected_logging_base = "TypeError: the JSON object must be str, bytes or "\
+            "bytearray, not %s"
+        expected_logging1 = expected_logging_base % "NoneType"
+        expected_logging2 = expected_logging_base % "'NoneType'"
+        self.assertTrue(expected_logging1 in cm.output[1] or
+            expected_logging2 in cm.output[1])
 
     @patch("app.tasks._set_task_progress")
     @patch("app.tasks.process_master_card")
@@ -315,7 +318,7 @@ class TaskCase(WebsiteTestCase):
         self.assertEqual(atpr.mock_calls, expected_calls)
         expected_logging = "INFO:app:Processing master card 1/1 - Card name"
         self.assertEqual(cm.output[1], expected_logging)
-        self.assertTrue(list(atpmc.mock_calls[0].args[1].keys()),
+        self.assertTrue(list(atpmc.call_args[0][1].keys()),
             ['destination_lists', 'key', 'token'])
         expected_call = call(100, 'Run complete. Processed 1 master cards (' \
             'of which 1 active) that have 2 slave cards (of which 3 new).')
