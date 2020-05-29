@@ -844,42 +844,46 @@ class MappingCase(WebsiteTestCase):
             for uec in unexpected_content:
                 self.assertNotIn(str.encode(uec), response.data)
 
+    def get_sample_values(self):
+        t_boards = [
+            {"id": "123", "name": "hij"},
+            {"id": "a"*24, "name": "klm"}
+        ]
+        t_labels = [
+            {"id": "label_id_1", "name": "Label Name One"},
+            {"id": "b"*24, "name": "Label Name Two"},
+            {"id": "label_id_3", "name": "Label Name Three"},
+            {"id": "label_id_4", "name": "Label Name Four"}
+        ]
+        t_lists1 = [
+            {"id": "list_id_1", "name": "List Name One"},
+            {"id": "c"*24, "name": "List Name Two"},
+            {"id": "d"*24, "name": "List Name Three"},
+            {"id": "list_id_4", "name": "List Name Four"}
+        ]
+        t_lists2 = [
+            {"id": "list_id_5", "name": "List Name Five"},
+            {"id": "e"*24, "name": "List Name Six"},
+            {"id": "f"*24, "name": "List Name Seven"},
+            {"id": "list_id_8", "name": "List Name Eight"}
+        ]
+        return t_boards, t_labels, t_lists1, t_lists2
+
     @patch("app.mapping.routes.flash")
     @patch("app.mapping.routes.current_user")
     @patch("app.mapping.routes.perform_request")
     def test_mapping_new(self, amrpr, amrcu, amrf):
         (u, m) = self.create_user_mapping_and_login()
         self.assertEqual(m.id, 1)
-        sample_boards = [
-            {"id": "123", "name": "hij"},
-            {"id": "a"*24, "name": "klm"}
-        ]
-        sample_labels = [
-            {"id": "label_id_1", "name": "Label Name One"},
-            {"id": "b"*24, "name": "Label Name Two"},
-            {"id": "label_id_3", "name": "Label Name Three"},
-            {"id": "label_id_4", "name": "Label Name Four"}
-        ]
-        sample_lists1 = [
-            {"id": "list_id_1", "name": "List Name One"},
-            {"id": "c"*24, "name": "List Name Two"},
-            {"id": "d"*24, "name": "List Name Three"},
-            {"id": "list_id_4", "name": "List Name Four"}
-        ]
-        sample_lists2 = [
-            {"id": "list_id_5", "name": "List Name Five"},
-            {"id": "e"*24, "name": "List Name Six"},
-            {"id": "f"*24, "name": "List Name Seven"},
-            {"id": "list_id_8", "name": "List Name Eight"}
-        ]
+        t_boards, t_labels, t_lists1, t_lists2 = self.get_sample_values()
         amrpr.side_effect = [
-            sample_boards,
-            sample_boards,
-            sample_boards, sample_labels,
-            sample_boards, sample_labels,
-            sample_boards, sample_labels, sample_lists1, sample_lists2,
-            sample_boards, sample_labels, sample_lists1, sample_lists2,
-            sample_boards, sample_labels, sample_lists1, sample_lists2
+            t_boards,
+            t_boards,
+            t_boards, t_labels,
+            t_boards, t_labels,
+            t_boards, t_labels, t_lists1, t_lists2,
+            t_boards, t_labels, t_lists1, t_lists2,
+            t_boards, t_labels, t_lists1, t_lists2
         ]
         amrcu.id = 1
 
