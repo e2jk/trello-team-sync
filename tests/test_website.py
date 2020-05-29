@@ -325,8 +325,9 @@ class TaskCase(WebsiteTestCase):
             'ERROR:app:Invalid task, ignoring',
             'INFO:app:Completed task for mapping 0,  ']
         self.assertEqual(cm.output, expected_logging)
-        for l in expected_logging:
-            self.assertTrue(l.split(":app:")[1] in f.getvalue())
+        if not self.app.debug:
+            for l in expected_logging:
+                self.assertTrue(l.split(":app:")[1] in f.getvalue())
 
     def test_run_mapping_vm_invalid_args(self):
         destination_lists = {
@@ -348,8 +349,9 @@ class TaskCase(WebsiteTestCase):
             'ERROR:app:Invalid task, ignoring',
             'INFO:app:Completed task for mapping 1,  ']
         self.assertEqual(cm.output, expected_logging)
-        for l in expected_logging:
-            self.assertTrue(l.split(":app:")[1] in f.getvalue())
+        if not self.app.debug:
+            for l in expected_logging:
+                self.assertTrue(l.split(":app:")[1] in f.getvalue())
 
     def test_run_mapping_invalid_mapping(self):
         # Create an incomplete mapping
@@ -653,9 +655,13 @@ class MainCase(WebsiteTestCase):
         n2 = u.add_notification("Second notification", {"cc": "ghi"})
         response = self.client.get('/notifications')
         self.assertEqual(response.status_code, 200)
-        expected_content = [
-            '[{"data":{"aa":"abc","bb":"def"},"name":"First notification","timestamp":',
-            '},{"data":{"cc":"ghi"},"name":"Second notification","timestamp":']
+        if not self.app.debug:
+            expected_content = [
+                '[{"data":{"aa":"abc","bb":"def"},"name":"First notification","timestamp":',
+                '},{"data":{"cc":"ghi"},"name":"Second notification","timestamp":']
+        else:
+            expected_content = '[\n  {\n    "data": {\n      "aa": "abc", \n      "bb": "def"\n    }, \n    "name": "First notification", \n    "timestamp":',
+            '}, \n  {\n    "data": {\n      "cc": "ghi"\n    }, \n    "name": "Second notification", \n    "timestamp":'
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
