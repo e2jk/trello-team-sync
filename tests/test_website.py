@@ -513,7 +513,8 @@ class AuthCase(WebsiteTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
 
-    def test_reset_password_request(self):
+    @patch("app.email.mail")
+    def test_reset_password_request(self, aem):
         self.create_user("john", "abc", "a@a.com")
 
         # GETting the password reset form page while not logged in shows reset form
@@ -531,6 +532,8 @@ class AuthCase(WebsiteTestCase):
             data=dict(email="a@a.com"))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/auth/login")
+        self.assertRegex(str(aem.mock_calls), "\[call.send\(<flask_mail\." \
+            "Message object at 0x([a-z0-9]{12})>\)\]")
 
         # GETting the password reset form page while logged in redirects to home
         response = self.login("john", "abc")
