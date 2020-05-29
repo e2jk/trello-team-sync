@@ -1009,7 +1009,7 @@ class MappingCase(WebsiteTestCase):
             unexpected_content,
             data=dict(ds3ok, map_label0_lists="invalid_list"))
 
-        # POST step 4, valid list
+        # POST step 4, valid list, all good on step 4
         expected_content = None
         self.retrieve_and_check("POST", "/mapping/new", 302, expected_content,
             unexpected_content,
@@ -1017,6 +1017,8 @@ class MappingCase(WebsiteTestCase):
             redirect_url="http://localhost/")
         self.assertEqual(amrf.mock_calls,[call('Your new mapping "Mapping ' \
             'name" has been created.')])
+        m2 = Mapping.query.filter_by(id=m.id+1).first()
+        self.assertEqual(m2.id, 2)
 
 
 if __name__ == '__main__':
