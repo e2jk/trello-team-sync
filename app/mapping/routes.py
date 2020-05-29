@@ -145,6 +145,7 @@ def new_or_edit(mapping_id=None):
             boards = perform_request("GET", "members/me/boards", \
                 key=form.key.data, token=form.token.data)
             form.master_board.choices = [(b["id"], b["name"]) for b in boards]
+        # TODO: show error message if form.master_board.choices is empty
         if not form.master_board.data:
             form.master_board.data = form.master_board.choices[0][0]
     if step > 2:
