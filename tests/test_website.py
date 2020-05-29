@@ -736,10 +736,23 @@ class MappingCase(WebsiteTestCase):
     def test_mapping_run(self, amrpr, amrcu):
         (u, m) = self.create_user_mapping_and_login()
         # GET
-        amrpr.return_value = [
-            {"id": "123", "name": "hij"},
-            {"id": "a"*24, "name": "klm"},
-            {"id": "789", "name": "nop"}]
+        pr_return = [
+            [
+                {"id": "123", "name": "hij"},
+                {"id": "a"*24, "name": "klm"}
+            ],
+            [
+                {"id": "456", "name": "opq"},
+                {"id": "789", "name": "yza"}
+            ],
+            [
+                {"id": "357", "name": "stu"},
+                {"id": "b"*24, "name": "vwx"},
+                {"id": "579", "name": "efg"}
+            ]
+        ]
+        # Five groups of requests are going to be made
+        amrpr.side_effect = pr_return * 5
         amrcu.id = 1
         response = self.client.get("/mapping/%d" % m.id)
         self.assertEqual(response.status_code, 200)
@@ -751,16 +764,14 @@ class MappingCase(WebsiteTestCase):
                 'submit_board" type="submit" value="Process the entire master board">',
             '<select class="form-control" id="lists" name="lists"><option ' \
                 'value="123">hij</option><option value="%s">klm</option>' \
-                '<option value="789">nop</option></select>' % ("a"*24),
+                '</select>' % ("a"*24),
             '<input class="btn btn-secondary btn-md" id="submit_list" name="' \
                 'submit_list" type="submit" value="Process all cards on this list">',
             '<select class="form-control" id="cards" name="cards"><option ' \
-                'value="123">hij | hij</option><option value="%s">hij | klm' \
-                '</option><option value="789">hij | nop</option><option ' \
-                'value="123">klm | hij</option><option value="%s">klm | klm' \
-                '</option><option value="789">klm | nop</option><option value=' \
-                '"123">nop | hij</option><option value="%s">nop | klm</option>' \
-                '<option value="789">nop | nop</option></select>' % (("a"*24,)*3),
+                'value="456">hij | opq</option><option value="789">hij | yza' \
+                '</option><option value="357">klm | stu</option><option ' \
+                'value="%s">klm | vwx</option><option value="579">klm | efg' \
+                '</option></select>' % ("b"*24),
             '<input class="btn btn-secondary btn-md" id="submit_card" name="' \
                 'submit_card" type="submit" value="Process only this specific card">'
             ]
@@ -796,11 +807,11 @@ class MappingCase(WebsiteTestCase):
 
         # POST card
         response = self.client.post("/mapping/%d" % m.id,
-            data=dict(submit_card="submit_card", cards="a"*24))
+            data=dict(submit_card="submit_card", cards="b"*24))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
         expected_call = call.launch_task('run_mapping', (1, 'card',
-            "a"*24), 'Processing card "nop | klm"...')
+            "b"*24), 'Processing card "klm | vwx"...')
         self.assertEqual(amrcu.mock_calls[-1], expected_call)
 
 

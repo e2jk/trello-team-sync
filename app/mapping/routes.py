@@ -243,6 +243,10 @@ def run(mapping_id):
         this_users_mappings = val1
         mapping = val2
 
+    if request.method == 'POST' and current_user.get_task_in_progress('run_mapping'):
+        flash(_('A run is currently in progress, please wait...'))
+        return redirect(url_for('mapping.run', mapping_id=mapping_id))
+
     rmf = RunMappingForm()
     lists = perform_request("GET", "boards/%s/lists" % mapping.master_board, \
         key=mapping.key, token=mapping.token)
@@ -262,29 +266,24 @@ def run(mapping_id):
             card_names[c["id"]] = "%s | %s" % (l["name"], c["name"])
 
     if request.method == 'POST':
-        if current_user.get_task_in_progress('run_mapping'):
-            flash(_('A run is currently in progress, please wait...'))
-        else:
-            rmf.validate_on_submit()
-            if rmf.submit_board.data:
-                current_user.launch_task('run_mapping',
-                    (mapping.id, "board", mapping.master_board),
-                    _('Processing the full "%(mapping_name)s" master board...',
-                        mapping_name=mapping.name))
-            if rmf.submit_list.data and rmf.lists.validate(rmf):
-                current_user.launch_task('run_mapping',
-                    (mapping.id, "list", rmf.lists.data),
-                    _('Processing all cards on list "%(list_name)s"...',
-                        list_name=list_names[rmf.lists.data]))
-            if rmf.submit_card.data and rmf.cards.validate(rmf):
-                current_user.launch_task('run_mapping',
-                    (mapping.id, "card", rmf.cards.data),
-                    _('Processing card "%(card_name)s"...',
-                        card_name=card_names[rmf.cards.data]))
-            db.session.commit()
-            return redirect(url_for('main.index'))
-        return redirect(url_for('mapping.run', mapping_id=mapping_id))
-
+        rmf.validate_on_submit()
+        if rmf.submit_board.data:
+            current_user.launch_task('run_mapping',
+                (mapping.id, "board", mapping.master_board),
+                _('Processing the full "%(mapping_name)s" master board...',
+                    mapping_name=mapping.name))
+        if rmf.submit_list.data and rmf.lists.validate(rmf):
+            current_user.launch_task('run_mapping',
+                (mapping.id, "list", rmf.lists.data),
+                _('Processing all cards on list "%(list_name)s"...',
+                    list_name=list_names[rmf.lists.data]))
+        if rmf.submit_card.data and rmf.cards.validate(rmf):
+            current_user.launch_task('run_mapping',
+                (mapping.id, "card", rmf.cards.data),
+                _('Processing card "%(card_name)s"...',
+                    card_name=card_names[rmf.cards.data]))
+        db.session.commit()
+        return redirect(url_for('main.index'))
 
     title = _('Run mapping "%(name)s"', name=mapping.name)
     return render_template('mapping/run.html', title=title, mapping=mapping,
