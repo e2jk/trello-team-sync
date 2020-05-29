@@ -91,6 +91,9 @@ def create_app(config_class=Config):
         app.logger.setLevel(logging.INFO)
         app.logger.info('Trello Team Sync website startup')
 
+    # Serve local Bootstrap files when in debug mode
+    app.config["BOOTSTRAP_SERVE_LOCAL"] = app.debug
+
     return app
 
 
