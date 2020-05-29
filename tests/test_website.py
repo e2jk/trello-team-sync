@@ -844,6 +844,16 @@ class MappingCase(WebsiteTestCase):
             for uec in unexpected_content:
                 self.assertNotIn(str.encode(uec), response.data)
 
+    def get_data_step_valid(self):
+        ds1ok = dict(name="Mapping name",
+            description="Nice description",
+            key="a1"*16,
+            token="b2"*32)
+        ds2ok = dict(ds1ok, master_board="a"*24)
+        ds3ok = dict(ds2ok, labels="b"*24)
+        ds4ok = dict(ds3ok, map_label0_lists="e"*24)
+        return ds1ok, ds2ok, ds3ok, ds4ok
+
     def get_sample_values(self):
         t_boards = [
             {"id": "123", "name": "hij"},
@@ -875,6 +885,7 @@ class MappingCase(WebsiteTestCase):
     def test_mapping_new(self, amrpr, amrcu, amrf):
         (u, m) = self.create_user_mapping_and_login()
         self.assertEqual(m.id, 1)
+        ds1ok, ds2ok, ds3ok, ds4ok = self.get_data_step_valid()
         t_boards, t_labels, t_lists1, t_lists2 = self.get_sample_values()
         amrpr.side_effect = [
             t_boards,
@@ -945,10 +956,6 @@ class MappingCase(WebsiteTestCase):
             data=dict(name="Mapping name", key="a"*32, token="b"))
 
         # POST step 1, valid data
-        data_step_1_valid = dict(name="Mapping name",
-            description="Nice description",
-            key="a1"*16,
-            token="b2"*32)
         expected_content = unexpected_content
         unexpected_content = [
             '<title>New mapping, Step 3/4 - Trello Team Sync</title>',
@@ -961,7 +968,7 @@ class MappingCase(WebsiteTestCase):
                 'Label Name One</label></li>',
         ]
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
-            unexpected_content, data=data_step_1_valid)
+            unexpected_content, data=ds1ok)
 
         # POST step 2, invalid master_board, no specific error message
         expected_content = ['<title>New mapping, Step 2/4 - Trello Team Sync' \
@@ -969,10 +976,9 @@ class MappingCase(WebsiteTestCase):
             '<h1>New mapping, Step 2/4</h1>',
         ]
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
-            unexpected_content, data=dict(data_step_1_valid, master_board="c"))
+            unexpected_content, data=dict(ds1ok, master_board="c"))
 
         # POST step 2, valid data
-        data_step_2_valid = dict(data_step_1_valid, master_board="a"*24)
         expected_content = unexpected_content
         unexpected_content = [
             '<title>New mapping, Step 4/4 - Trello Team Sync</title>',
@@ -985,30 +991,29 @@ class MappingCase(WebsiteTestCase):
                 'for="map_label0_lists-0">hij | List Name One</label></li>',
         ]
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
-            unexpected_content, data=data_step_2_valid)
+            unexpected_content, data=ds2ok)
 
         # POST step 3, invalid label, no specific error message
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
             unexpected_content,
-            data=dict(data_step_2_valid, labels="invalid_label"))
+            data=dict(ds2ok, labels="invalid_label"))
 
         # POST step 3, valid label
-        data_step_3_valid = dict(data_step_2_valid, labels="b"*24)
         expected_content = unexpected_content
         unexpected_content = None
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
-            unexpected_content, data=data_step_3_valid)
+            unexpected_content, data=ds3ok)
 
         # POST step 4, invalid selected list, no specific error message
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
             unexpected_content,
-            data=dict(data_step_3_valid, map_label0_lists="invalid_list"))
+            data=dict(ds3ok, map_label0_lists="invalid_list"))
 
         # POST step 4, valid list
         expected_content = None
         self.retrieve_and_check("POST", "/mapping/new", 302, expected_content,
             unexpected_content,
-            data=dict(data_step_3_valid, map_label0_lists="e"*24),
+            data=ds4ok,
             redirect_url="http://localhost/")
         self.assertEqual(amrf.mock_calls,[call('Your new mapping "Mapping ' \
             'name" has been created.')])
