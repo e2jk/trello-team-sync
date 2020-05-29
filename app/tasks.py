@@ -30,7 +30,7 @@ def run_mapping(mapping_id, run_type, elem_id):
         if mapping:
             try:
                 destination_lists = json.loads(mapping.destination_lists)
-            except TypeError:
+            except (TypeError, json.decoder.JSONDecodeError):
                 app.logger.error("Mapping has invalid destination_lists")
         if destination_lists and run_type in ("card", "list", "board"):
             args_from_app = {

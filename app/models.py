@@ -167,7 +167,7 @@ class Mapping(db.Model):
     def get_num_labels(self):
         try:
             return len(json.loads(self.destination_lists))
-        except TypeError:
+        except (TypeError, json.decoder.JSONDecodeError):
             return 0
 
     def get_num_dest_lists(self):
@@ -176,6 +176,6 @@ class Mapping(db.Model):
             dest_lists = json.loads(self.destination_lists)
             for label in dest_lists:
                 num_dest_lists += len(dest_lists[label])
-        except TypeError:
+        except (TypeError, json.decoder.JSONDecodeError):
             pass
         return num_dest_lists

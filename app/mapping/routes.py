@@ -46,7 +46,7 @@ def new_or_edit(mapping_id=None):
         try:
             destination_lists = json.loads(mapping.destination_lists)
             mapping.labels = list(destination_lists.keys())
-        except TypeError:
+        except (TypeError, json.decoder.JSONDecodeError):
             destination_lists = []
         i = 0
         for label_id in destination_lists:

@@ -675,13 +675,7 @@ class MappingCase(WebsiteTestCase):
         password = "abc" if not secondary_user else "def"
         u = self.create_user(username, password)
         destination_lists = {
-            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
-            "Label Two": ["ddd"],
-            "All Teams": [
-                "a1a1a1a1a1a1a1a1a1a1a1a1",
-                "ddd"
-            ]
-        }
+            "bbbbbbbbbbbbbbbbbbbbbbbb": ["eeeeeeeeeeeeeeeeeeeeeeee"]}
         dl = json.dumps(destination_lists)
         mapping_name = "abc" if not secondary_user else "def"
         m = Mapping(name=mapping_name,
@@ -1019,6 +1013,92 @@ class MappingCase(WebsiteTestCase):
             'name" has been created.')])
         m2 = Mapping.query.filter_by(id=m.id+1).first()
         self.assertEqual(m2.id, 2)
+
+    @patch("app.mapping.routes.flash")
+    @patch("app.mapping.routes.current_user")
+    @patch("app.mapping.routes.perform_request")
+    def test_mapping_edit(self, amrpr, amrcu, amrf):
+        (u, m) = self.create_user_mapping_and_login()
+        self.assertEqual(m.id, 1)
+        ds1ok, ds2ok, ds3ok, ds4ok = self.get_data_step_valid()
+        t_boards, t_labels, t_lists1, t_lists2 = self.get_sample_values()
+        amrpr.side_effect = [
+            t_boards, t_labels, t_lists1, t_lists2,
+            t_boards, t_labels, t_lists1, t_lists2,
+            t_boards, t_labels, t_lists1, t_lists2,
+            t_boards, t_labels, t_lists1, t_lists2
+        ]
+        amrcu.id = 1
+
+        # GET step 1
+        expected_content_step_1 = [
+            '<title>Edit mapping 1 - Trello Team Sync</title>',
+            '<h1>Edit mapping 1</h1>',
+            # Elements from step 1
+            '<input class="form-control" id="name" name="name" required ' \
+                'type="text" value="abc">',
+            '<textarea class="form-control" id="description" name="description">',
+            'Mapping description for abc</textarea>',
+            '<input class="form-control" id="key" name="key" required type=' \
+                '"text" value="%s">' % ("a1"*16),
+            '<small class="form-text text-muted">Your Trello key can be found ' \
+                'at <a href="https://trello.com/app-key">https://trello.com/' \
+                'app-key</a>.</small>',
+            '<input class="form-control" id="token" name="token" required ' \
+                'type="text" value="%s">' % ("b2"*32),
+            '<small class="form-text text-muted">Your Trello token can be ' \
+                'created by clicking on the "token" link on top of the at ' \
+                '<a href="https://trello.com/app-key">https://trello.com/' \
+                'app-key</a> page.</small>',
+            # Elements from step 2
+            '<select class="form-control" id="master_board" ' \
+            'name="master_board"><option',
+            # Elements from step 3
+            '<label class="form-control-label" for="labels">Which labels need ' \
+                'mapping?</label>',
+            '<ul class="form-control" id="labels" style="height: auto; ' \
+                'list-style: none;"><li><input id="labels-0" name="labels" ' \
+                'type="checkbox" value="label_id_1"> <label for="labels-0">' \
+                'Label Name One</label></li>',
+            # Elements from step 4
+            '<label class="form-control-label" for="map_label0_lists">Map label ' \
+                '&#34;Label Name Two&#34; to which Trello lists?</label>',
+            '<ul class="form-control" id="map_label0_lists" style="height: auto;' \
+                ' list-style: none;"><li><input id="map_label0_lists-0" name="' \
+                'map_label0_lists" type="checkbox" value="list_id_1"> <label ' \
+                'for="map_label0_lists-0">hij | List Name One</label></li>'
+        ]
+        self.retrieve_and_check("GET", "/mapping/1/edit", 200,
+            expected_content_step_1, None)
+
+        # POST, error on step 4
+        expected_content = [
+            '<title>Edit mapping 1, Step 4/4 - Trello Team Sync</title>',
+            '<h1>Edit mapping 1, Step 4/4</h1>',
+            '<label class="form-control-label" for="map_label0_lists">Map label ' \
+                '&#34;Label Name Two&#34; to which Trello lists?</label>',
+            '<ul class="form-control" id="map_label0_lists" style="height: auto;' \
+                ' list-style: none;"><li><input id="map_label0_lists-0" name="' \
+                'map_label0_lists" type="checkbox" value="list_id_1"> <label ' \
+                'for="map_label0_lists-0">hij | List Name One</label></li>',
+        ]
+        self.retrieve_and_check("POST", "/mapping/1/edit", 200, expected_content,
+            None, data=dict(ds3ok, map_label0_lists="invalid_list"))
+
+        # GET with invalid destination_lists
+        m.destination_lists = ""
+        self.retrieve_and_check("GET", "/mapping/1/edit", 200,
+            expected_content_step_1, None)
+        m.destination_lists = None
+        self.retrieve_and_check("GET", "/mapping/1/edit", 200,
+            expected_content_step_1, None)
+
+        # POST, all good on step 4
+        expected_content = None
+        self.retrieve_and_check("POST", "/mapping/1/edit", 302, expected_content,
+            None, data=ds4ok, redirect_url="http://localhost/")
+        self.assertEqual(amrf.mock_calls,[call('Your mapping "Mapping name" ' \
+            'has been updated.')])
 
 
 if __name__ == '__main__':
