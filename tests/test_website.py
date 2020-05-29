@@ -234,10 +234,10 @@ class ConfigCase(unittest.TestCase):
 
 class TaskCase(WebsiteTestCase):
     @patch("app.tasks.get_current_job")
-    def test_run_task(self, rgcj):
+    def test_run_task(self, atgcj):
         mock_job = MagicMock()
         mock_job.get_id.return_value = "foobarbaz"
-        rgcj.return_value = mock_job
+        atgcj.return_value = mock_job
         u = User(username='john', email='john@example.com')
         db.session.add(u)
         mock = MagicMock()
@@ -247,7 +247,7 @@ class TaskCase(WebsiteTestCase):
             t = u.launch_task("run_mapping", (123, "board", "abc"), "Description")
         db.session.add(t)
         _set_task_progress(33)
-        self.assertEqual(rgcj.mock_calls[2], call().meta.__setitem__('progress', 33))
+        self.assertEqual(atgcj.mock_calls[2], call().meta.__setitem__('progress', 33))
         self.assertEqual(t.status, None)
         _set_task_progress(66, "Nice message")
         self.assertEqual(t.status, "Nice message")
