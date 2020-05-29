@@ -92,9 +92,6 @@ def new_or_edit(mapping_id=None):
             destination_lists = {}
             i = 0
             for label_id in selected_labels:
-                if not re.match("^[0-9a-fA-F]{24}$", label_id):
-                    step_4_ok = False
-                    break
                 if len(getattr(form, "map_label%d_lists" % i).data) == 0:
                     step_4_ok = False
                     break
