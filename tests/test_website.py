@@ -816,9 +816,32 @@ class MappingCase(WebsiteTestCase):
             "b"*24), 'Processing card "klm | vwx"...')
         self.assertEqual(amrcu.mock_calls[-1], expected_call)
 
+    def retrieve_and_check(self, method, url, expected_status_code,
+        expected_content, unexpected_content, data=None, redirect_url=None, display=None):
+        if method == 'GET':
+            response = self.client.get(url)
+        elif method == 'POST':
+            response = self.client.post(url, data=data)
+        self.assertEqual(response.status_code, expected_status_code)
+        if redirect_url:
+            self.assertEqual(response.headers["Location"], redirect_url)
+        if display:
+            print("\n\n", response.data, "\n\n")
+            print("expected_content", expected_content)
+            print("unexpected_content", unexpected_content)
+        # Confirm that the elements from the this step are present
+        if expected_content:
+            for ec in expected_content:
+                self.assertIn(str.encode(ec), response.data)
+        # Confirm that the elements from the next step are not yet present
+        if unexpected_content:
+            for uec in unexpected_content:
+                self.assertNotIn(str.encode(uec), response.data)
+
+    @patch("app.mapping.routes.flash")
     @patch("app.mapping.routes.current_user")
     @patch("app.mapping.routes.perform_request")
-    def test_mapping_new(self, amrpr, amrcu):
+    def test_mapping_new(self, amrpr, amrcu, amrf):
         (u, m) = self.create_user_mapping_and_login()
         self.assertEqual(m.id, 1)
         sample_boards = [
@@ -827,19 +850,34 @@ class MappingCase(WebsiteTestCase):
         ]
         sample_labels = [
             {"id": "label_id_1", "name": "Label Name One"},
-            {"id": "label_id_2", "name": "Label Name Two"},
+            {"id": "b"*24, "name": "Label Name Two"},
             {"id": "label_id_3", "name": "Label Name Three"},
             {"id": "label_id_4", "name": "Label Name Four"}
+        ]
+        sample_lists1 = [
+            {"id": "list_id_1", "name": "List Name One"},
+            {"id": "c"*24, "name": "List Name Two"},
+            {"id": "d"*24, "name": "List Name Three"},
+            {"id": "list_id_4", "name": "List Name Four"}
+        ]
+        sample_lists2 = [
+            {"id": "list_id_5", "name": "List Name Five"},
+            {"id": "e"*24, "name": "List Name Six"},
+            {"id": "f"*24, "name": "List Name Seven"},
+            {"id": "list_id_8", "name": "List Name Eight"}
         ]
         amrpr.side_effect = [
             sample_boards,
             sample_boards,
-            sample_boards, sample_labels
+            sample_boards, sample_labels,
+            sample_boards, sample_labels,
+            sample_boards, sample_labels, sample_lists1, sample_lists2,
+            sample_boards, sample_labels, sample_lists1, sample_lists2,
+            sample_boards, sample_labels, sample_lists1, sample_lists2
         ]
-        
+        amrcu.id = 1
+
         # GET step 1
-        response = self.client.get("/mapping/new")
-        self.assertEqual(response.status_code, 200)
         expected_content = [
             '<title>New mapping, Step 1/4 - Trello Team Sync</title>',
             '<h1>New mapping, Step 1/4</h1>',
@@ -851,80 +889,58 @@ class MappingCase(WebsiteTestCase):
             '<small class="form-text text-muted">Your Trello key can be found ' \
                 'at <a href="https://trello.com/app-key">https://trello.com/' \
                 'app-key</a>.</small>',
-            '<input class="form-control" id="token" name="token" required type=' \
-                '"text" value="">',
+            '<input class="form-control" id="token" name="token" required ' \
+                'type="text" value="">',
             '<small class="form-text text-muted">Your Trello token can be ' \
                 'created by clicking on the "token" link on top of the at ' \
                 '<a href="https://trello.com/app-key">https://trello.com/' \
                 'app-key</a> page.</small>'
         ]
-        for ec in expected_content:
-            self.assertIn(str.encode(ec), response.data)
-        # Confirm that the elements from the next step are not yet present
-        unexpected_content = '<select class="form-control" id="master_board" ' \
-            'name="master_board"><option'
-        self.assertNotIn(str.encode(unexpected_content), response.data)
+        unexpected_content = [
+            '<title>New mapping, Step 2/4 - Trello Team Sync</title>',
+            '<h1>New mapping, Step 2/4</h1>',
+            '<select class="form-control" id="master_board" ' \
+                'name="master_board"><option',
+        ]
+        self.retrieve_and_check("GET", "/mapping/new", 200, expected_content,
+            unexpected_content)
 
         # POST step 1, invalid name
-        response = self.client.post("/mapping/new",
-            data=dict(name=""))
-        self.assertEqual(response.status_code, 200)
         expected_content = [
+            '<h1>New mapping, Step 1/4</h1>',
             '<input class="form-control is-invalid" id="name" name="name" ' \
                 'required type="text" value="">',
             '<div class="invalid-feedback">This field is required.</div>',
         ]
-        for ec in expected_content:
-            self.assertIn(str.encode(ec), response.data)
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content, data=dict(name=""))
 
         # POST step 1, invalid key
-        response = self.client.post("/mapping/new",
-            data=dict(name="Mapping name", key="a"))
-        self.assertEqual(response.status_code, 200)
-        ec = '<div class="invalid-feedback">Invalid Trello key ' \
-            'format, it must be a 32 character string.</div>'
-        self.assertIn(str.encode(ec), response.data)
+        expected_content = [
+            '<h1>New mapping, Step 1/4</h1>',
+            '<div class="invalid-feedback">Invalid Trello key ' \
+                'format, it must be a 32 character string.</div>'
+        ]
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content, data=dict(name="Mapping name", key="a"))
 
         # POST step 1, invalid token
-        response = self.client.post("/mapping/new",
+        expected_content = [
+            '<h1>New mapping, Step 1/4</h1>',
+            '<div class="invalid-feedback">Invalid Trello token ' \
+                'format, it must be a 64 character string.</div>'
+        ]
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content,
             data=dict(name="Mapping name", key="a"*32, token="b"))
-        self.assertEqual(response.status_code, 200)
-        ec = '<div class="invalid-feedback">Invalid Trello token ' \
-            'format, it must be a 64 character string.</div>'
-        self.assertIn(str.encode(ec), response.data)
 
         # POST step 1, valid data
         data_step_1_valid = dict(name="Mapping name",
             description="Nice description",
             key="a1"*16,
             token="b2"*32)
-        response = self.client.post("/mapping/new", data=data_step_1_valid)
-        self.assertEqual(response.status_code, 200)
-        expected_content = [
-            '<title>New mapping, Step 2/4 - Trello Team Sync</title>',
-            '<h1>New mapping, Step 2/4</h1>',
-            '<select class="form-control" id="master_board" ' \
-                'name="master_board"><option',
-        ]
-        for ec in expected_content:
-            self.assertIn(str.encode(ec), response.data)
-
-        # POST step 2, invalid data
-        response = self.client.post("/mapping/new",
-            data=dict(data_step_1_valid, master_board="c"))
-        self.assertEqual(response.status_code, 200)
-        # Still on step 2, no specific error message
-        expected_content = '<title>New mapping, Step 2/4 - Trello Team Sync</title>'
-        self.assertIn(str.encode(expected_content), response.data)
-        unexpected_content = '<label class="form-control-label" for="labels">' \
-            'Which labels need mapping?</label>'
-        self.assertNotIn(str.encode(unexpected_content), response.data)
-
-        # POST step 2, valid data
-        response = self.client.post("/mapping/new",
-            data=dict(data_step_1_valid, master_board="a"*24))
-        self.assertEqual(response.status_code, 200)
-        expected_content = [
+        expected_content = unexpected_content
+        unexpected_content = [
             '<title>New mapping, Step 3/4 - Trello Team Sync</title>',
             '<h1>New mapping, Step 3/4</h1>',
             '<label class="form-control-label" for="labels">Which labels need ' \
@@ -934,8 +950,58 @@ class MappingCase(WebsiteTestCase):
                 'type="checkbox" value="label_id_1"> <label for="labels-0">' \
                 'Label Name One</label></li>',
         ]
-        for ec in expected_content:
-            self.assertIn(str.encode(ec), response.data)
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content, data=data_step_1_valid)
+
+        # POST step 2, invalid master_board, no specific error message
+        expected_content = ['<title>New mapping, Step 2/4 - Trello Team Sync' \
+            '</title>',
+            '<h1>New mapping, Step 2/4</h1>',
+        ]
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content, data=dict(data_step_1_valid, master_board="c"))
+
+        # POST step 2, valid data
+        data_step_2_valid = dict(data_step_1_valid, master_board="a"*24)
+        expected_content = unexpected_content
+        unexpected_content = [
+            '<title>New mapping, Step 4/4 - Trello Team Sync</title>',
+            '<h1>New mapping, Step 4/4</h1>',
+            '<label class="form-control-label" for="map_label0_lists">Map label ' \
+                '&#34;Label Name Two&#34; to which Trello lists?</label>',
+            '<ul class="form-control" id="map_label0_lists" style="height: auto;' \
+                ' list-style: none;"><li><input id="map_label0_lists-0" name="' \
+                'map_label0_lists" type="checkbox" value="list_id_1"> <label ' \
+                'for="map_label0_lists-0">hij | List Name One</label></li>',
+        ]
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content, data=data_step_2_valid)
+
+        # POST step 3, invalid label, no specific error message
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content,
+            data=dict(data_step_2_valid, labels="invalid_label"))
+
+        # POST step 3, valid label
+        data_step_3_valid = dict(data_step_2_valid, labels="b"*24)
+        expected_content = unexpected_content
+        unexpected_content = None
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content, data=data_step_3_valid)
+
+        # POST step 4, invalid selected list, no specific error message
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content,
+            data=dict(data_step_3_valid, map_label0_lists="invalid_list"))
+
+        # POST step 4, valid list
+        expected_content = None
+        self.retrieve_and_check("POST", "/mapping/new", 302, expected_content,
+            unexpected_content,
+            data=dict(data_step_3_valid, map_label0_lists="e"*24),
+            redirect_url="http://localhost/")
+        self.assertEqual(amrf.mock_calls,[call('Your new mapping "Mapping ' \
+            'name" has been created.')])
 
 
 if __name__ == '__main__':

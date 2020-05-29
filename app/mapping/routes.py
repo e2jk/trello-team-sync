@@ -77,7 +77,7 @@ def new_or_edit(mapping_id=None):
                 step = 3
         # If the second step cleared, go on to check elements from the third step
         if step == 3:
-            step_3_ok = len(form.labels.data) > 0000
+            step_3_ok = len(form.labels.data) > 0
             for l in form.labels.data:
                 if not re.match("^[0-9a-fA-F]{24}$", l):
                     step_3_ok = False
