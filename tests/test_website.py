@@ -59,8 +59,22 @@ class WebsiteTestCase(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
+    def create_user(self, username, password, email=None):
+        u = User(username=username, email=email)
+        u.set_password(password)
+        db.session.add(u)
+        db.session.commit()
+        return u
 
-class ModelCase(WebsiteTestCase):
+    def login(self, username, password, follow_redirects=True):
+        return self.client.post(
+            '/auth/login',
+            data=dict(username=username, password=password),
+            follow_redirects=follow_redirects
+        )
+
+
+class UserModelCase(WebsiteTestCase):
     def test_password_hashing(self):
         u = User(username='susan')
         u.set_password('cat')
@@ -159,6 +173,8 @@ class ModelCase(WebsiteTestCase):
         self.assertEqual(data["aa"], "abc")
         self.assertEqual(data["bb"], "def")
 
+
+class TaskModelCase(WebsiteTestCase):
     @patch("rq.job.Job.fetch")
     def test_task_get_rq_job(self, rjjf):
         t = Task()
@@ -193,6 +209,8 @@ class ModelCase(WebsiteTestCase):
         t = Task(timestamp_start=now)
         self.assertEqual(t.get_duration(), "unknown")
 
+
+class MappingModelCase(WebsiteTestCase):
     def test_mapping(self):
         u = User(username='john', email='john@example.com')
         destination_lists = {
@@ -407,20 +425,6 @@ class AuthCase(WebsiteTestCase):
             follow_redirects=True
         )
 
-    def create_user(self, username, password, email=None):
-        u = User(username=username, email=email)
-        u.set_password(password)
-        db.session.add(u)
-        db.session.commit()
-        return u
-
-    def login(self, username, password, follow_redirects=True):
-        return self.client.post(
-            '/auth/login',
-            data=dict(username=username, password=password),
-            follow_redirects=follow_redirects
-        )
-
     def test_register_invalid(self):
         response = self.register(None, None, None, None)
         self.assertEqual(response.status_code, 200)
@@ -567,6 +571,8 @@ class AuthCase(WebsiteTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
 
+
+class MainCase(WebsiteTestCase):
     def test_main_routes_not_logged_in_redirects(self):
         # GETting these pages without being logged in redirects to login page
         for url in ("/", "/edit_profile", "/notifications", "/mapping/999/edit",
@@ -660,6 +666,8 @@ class AuthCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
+
+class MappingCase(WebsiteTestCase):
     def test_mapping_delete(self):
         u = self.create_user("john", "abc")
         destination_lists = {
