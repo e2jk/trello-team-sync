@@ -269,6 +269,31 @@ class MiscTests(WebsiteTestCase):
         # TODO: test content of the email in g.outbox
         # See https://pythonhosted.org/flask-mail/#unit-tests
 
+    @patch("app.email.mail")
+    def test_create_app(self, aem):
+        tc = TestConfig()
+        # WARNING, testing without the TESTING or DEBUG flag
+        tc.TESTING = False
+        tc.DEBUG = False
+        f = io.StringIO()
+        with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
+            # The logs folder will likely already exist on the local dev machine
+            # but not when running from CI
+            tc.LOG_TO_STDOUT = False
+            app = create_app(tc)
+            tc.LOG_TO_STDOUT = True
+            app = create_app(tc)
+            tc.MAIL_SERVER = "domain.tld"
+            tc.MAIL_USERNAME = "username"
+            tc.MAIL_PASSWORD = "password"
+            tc.MAIL_USE_TLS = True
+            tc.MAIL_PORT = 9999
+            app = create_app(tc)
+            for h in ("<StreamHandler (INFO)>", "<RotatingFileHandler ",
+                "<SMTPHandler (ERROR)>",):
+                self.assertIn(h, str(app.logger.handlers))
+            self.assertEqual(aem.mock_calls, [])
+
 class TaskCase(WebsiteTestCase):
     @patch("app.tasks.get_current_job")
     def test_run_task(self, atgcj):
