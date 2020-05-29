@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 import unittest
 from app import create_app, db
 from app.models import User, load_user, Task, Mapping
+from app.email import send_email
 from config import Config, basedir
 import sys
 import io
@@ -256,6 +257,17 @@ class ConfigCase(unittest.TestCase):
         self.assertEqual(Config.LANGUAGES, ['en'])
         self.assertEqual(Config.REDIS_URL, os.environ.get('REDIS_URL') or 'redis://')
 
+
+class MiscTests(WebsiteTestCase):
+    @patch("app.email.mail")
+    def test_send_email(self, aem):
+        send_email("Nice subject", "sender@domain.tld", "recipient@domain.tld",
+            "This is the body of the email", "<h1>Nice body</h1>",
+            attachments=[("image.png", "image/png", b"abc")], sync=True)
+        self.assertRegex(str(aem.mock_calls), "\[call.send\(<flask_mail\." \
+            "Message object at 0x([a-z0-9]{12})>\)\]")
+        # TODO: test content of the email in g.outbox
+        # See https://pythonhosted.org/flask-mail/#unit-tests
 
 class TaskCase(WebsiteTestCase):
     @patch("app.tasks.get_current_job")
