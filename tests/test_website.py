@@ -4,7 +4,9 @@
 # Running the tests:
 # $ python3 -m unittest discover --start-directory ./tests/
 # Checking the coverage of the tests:
-# $ coverage run --include=./*.py --omit=tests/* -m unittest discover && rm -rf html_dev/coverage && coverage html --directory=html_dev/coverage --title="Code test coverage for trello-team-sync"
+# $ coverage run --include=./*.py --omit=tests/* -m unittest discover && \
+#   rm -rf html_dev/coverage && coverage html --directory=html_dev/coverage \
+#   --title="Code test coverage for trello-team-sync"
 
 from datetime import datetime, timedelta
 import unittest
