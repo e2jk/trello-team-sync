@@ -668,8 +668,10 @@ class MainCase(WebsiteTestCase):
 
 
 class MappingCase(WebsiteTestCase):
-    def test_mapping_delete(self):
-        u = self.create_user("john", "abc")
+    def create_user_mapping_and_login(self, secondary_user=False):
+        username = "john" if not secondary_user else "john2"
+        password = "abc" if not secondary_user else "def"
+        u = self.create_user(username, password)
         destination_lists = {
             "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
             "Label Two": ["ddd"],
@@ -679,13 +681,18 @@ class MappingCase(WebsiteTestCase):
             ]
         }
         dl = json.dumps(destination_lists)
-        m = Mapping(name="abc", destination_lists=dl)
+        mapping_name = "abc" if not secondary_user else "def"
+        m = Mapping(name=mapping_name, destination_lists=dl)
         u.mappings.append(m)
         db.session.commit()
         self.assertEqual(u.get_mappings(), [m])
-        response = self.login("john", "abc")
-        self.assertEqual(response.status_code, 200)
+        if not secondary_user:
+            response = self.login("john", "abc")
+            self.assertEqual(response.status_code, 200)
+        return (u, m)
 
+    def test_mapping_delete(self):
+        (u, m) = self.create_user_mapping_and_login()
         # GET
         response = self.client.get('/mapping/%d/delete' % m.id)
         self.assertEqual(response.status_code, 200)
@@ -704,29 +711,8 @@ class MappingCase(WebsiteTestCase):
         self.assertEqual(u.get_mappings(), [])
 
     def test_mapping_no_access(self):
-        # GETting these pages with a non-existing mapping ID or
-        # another user's mapping ID shows an error page
-        u1 = self.create_user("john", "abc")
-        destination_lists = {
-            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
-            "Label Two": ["ddd"],
-            "All Teams": [
-                "a1a1a1a1a1a1a1a1a1a1a1a1",
-                "ddd"
-            ]
-        }
-        dl = json.dumps(destination_lists)
-        m1 = Mapping(name="abc", destination_lists=dl)
-        u1.mappings.append(m1)
-        u2 = self.create_user("john2", "def")
-        m2 = Mapping(name="def", destination_lists=dl)
-        u2.mappings.append(m2)
-        db.session.commit()
-        self.assertEqual(u1.get_mappings(), [m1])
-        self.assertEqual(u2.get_mappings(), [m2])
-        # Log in as u1
-        response = self.login("john", "abc")
-        self.assertEqual(response.status_code, 200)
+        (u1, m1) = self.create_user_mapping_and_login()
+        (u2, m2) = self.create_user_mapping_and_login(secondary_user=True)
 
         expected_content = [
         '<title>Invalid mapping - Trello Team Sync</title>',
@@ -735,6 +721,8 @@ class MappingCase(WebsiteTestCase):
         'You don\'t have access to this mapping.\n    </div>',
         '<a href="/">Back to Home</a>']
 
+        # GETting these pages with a non-existing mapping ID or
+        # another user's mapping ID shows an error page
         for base_url in ("", "/delete", "/edit"):
             for id in (999, m2.id):
                 url = "/mapping/%d%s" % (id, base_url)
@@ -746,23 +734,7 @@ class MappingCase(WebsiteTestCase):
     @patch("app.mapping.routes.current_user")
     @patch("app.mapping.routes.perform_request")
     def test_mapping_run(self, amrpr, amrcu):
-        u = self.create_user("john", "abc")
-        destination_lists = {
-            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
-            "Label Two": ["ddd"],
-            "All Teams": [
-                "a1a1a1a1a1a1a1a1a1a1a1a1",
-                "ddd"
-            ]
-        }
-        dl = json.dumps(destination_lists)
-        m = Mapping(name="abc", destination_lists=dl)
-        u.mappings.append(m)
-        db.session.commit()
-        self.assertEqual(u.get_mappings(), [m])
-        response = self.login("john", "abc")
-        self.assertEqual(response.status_code, 200)
-
+        (u, m) = self.create_user_mapping_and_login()
         # GET
         amrpr.return_value = [
             {"id": "123", "name": "hij"},
