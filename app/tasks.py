@@ -26,9 +26,15 @@ def run_mapping(mapping_id, run_type, elem_id):
         _set_task_progress(0)
         app.logger.info('Starting task for mapping %d, %s %s' %
             (mapping_id, run_type, elem_id))
-        if run_type in ("card", "list", "board"):
+        destination_lists = []
+        if mapping:
+            try:
+                destination_lists = json.loads(mapping.destination_lists)
+            except TypeError:
+                app.logger.error("Mapping has invalid destination_lists")
+        if destination_lists and run_type in ("card", "list", "board"):
             args_from_app = {
-                "destination_lists": json.loads(mapping.destination_lists),
+                "destination_lists": destination_lists,
                 "key": mapping.key,
                 "token": mapping.token
             }

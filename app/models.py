@@ -165,11 +165,17 @@ class Mapping(db.Model):
         return '<Mapping {}>'.format(self.name)
 
     def get_num_labels(self):
-        return len(json.loads(self.destination_lists))
+        try:
+            return len(json.loads(self.destination_lists))
+        except TypeError:
+            return 0
 
     def get_num_dest_lists(self):
         num_dest_lists = 0
-        dest_lists = json.loads(self.destination_lists)
-        for label in dest_lists:
-            num_dest_lists += len(dest_lists[label])
+        try:
+            dest_lists = json.loads(self.destination_lists)
+            for label in dest_lists:
+                num_dest_lists += len(dest_lists[label])
+        except TypeError:
+            pass
         return num_dest_lists

@@ -213,6 +213,11 @@ class ModelCase(WebsiteTestCase):
         u.mappings.append(m2)
         self.assertEqual(u.get_mappings(), [m1, m2])
 
+    def test_mapping_invalid(self):
+        m2 = Mapping(name="def")
+        self.assertEqual(m2.get_num_labels(), 0)
+        self.assertEqual(m2.get_num_dest_lists(), 0)
+
 
 class ConfigCase(unittest.TestCase):
     def test_config_values(self):
@@ -255,7 +260,7 @@ class TaskCase(WebsiteTestCase):
         _set_task_progress(100)
         self.assertTrue(t.complete)
 
-    def test_run_mapping_invalid_mapping(self):
+    def test_run_mapping_nonexistent_mapping(self):
         f = io.StringIO()
         with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
             run_mapping(0, "", "")
@@ -267,7 +272,16 @@ class TaskCase(WebsiteTestCase):
             self.assertTrue(l.split(":app:")[1] in f.getvalue())
 
     def test_run_mapping_vm_invalid_args(self):
-        m = Mapping(name="def")
+        destination_lists = {
+            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+            "Label Two": ["ddd"],
+            "All Teams": [
+                "a1a1a1a1a1a1a1a1a1a1a1a1",
+                "ddd"
+            ]
+        }
+        dl = json.dumps(destination_lists)
+        m = Mapping(name="abc", destination_lists=dl)
         db.session.add(m)
         db.session.commit()
         f = io.StringIO()
@@ -280,19 +294,19 @@ class TaskCase(WebsiteTestCase):
         for l in expected_logging:
             self.assertTrue(l.split(":app:")[1] in f.getvalue())
 
-    def test_run_mapping_vm_valid_args_invalid_json(self):
+    def test_run_mapping_invalid_mapping(self):
+        # Create an incomplete mapping
         m = Mapping(name="def")
         db.session.add(m)
         db.session.commit()
         f = io.StringIO()
         with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
             run_mapping(m.id, "card", "abc")
-        expected_logging_base = "TypeError: the JSON object must be str, bytes or "\
-            "bytearray, not %s"
-        expected_logging1 = expected_logging_base % "NoneType"
-        expected_logging2 = expected_logging_base % "'NoneType'"
-        self.assertTrue(expected_logging1 in cm.output[1] or
-            expected_logging2 in cm.output[1])
+        expected_logging = ['INFO:app:Starting task for mapping 1, card abc',
+            'ERROR:app:Mapping has invalid destination_lists',
+            'ERROR:app:Invalid task, ignoring',
+            'INFO:app:Completed task for mapping 1, card abc']
+        self.assertEqual(cm.output, expected_logging)
 
     @patch("app.tasks._set_task_progress")
     @patch("app.tasks.process_master_card")
@@ -359,6 +373,29 @@ class TaskCase(WebsiteTestCase):
             call(100, 'Run complete. Processed 2 master cards (of which 11 ' \
                 'active) that have 13 slave cards (of which 15 new).')]
         self.assertEqual(atstp.mock_calls, expected_calls)
+
+    @patch("app.tasks._set_task_progress")
+    @patch("app.tasks.get_current_job")
+    def test_run_mapping_unhandled_exception(self, atgcj, atstp):
+        destination_lists = {
+            "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
+            "Label Two": ["ddd"],
+            "All Teams": [
+                "a1a1a1a1a1a1a1a1a1a1a1a1",
+                "ddd"
+            ]
+        }
+        dl = json.dumps(destination_lists)
+        m = Mapping(name="abc", destination_lists=dl)
+        db.session.add(m)
+        db.session.commit()
+        f = io.StringIO()
+        atgcj.side_effect = Exception()
+        with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
+            run_mapping(m.id, "list", "def")
+        expected_logging = "ERROR:app:run_mapping: Unhandled exception while " \
+            "running task 1 list def"
+        self.assertIn(expected_logging, cm.output[0])
 
 
 class AuthCase(WebsiteTestCase):

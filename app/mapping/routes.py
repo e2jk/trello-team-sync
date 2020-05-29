@@ -43,8 +43,11 @@ def new_or_edit(mapping_id=None):
             this_users_mappings = val1
             mapping = val2
         # Set the items on the mapping object like they would come from the form
-        destination_lists = json.loads(mapping.destination_lists)
-        mapping.labels = list(destination_lists.keys())
+        try:
+            destination_lists = json.loads(mapping.destination_lists)
+            mapping.labels = list(destination_lists.keys())
+        except TypeError:
+            destination_lists = []
         i = 0
         for label_id in destination_lists:
             label_lists = []
