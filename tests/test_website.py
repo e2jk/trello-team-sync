@@ -684,7 +684,13 @@ class MappingCase(WebsiteTestCase):
         }
         dl = json.dumps(destination_lists)
         mapping_name = "abc" if not secondary_user else "def"
-        m = Mapping(name=mapping_name, destination_lists=dl)
+        m = Mapping(name=mapping_name,
+            description = "Mapping description for %s" % mapping_name,
+            key="a1"*16,
+            token="b2"*32,
+            master_board = "a"*24,
+            destination_lists=dl
+        )
         u.mappings.append(m)
         db.session.commit()
         self.assertEqual(u.get_mappings(), [m])
@@ -794,7 +800,7 @@ class MappingCase(WebsiteTestCase):
             data=dict(submit_board="submit_board"))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
-        expected_call = call.launch_task('run_mapping', (1, 'board', None),
+        expected_call = call.launch_task('run_mapping', (1, 'board', "a"*24),
             'Processing the full "abc" master board...')
         self.assertEqual(amrcu.mock_calls[-1], expected_call)
 
