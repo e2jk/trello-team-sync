@@ -7,6 +7,7 @@
 from flask import render_template, request
 from app import db
 from app.errors import bp
+from trello_team_sync import TrelloConnectionError
 
 
 @bp.app_errorhandler(404)
@@ -18,3 +19,9 @@ def not_found_error(error):
 def internal_error(error):
     db.session.rollback()
     return render_template('errors/500.html'), 500
+
+
+@bp.app_errorhandler(TrelloConnectionError)
+def trello_connection_error(error):
+    db.session.rollback()
+    return render_template('errors/trello.html'), 500

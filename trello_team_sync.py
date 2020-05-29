@@ -21,6 +21,10 @@ METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
 METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
 cached_values = {"board": {}, "list": {}, "board_of_list": {}}
 
+class TrelloConnectionError(Exception):
+    pass
+
+
 def rlinput(prompt, prefill=''):
     """Provide an editable input string
     Inspired from https://stackoverflow.com/a/36607077
@@ -210,11 +214,14 @@ def perform_request(method, url, query=None, key=None, token=None):
         key = config["key"]
         token = config["token"]
     url += "?key=%s&token=%s" % (key, token)
-    response = requests.request(
-        method,
-        url,
-        params=query
-    )
+    try:
+        response = requests.request(
+            method,
+            url,
+            params=query
+        )
+    except requests.exceptions.ConnectionError:
+        raise TrelloConnectionError
     # Raise an exception if the response status code indicates an issue
     response.raise_for_status()
     return response.json()
