@@ -78,10 +78,10 @@ class TestProcessMasterCard(unittest.TestCase):
         t_pr.side_effect = [{"id": "b"*24, "name": "Slave card One",
                 "idBoard": "k"*24, "idList": "l"*24,
                 "url": "https://trello.com/c/abcd1234/blablabla2"},
-            {},
-            {},
             {"name": "Board name"},
             {"name": "List name"},
+            {},
+            {},
             {}]
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
@@ -91,12 +91,12 @@ class TestProcessMasterCard(unittest.TestCase):
             'DEBUG:root:Master card is to be synced on 1 destination lists',
             'DEBUG:root:Creating new slave card',
             'DEBUG:root:New slave card ID: bbbbbbbbbbbbbbbbbbbbbbbb',
-            'DEBUG:root:Attaching master card tttttttttttttttttttttttt to slave card bbbbbbbbbbbbbbbbbbbbbbbb',
-            'DEBUG:root:Attaching slave card bbbbbbbbbbbbbbbbbbbbbbbb to master card tttttttttttttttttttttttt',
             "DEBUG:root:New master card metadata: \n- 'Slave card One' on list '**Board name|List name**'",
             'INFO:root:This master card has 1 slave cards (1 newly created)',
             'DEBUG:root:Updating master card metadata',
-            "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
+            "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'",
+            'DEBUG:root:Attaching master card tttttttttttttttttttttttt to slave card bbbbbbbbbbbbbbbbbbbbbbbb',
+            'DEBUG:root:Attaching slave card bbbbbbbbbbbbbbbbbbbbbbbb to master card tttttttttttttttttttttttt']
         self.assertEqual(cm.output, expected)
         target.args = None
 
@@ -185,10 +185,10 @@ class TestProcessMasterCard(unittest.TestCase):
             {"id": "b"*24, "name": "Slave card One",
                 "idBoard": "k"*24, "idList": "l"*24,
                 "url": "https://trello.com/c/abcd1234/blablabla2"},
-            {},
-            {},
             {"name": "Board name"},
             {"name": "List name"},
+            {},
+            {},
             {}]
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
@@ -199,12 +199,12 @@ class TestProcessMasterCard(unittest.TestCase):
             'DEBUG:root:Getting 1 attachments on master card tttttttttttttttttttttttt',
             'DEBUG:root:Creating new slave card',
             'DEBUG:root:New slave card ID: bbbbbbbbbbbbbbbbbbbbbbbb',
-            'DEBUG:root:Attaching master card tttttttttttttttttttttttt to slave card bbbbbbbbbbbbbbbbbbbbbbbb',
-            'DEBUG:root:Attaching slave card bbbbbbbbbbbbbbbbbbbbbbbb to master card tttttttttttttttttttttttt',
             "DEBUG:root:New master card metadata: \n- 'Slave card One' on list '**Board name|List name**'",
             'INFO:root:This master card has 1 slave cards (1 newly created)',
             'DEBUG:root:Updating master card metadata',
-            "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'"]
+            "DEBUG:root:abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n\n- 'Slave card One' on list '**Board name|List name**'",
+            'DEBUG:root:Attaching master card tttttttttttttttttttttttt to slave card bbbbbbbbbbbbbbbbbbbbbbbb',
+            'DEBUG:root:Attaching slave card bbbbbbbbbbbbbbbbbbbbbbbb to master card tttttttttttttttttttttttt']
         self.assertEqual(cm.output, expected)
         target.args = None
 
@@ -311,8 +311,6 @@ class TestProcessMasterCard(unittest.TestCase):
         t_pr.side_effect = [{"id": "b"*24, "name": "Slave card One",
                 "idBoard": "k"*24, "idList": "l"*24,
                 "url": "https://trello.com/c/abcd1234/blablabla2"},
-            {},
-            {},
             {"name": "Board name"},
             {"name": "List name"},
             {},
@@ -320,7 +318,9 @@ class TestProcessMasterCard(unittest.TestCase):
             {"id": "w"*24, "name": "New checklist"},
             {"idBoard": "hhh"},
             {"name": "Destination board name"},
-            {"name": "New checklist item"}]
+            {"name": "New checklist item"},
+            {},
+            {}]
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -357,8 +357,6 @@ class TestProcessMasterCard(unittest.TestCase):
         t_pr.side_effect = [{"id": "b"*24, "name": "Slave card One",
                 "idBoard": "k"*24, "idList": "l"*24,
                 "url": "https://trello.com/c/abcd1234/blablabla2"},
-            {},
-            {},
             {"name": "Board name"},
             {"name": "List name"},
             {},
@@ -366,7 +364,9 @@ class TestProcessMasterCard(unittest.TestCase):
             {"id": "w"*24, "name": "New checklist"},
             {"idBoard": "hhh"},
             {"name": "Destination board name"},
-            {"name": "New checklist item"}]
+            {"name": "New checklist item"},
+            {},
+            {}]
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -406,8 +406,6 @@ class TestProcessMasterCard(unittest.TestCase):
         t_pr.side_effect = [{"id": "b"*24, "name": "Slave card One",
                 "idBoard": "k"*24, "idList": "l"*24,
                 "url": "https://trello.com/c/abcd1234/blablabla2"},
-            {},
-            {},
             {"name": "Board name"},
             {"name": "List name"},
             {},
@@ -415,7 +413,9 @@ class TestProcessMasterCard(unittest.TestCase):
             {"id": "w"*24, "name": "New checklist"},
             {"idBoard": "hhh"},
             {"name": "Destination board name"},
-            {"name": "New checklist item"}]
+            {"name": "New checklist item"},
+            {},
+            {}]
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))
@@ -449,12 +449,12 @@ class TestProcessMasterCard(unittest.TestCase):
         t_pr.side_effect = [{"id": "b"*24, "name": "Slave card One",
                 "idBoard": "k"*24, "idList": "l"*24,
                 "url": "https://trello.com/c/abcd1234/blablabla2"},
-            {},
-            {},
             {"name": "Board name"},
             {"name": "List name"},
             {},
-            [{"name": "Involved Teams"}]]
+            [{"name": "Involved Teams"}],
+            {},
+            {}]
         with self.assertLogs(level='DEBUG') as cm:
             output = target.process_master_card(master_card)
         self.assertEqual(output, (1, 1, 1))

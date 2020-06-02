@@ -281,6 +281,7 @@ def process_master_card(master_card, args_from_app=None):
 
     num_new_cards = 0
     slave_cards = []
+    newly_created_slave_cards = []
     if len(destination_lists) > 0:
         for dl in destination_lists:
             existing_slave_card = None
@@ -296,11 +297,7 @@ def process_master_card(master_card, args_from_app=None):
                 num_new_cards += 1
                 card = create_new_slave_card(master_card, dl, pr_args)
                 if card:
-                    # Link cards between each other
-                    logging.debug("Attaching master card %s to slave card %s" % (master_card["id"], card["id"]))
-                    perform_request("POST", "cards/%s/attachments" % card["id"], {"url": master_card["url"]}, **pr_args)
-                    logging.debug("Attaching slave card %s to master card %s" % (card["id"], master_card["id"]))
-                    perform_request("POST", "cards/%s/attachments" % master_card["id"], {"url": card["url"]}, **pr_args)
+                    newly_created_slave_cards.append(card)
             slave_cards.append(card)
         if card:
             # Generate master card metadata based on the slave cards info
@@ -340,6 +337,13 @@ def process_master_card(master_card, args_from_app=None):
                 logging.debug(new_checklistitem)
 
         #TODO: Mark checklist item as Complete if slave card is Done
+
+    # Link master and newly created child cards together
+    for card in newly_created_slave_cards:
+        logging.debug("Attaching master card %s to slave card %s" % (master_card["id"], card["id"]))
+        perform_request("POST", "cards/%s/attachments" % card["id"], {"url": master_card["url"]}, **pr_args)
+        logging.debug("Attaching slave card %s to master card %s" % (card["id"], master_card["id"]))
+        perform_request("POST", "cards/%s/attachments" % master_card["id"], {"url": card["url"]}, **pr_args)
 
     return (1 if len(destination_lists) > 0 else 0, len(slave_cards), num_new_cards)
 
