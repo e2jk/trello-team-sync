@@ -265,7 +265,7 @@ class MiscTests(WebsiteTestCase):
             "This is the body of the email", "<h1>Nice body</h1>",
             attachments=[("image.png", "image/png", b"abc")], sync=True)
         self.assertRegex(str(aem.mock_calls), "\[call.send\(<flask_mail\." \
-            "Message object at 0x([a-z0-9]{12})>\)\]")
+            "Message object at 0x([a-zA-Z0-9]{8,12})>\)\]")
         # TODO: test content of the email in g.outbox
         # See https://pythonhosted.org/flask-mail/#unit-tests
 
@@ -572,7 +572,7 @@ class AuthCase(WebsiteTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/auth/login")
         self.assertRegex(str(aem.mock_calls), "\[call.send\(<flask_mail\." \
-            "Message object at 0x([a-z0-9]{12})>\)\]")
+            "Message object at 0x([a-zA-Z0-9]{8,12})>\)\]")
 
         # GETting the password reset form page while logged in redirects to home
         response = self.login("john", "abc")
