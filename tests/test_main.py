@@ -13,12 +13,11 @@ import sys
 import os
 import logging
 import json
-from unittest.mock import patch
-from unittest.mock import call
+from unittest.mock import patch, call, MagicMock
 import io
 import contextlib
 import inspect
-from requests.exceptions import HTTPError
+from requests.exceptions import HTTPError, ConnectionError
 from app import create_app, db
 from config import Config
 
@@ -794,6 +793,47 @@ class TestPerformRequest(FlaskTestCase):
         # Confirm no actual network request went out
         self.assertEqual(r_r.mock_calls, [])
         target.args = None
+
+    @patch("requests.request")
+    def test_perform_request_connection_error(self, r_r):
+        """
+        Confirm a connection error to Trello raises TrelloConnectionError
+        """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
+        target.config = {"token": "jkl"}
+        r_r.side_effect = ConnectionError()
+        with self.assertRaises(target.TrelloConnectionError) as cm:
+            target.perform_request("GET", "cards/a1b2c3d4")
+
+    @patch("requests.request")
+    def test_perform_request_http_error_401(self, r_r):
+        """
+        Confirm a 401 response code from Trello raises TrelloAuthenticationError
+        """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
+        target.config = {"token": "jkl"}
+        mock_exception_response = MagicMock()
+        mock_exception_response.status_code = 401
+        mock_request = MagicMock()
+        mock_request.raise_for_status.side_effect = HTTPError("", response=mock_exception_response)
+        r_r.return_value = mock_request
+        with self.assertRaises(target.TrelloAuthenticationError) as cm:
+            target.perform_request("GET", "cards/a1b2c3d4")
+
+    @patch("requests.request")
+    def test_perform_request_http_error_other(self, r_r):
+        """
+        Confirm a 401 response code from Trello raises TrelloAuthenticationError
+        """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
+        target.config = {"token": "jkl"}
+        mock_exception_response = MagicMock()
+        mock_exception_response.status_code = "OTHER"
+        mock_request = MagicMock()
+        mock_request.raise_for_status.side_effect = HTTPError("", response=mock_exception_response)
+        r_r.return_value = mock_request
+        with self.assertRaises(HTTPError) as cm:
+            target.perform_request("GET", "cards/a1b2c3d4")
 
 
 class TestCreateNewSlaveCard(unittest.TestCase):

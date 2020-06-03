@@ -25,6 +25,8 @@ cached_values = {"board": {}, "list": {}, "board_of_list": {}}
 
 class TrelloConnectionError(Exception):
     pass
+class TrelloAuthenticationError(Exception):
+    pass
 
 
 def rlinput(prompt, prefill=''):
@@ -225,7 +227,13 @@ def perform_request(method, url, query=None, key=None, token=None):
     except requests.exceptions.ConnectionError:
         raise TrelloConnectionError
     # Raise an exception if the response status code indicates an issue
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as http_error:
+        if http_error.response.status_code == 401:
+            raise TrelloAuthenticationError
+        else:
+            raise http_error
     return response.json()
 
 def create_new_slave_card(master_card, destination_list, pr_args={}):
