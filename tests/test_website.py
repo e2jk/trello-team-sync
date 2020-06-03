@@ -29,9 +29,11 @@ from urllib.parse import quote
 if not os.environ.get("FLASK_DEBUG"):
     # Suppress output when starting up app from website.py or app/tasks.py
     with contextlib.redirect_stderr(io.StringIO()):
+        import app.tasks
         from app.tasks import _set_task_progress, run_mapping
         from website import make_shell_context
 else:
+    import app.tasks
     from app.tasks import _set_task_progress, run_mapping
     from website import make_shell_context
 
@@ -47,6 +49,7 @@ class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite://'
     WTF_CSRF_ENABLED = False
+    TRELLO_API_KEY = "a1"*16
 
 
 class WebsiteTestCase(unittest.TestCase):
@@ -56,6 +59,7 @@ class WebsiteTestCase(unittest.TestCase):
         self.app_context.push()
         db.create_all()
         self.client = self.app.test_client()
+        app.tasks.app = self.app
 
     def tearDown(self):
         db.session.remove()
@@ -389,7 +393,7 @@ class TaskCase(WebsiteTestCase):
         f = io.StringIO()
         with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
             run_mapping(m.id, "card", "abc")
-        expected_calls = [call('GET', 'cards/abc', key=None, token=None)]
+        expected_calls = [call('GET', 'cards/abc', key="a1"*16, token=None)]
         self.assertEqual(atpr.mock_calls, expected_calls)
         expected_logging = "INFO:app:Processing master card 1/1 - Card name"
         self.assertEqual(cm.output[1], expected_logging)
@@ -420,7 +424,7 @@ class TaskCase(WebsiteTestCase):
         f = io.StringIO()
         with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
             run_mapping(m.id, "list", "def")
-        expected_calls = [call('GET', 'list/def/cards', key=None, token=None)]
+        expected_calls = [call('GET', 'list/def/cards', key="a1"*16, token=None)]
         self.assertEqual(atpr.mock_calls, expected_calls)
         expected_logging = ['INFO:app:Starting task for mapping 1, list def',
             'INFO:app:Processing master card 1/2 - Card name',
@@ -727,7 +731,6 @@ class MappingCase(WebsiteTestCase):
         mapping_name = "abc" if not secondary_user else "def"
         m = Mapping(name=mapping_name,
             description = "Mapping description for %s" % mapping_name,
-            key="a1"*16,
             token="b2"*32,
             master_board = "a"*24,
             destination_lists=dl
@@ -888,7 +891,6 @@ class MappingCase(WebsiteTestCase):
     def get_data_step_valid(self):
         ds1ok = dict(name="Mapping name",
             description="Nice description",
-            key="a1"*16,
             token="b2"*32)
         ds2ok = dict(ds1ok, master_board="a"*24)
         ds3ok = dict(ds2ok, labels="b"*24)
@@ -946,11 +948,6 @@ class MappingCase(WebsiteTestCase):
             '<input class="form-control" id="name" name="name" required ' \
                 'type="text" value="">',
             '<textarea class="form-control" id="description" name="description">',
-            '<input class="form-control" id="key" name="key" required type=' \
-                '"text" value="">',
-            '<small class="form-text text-muted">Your Trello key can be found ' \
-                'at <a href="https://trello.com/app-key">https://trello.com/' \
-                'app-key</a>.</small>',
             '<input class="form-control" id="token" name="token" required ' \
                 'type="text" value="">',
             '<small class="form-text text-muted">Your Trello token can be ' \
@@ -976,15 +973,6 @@ class MappingCase(WebsiteTestCase):
         ]
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
             unexpected_content, data=dict(name=""))
-
-        # POST step 1, invalid key
-        expected_content = [
-            '<h1>New mapping, Step 1/4</h1>',
-            '<div class="invalid-feedback">Invalid Trello key ' \
-                'format, it must be a 32 character string.</div>'
-        ]
-        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
-            unexpected_content, data=dict(name="Mapping name", key="a"))
 
         # POST step 1, invalid token
         expected_content = [
@@ -1086,11 +1074,6 @@ class MappingCase(WebsiteTestCase):
                 'type="text" value="abc">',
             '<textarea class="form-control" id="description" name="description">',
             'Mapping description for abc</textarea>',
-            '<input class="form-control" id="key" name="key" required type=' \
-                '"text" value="%s">' % ("a1"*16),
-            '<small class="form-text text-muted">Your Trello key can be found ' \
-                'at <a href="https://trello.com/app-key">https://trello.com/' \
-                'app-key</a>.</small>',
             '<input class="form-control" id="token" name="token" required ' \
                 'type="text" value="%s">' % ("b2"*32),
             '<small class="form-text text-muted">Your Trello token can be ' \

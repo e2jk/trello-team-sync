@@ -26,10 +26,6 @@ class NewMappingForm(FlaskForm):
     name = StringField(_l('Mapping name'), validators=[DataRequired()])
     description = TextAreaField(_l('Mapping description (optional)'))
     tku = '<a href="https://trello.com/app-key">https://trello.com/app-key</a>'
-    key = StringField(_l('Trello key'),
-        description=_l('Your Trello key can be found at %(url)s.', url=tku),
-        validators=[DataRequired(), Regexp("^[0-9a-fA-F]{32}$",
-            message=_l('Invalid Trello key format, it must be a 32 character string.'))])
     token = StringField(_l('Trello token'),
         description=_l('Your Trello token can be created by clicking on the ' \
         '"token" link on top of the at %(url)s page.', url=tku),

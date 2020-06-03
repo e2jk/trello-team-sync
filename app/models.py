@@ -155,7 +155,6 @@ class Mapping(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), index=True)
     description = db.Column(db.String(128))
-    key = db.Column(db.String(128))
     token = db.Column(db.String(128))
     master_board = db.Column(db.String(128))
     destination_lists = db.Column(db.Text())

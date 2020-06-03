@@ -35,18 +35,18 @@ def run_mapping(mapping_id, run_type, elem_id):
         if destination_lists and run_type in ("card", "list", "board"):
             args_from_app = {
                 "destination_lists": destination_lists,
-                "key": mapping.key,
+                "key": app.config['TRELLO_API_KEY'],
                 "token": mapping.token
             }
             if run_type == "card":
                 status_information = "Job running... Processing one single card."
                 _set_task_progress(0, status_information)
                 master_cards = [perform_request("GET", "cards/%s" % elem_id,
-                    key=mapping.key, token=mapping.token)]
+                    key=args_from_app["key"], token=args_from_app["token"])]
             elif run_type in ("list", "board"):
                 master_cards = perform_request("GET", "%s/%s/cards" %
                     (run_type, elem_id),
-                    key=mapping.key, token=mapping.token)
+                    key=args_from_app["key"], token=args_from_app["token"])
                 status_information = "Job running... Processing %d cards." % \
                     len(master_cards)
                 _set_task_progress(0, status_information)

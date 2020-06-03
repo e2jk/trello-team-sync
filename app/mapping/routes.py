@@ -65,7 +65,6 @@ def new_or_edit(mapping_id=None):
         # Check elements from the first step
         if form.name.validate(form) and \
             form.description.validate(form) and \
-            form.key.validate(form) and \
             form.token.validate(form):
             # Go to next step
             step = 2
@@ -111,7 +110,6 @@ def new_or_edit(mapping_id=None):
             if mapping_id:
                 mapping.name = form.name.data
                 mapping.description=form.description.data
-                mapping.key=current_app.config['TRELLO_API_KEY']
                 mapping.token=form.token.data
                 mapping.master_board=form.master_board.data
                 mapping.destination_lists = json.dumps(destination_lists)
@@ -121,7 +119,6 @@ def new_or_edit(mapping_id=None):
                 mapping = Mapping(
                     name=form.name.data,
                     description=form.description.data,
-                    key=current_app.config['TRELLO_API_KEY'],
                     token=form.token.data,
                     master_board=form.master_board.data,
                     destination_lists = json.dumps(destination_lists),
