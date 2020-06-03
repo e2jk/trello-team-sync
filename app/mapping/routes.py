@@ -136,8 +136,12 @@ def new_or_edit(mapping_id=None):
         if not hasattr(form.master_board, "choice") or \
             not form.master_board.choice:
             # Get the list of boards for this user/key-token combination
-            boards = perform_request("GET", "members/me/boards", \
+            all_boards = perform_request("GET", "members/me/boards", \
                 key=current_app.config['TRELLO_API_KEY'], token=form.token.data)
+            boards = []
+            for b in all_boards:
+                if not b["closed"]:
+                    boards.append(b)
             form.master_board.choices = [(b["id"], b["name"]) for b in boards]
         # TODO: show error message if form.master_board.choices is empty
         if not form.master_board.data:

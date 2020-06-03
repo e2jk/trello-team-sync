@@ -899,8 +899,9 @@ class MappingCase(WebsiteTestCase):
 
     def get_sample_values(self):
         t_boards = [
-            {"id": "123", "name": "hij"},
-            {"id": "a"*24, "name": "klm"}
+            {"id": "123", "name": "hij", "closed": False},
+            {"id": "456", "name": "nop", "closed": True},
+            {"id": "a"*24, "name": "klm", "closed": False}
         ]
         t_labels = [
             {"id": "label_id_1", "name": "Label Name One"},
@@ -935,7 +936,6 @@ class MappingCase(WebsiteTestCase):
             t_boards,
             t_boards, t_labels,
             t_boards, t_labels,
-            t_boards, t_labels, t_lists1, t_lists2,
             t_boards, t_labels, t_lists1, t_lists2,
             t_boards, t_labels, t_lists1, t_lists2
         ]
