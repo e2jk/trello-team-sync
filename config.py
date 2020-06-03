@@ -25,3 +25,4 @@ class Config(object):
     ADMINS = ['your-email@example.com']
     LANGUAGES = ['en']
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
+    TRELLO_API_KEY = os.environ.get('TRELLO_API_KEY')

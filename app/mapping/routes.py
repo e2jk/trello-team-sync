@@ -111,7 +111,7 @@ def new_or_edit(mapping_id=None):
             if mapping_id:
                 mapping.name = form.name.data
                 mapping.description=form.description.data
-                mapping.key=form.key.data
+                mapping.key=current_app.config['TRELLO_API_KEY']
                 mapping.token=form.token.data
                 mapping.master_board=form.master_board.data
                 mapping.destination_lists = json.dumps(destination_lists)
@@ -121,7 +121,7 @@ def new_or_edit(mapping_id=None):
                 mapping = Mapping(
                     name=form.name.data,
                     description=form.description.data,
-                    key=form.key.data,
+                    key=current_app.config['TRELLO_API_KEY'],
                     token=form.token.data,
                     master_board=form.master_board.data,
                     destination_lists = json.dumps(destination_lists),
@@ -140,7 +140,7 @@ def new_or_edit(mapping_id=None):
             not form.master_board.choice:
             # Get the list of boards for this user/key-token combination
             boards = perform_request("GET", "members/me/boards", \
-                key=form.key.data, token=form.token.data)
+                key=current_app.config['TRELLO_API_KEY'], token=form.token.data)
             form.master_board.choices = [(b["id"], b["name"]) for b in boards]
         # TODO: show error message if form.master_board.choices is empty
         if not form.master_board.data:
@@ -150,7 +150,7 @@ def new_or_edit(mapping_id=None):
         if not hasattr(form.master_board, "choice") or \
             not form.master_board.choice:
             labels = perform_request("GET", "boards/%s/labels" % \
-                form.master_board.data, key=form.key.data, token=form.token.data)
+                form.master_board.data, key=current_app.config['TRELLO_API_KEY'], token=form.token.data)
             form.labels.choices = [(l["id"], l["name"]) for l in labels if l["name"]]
             for l in labels:
                 if l["name"]:
@@ -160,7 +160,7 @@ def new_or_edit(mapping_id=None):
         lists_on_boards = []
         for b in boards:
             boards_lists = perform_request("GET", "boards/%s/lists" % b["id"], \
-                key=form.key.data, token=form.token.data)
+                key=current_app.config['TRELLO_API_KEY'], token=form.token.data)
             for l in boards_lists:
                 lists_on_boards.append((l["id"], "%s | %s" % (b["name"], l["name"])))
         i = 0
@@ -247,14 +247,14 @@ def run(mapping_id):
 
     rmf = RunMappingForm()
     lists = perform_request("GET", "boards/%s/lists" % mapping.master_board, \
-        key=mapping.key, token=mapping.token)
+        key=current_app.config['TRELLO_API_KEY'], token=mapping.token)
     rmf.lists.choices = [(l["id"], l["name"]) for l in lists]
     list_names = {}
     card_names = {}
     for l in lists:
         list_names[l["id"]] = l["name"]
         cards = perform_request("GET", "lists/%s/cards" % l["id"], \
-            key=mapping.key, token=mapping.token)
+            key=current_app.config['TRELLO_API_KEY'], token=mapping.token)
         cards_choices = [(c["id"], "%s | %s" % (l["name"], c["name"])) for c in cards]
         if not rmf.cards.choices:
             rmf.cards.choices = cards_choices

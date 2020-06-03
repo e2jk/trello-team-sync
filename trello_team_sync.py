@@ -11,6 +11,8 @@ import os
 import sys
 import re
 from slugify import slugify
+from app import create_app
+
 try:
     import readline
 except ImportError:
@@ -210,8 +212,8 @@ def perform_request(method, url, query=None, key=None, token=None):
     if "args" in globals() and args.dry_run and method != "GET":
         logging.debug("Skipping %s call to '%s' due to --dry-run parameter" % (method, url))
         return {}
-    if not (key and token) and "config" in globals():
-        key = config["key"]
+    if not (key and token) and "config" in globals() and "app" in globals():
+        key = app.config['TRELLO_API_KEY']
         token = config["token"]
     url += "?key=%s&token=%s" % (key, token)
     try:
@@ -613,6 +615,11 @@ def init():
         # Define as global variable to be used without passing to all functions
         global args
         global config
+        global app
+
+        # Initiate the Flask app to access config, database
+        app = create_app()
+
         # Parse the provided command-line arguments
         args = parse_args(sys.argv[1:])
 

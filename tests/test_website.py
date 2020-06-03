@@ -256,6 +256,7 @@ class ConfigCase(unittest.TestCase):
         self.assertEqual(Config.ADMINS, ['your-email@example.com'])
         self.assertEqual(Config.LANGUAGES, ['en'])
         self.assertEqual(Config.REDIS_URL, os.environ.get('REDIS_URL') or 'redis://')
+        self.assertEqual(Config.TRELLO_API_KEY, os.environ.get('TRELLO_API_KEY'))
 
 
 class MiscTests(WebsiteTestCase):
@@ -276,7 +277,7 @@ class MiscTests(WebsiteTestCase):
         tc.TESTING = False
         tc.DEBUG = False
         f = io.StringIO()
-        with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
+        with contextlib.redirect_stderr(f):
             # The logs folder will likely already exist on the local dev machine
             # but not when running from CI
             tc.LOG_TO_STDOUT = False

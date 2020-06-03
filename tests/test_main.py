@@ -19,6 +19,8 @@ import io
 import contextlib
 import inspect
 from requests.exceptions import HTTPError
+from app import create_app, db
+from config import Config
 
 sys.path.append('.')
 target = __import__("trello_team_sync")
@@ -39,6 +41,27 @@ def setUp(cls):
     target.cached_values = {"board": {}, "list": {}, "board_of_list": {}}
 # Use this for all the tests
 unittest.TestCase.setUp = setUp
+
+
+class TestConfig(Config):
+    TESTING = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite://'
+    WTF_CSRF_ENABLED = False
+    TRELLO_API_KEY = "ghi"
+
+
+class FlaskTestCase(unittest.TestCase):
+    def setUp(self):
+        target.app = None
+        target.app = create_app(TestConfig)
+        target.app_context = target.app.app_context()
+        target.app_context.push()
+        db.create_all()
+
+    def tearDown(self):
+        db.session.remove()
+        db.drop_all()
+        target.app_context.pop()
 
 class TestOutputSummary(unittest.TestCase):
     def test_output_summary_propagate(self):
@@ -219,7 +242,7 @@ class TestCleanupTestBoards(unittest.TestCase):
         """
         Test cleaning up the test boards when there is no master card and no cards on the slave lists
         """
-        target.config = {"key": "ghi", "token": "jkl",
+        target.config = {"token": "jkl",
             "destination_lists": {
                 "Label One": ["aaa"],
                 "Label Two": ["ddd"],
@@ -264,7 +287,7 @@ class TestCleanupTestBoards(unittest.TestCase):
         """
         Test cleaning up the test boards when there is no master card and cards on the slave lists
         """
-        target.config = {"key": "ghi", "token": "jkl",
+        target.config = {"token": "jkl",
             "destination_lists": {
                 "Label One": ["aaa"],
                 "Label Two": ["ddd"],
@@ -313,7 +336,7 @@ class TestCleanupTestBoards(unittest.TestCase):
         """
         Test cleaning up the test boards with a master card without attachment
         """
-        target.config = {"key": "ghi", "token": "jkl",
+        target.config = {"token": "jkl",
             "destination_lists": {
                 "Label One": ["aaa"],
                 "Label Two": ["ddd"],
@@ -363,7 +386,7 @@ class TestCleanupTestBoards(unittest.TestCase):
         """
         Test cleaning up the test boards with a master card with related attachment
         """
-        target.config = {"key": "ghi", "token": "jkl",
+        target.config = {"token": "jkl",
             "destination_lists": {
                 "Label One": ["aaa"],
                 "Label Two": ["ddd"],
@@ -650,7 +673,7 @@ class TestGenerateMasterCardMetadata(unittest.TestCase):
         self.assertEqual(new_master_card_metadata, expected)
 
 
-class TestPerformRequest(unittest.TestCase):
+class TestPerformRequest(FlaskTestCase):
     def test_perform_request_invalid_http_method(self):
         """
         Test performing a request with an invalid HTTP method
@@ -666,7 +689,7 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a GET request
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         target.perform_request("GET", "cards/a1b2c3d4")
         expected = [call('GET', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
@@ -680,7 +703,7 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a GET request with --dry-run
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         target.perform_request("GET", "cards/a1b2c3d4")
         expected = [call('GET', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
@@ -694,7 +717,7 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a POST request
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         target.perform_request("POST", "cards/a1b2c3d4", {"abc": "def"})
         expected = [call('POST', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params={'abc': 'def'}),
             call().raise_for_status(),
@@ -708,7 +731,7 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a POST request with --dry-run
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         with self.assertLogs(level='DEBUG') as cm:
             target.perform_request("POST", "cards/a1b2c3d4", {"abc": "def"})
         self.assertEqual(cm.output, ["DEBUG:root:Skipping POST call to 'https://api.trello.com/1/cards/a1b2c3d4' due to --dry-run parameter"])
@@ -722,7 +745,7 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a PUT request
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         target.perform_request("PUT", "cards/a1b2c3d4", {"abc": "def"})
         expected = [call('PUT', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params={'abc': 'def'}),
             call().raise_for_status(),
@@ -736,7 +759,7 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a PUT request with --dry-run
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         with self.assertLogs(level='DEBUG') as cm:
             target.perform_request("PUT", "cards/a1b2c3d4", {"abc": "def"})
         self.assertEqual(cm.output, ["DEBUG:root:Skipping PUT call to 'https://api.trello.com/1/cards/a1b2c3d4' due to --dry-run parameter"])
@@ -750,7 +773,7 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a DELETE request
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         target.perform_request("DELETE", "cards/a1b2c3d4")
         expected = [call('DELETE', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
@@ -764,7 +787,7 @@ class TestPerformRequest(unittest.TestCase):
         Test performing a DELETE request with --dry-run
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         with self.assertLogs(level='DEBUG') as cm:
             target.perform_request("DELETE", "cards/a1b2c3d4")
         self.assertEqual(cm.output, ["DEBUG:root:Skipping DELETE call to 'https://api.trello.com/1/cards/a1b2c3d4' due to --dry-run parameter"])
@@ -779,7 +802,7 @@ class TestCreateNewSlaveCard(unittest.TestCase):
         """
         Test creating a new card
         """
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         master_card = {"id": "1a2b3c", "desc": "abc", "shortUrl": "https://trello.com/c/eoK0Rngb"}
         destination_list = "a"*24
         t_pr.return_value = {"id": "b"*24}
@@ -826,7 +849,7 @@ class TestListWebhooks(unittest.TestCase):
         """
         Test listing webhooks
         """
-        target.config = {"key": "ghi", "token": "jkl"}
+        target.config = {"token": "jkl"}
         t_pr.return_value = {"dummy": "list"}
         webhooks = target.list_webhooks()
         expected = [call('GET', 'tokens/jkl/webhooks')]
@@ -840,7 +863,7 @@ class TestDeleteWebhook(unittest.TestCase):
         """
         Test deleting this board's webhook when no webhook exists
         """
-        target.config = {"key": "ghi", "token": "jkl", "master_board": "cde"}
+        target.config = {"token": "jkl", "master_board": "cde"}
         t_pr.return_value = {}
         webhooks = target.delete_webhook()
         expected = [call('GET', 'tokens/jkl/webhooks')]
@@ -851,7 +874,7 @@ class TestDeleteWebhook(unittest.TestCase):
         """
         Test deleting this board's webhook when there is one webhook for that board
         """
-        target.config = {"key": "ghi", "token": "jkl", "master_board": "cde"}
+        target.config = {"token": "jkl", "master_board": "cde"}
         t_pr.side_effect = [[{"id": "kdfg", "idModel": target.config["master_board"]}], {}]
         webhooks = target.delete_webhook()
         expected = [call('GET', 'tokens/jkl/webhooks'),
@@ -863,7 +886,7 @@ class TestDeleteWebhook(unittest.TestCase):
         """
         Test deleting this board's webhook when there is one webhook but not for that board
         """
-        target.config = {"key": "ghi", "token": "jkl", "master_board": "this_board"}
+        target.config = {"token": "jkl", "master_board": "this_board"}
         t_pr.return_value = [{"id": "kdfg", "idModel": "other_board"}]
         webhooks = target.delete_webhook()
         expected = [call('GET', 'tokens/jkl/webhooks')]
@@ -874,7 +897,7 @@ class TestDeleteWebhook(unittest.TestCase):
         """
         Test deleting this board's webhook when there are multiple webhook including for that board
         """
-        target.config = {"key": "ghi", "token": "jkl", "master_board": "this_board"}
+        target.config = {"token": "jkl", "master_board": "this_board"}
         t_pr.return_value = [{"id": "kdfg1", "idModel": "other_board"},
             {"id": "kdfg2", "idModel": "yet_another_board"},
             {"id": "kdfg3", "idModel": "this_board"}]
@@ -888,7 +911,7 @@ class TestDeleteWebhook(unittest.TestCase):
         """
         Test deleting this board's webhook when there are multiple webhook including for that board
         """
-        target.config = {"key": "ghi", "token": "jkl", "master_board": "this_board"}
+        target.config = {"token": "jkl", "master_board": "this_board"}
         t_pr.return_value = [{"id": "kdfg1", "idModel": "other_board"},
             {"id": "kdfg2", "idModel": "yet_another_board"}]
         webhooks = target.delete_webhook()
