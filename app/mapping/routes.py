@@ -64,8 +64,7 @@ def new_or_edit(mapping_id=None):
     if request.method == 'POST' or mapping_id:
         # Check elements from the first step
         if form.name.validate(form) and \
-            form.description.validate(form) and \
-            form.token.validate(form):
+            form.description.validate(form):
             # Go to next step
             step = 2
         # If the first step cleared, go on to check elements from the second step
@@ -110,7 +109,6 @@ def new_or_edit(mapping_id=None):
             if mapping_id:
                 mapping.name = form.name.data
                 mapping.description=form.description.data
-                mapping.token=form.token.data
                 mapping.master_board=form.master_board.data
                 mapping.destination_lists = json.dumps(destination_lists)
                 mapping.user_id = current_user.id
@@ -119,7 +117,6 @@ def new_or_edit(mapping_id=None):
                 mapping = Mapping(
                     name=form.name.data,
                     description=form.description.data,
-                    token=form.token.data,
                     master_board=form.master_board.data,
                     destination_lists = json.dumps(destination_lists),
                     user_id = current_user.id)
@@ -135,9 +132,10 @@ def new_or_edit(mapping_id=None):
         # TODO: Cache the board IDs
         if not hasattr(form.master_board, "choice") or \
             not form.master_board.choice:
-            # Get the list of boards for this user/key-token combination
-            all_boards = perform_request("GET", "members/me/boards", \
-                key=current_app.config['TRELLO_API_KEY'], token=form.token.data)
+            # Get the list of boards for this user
+            all_boards = perform_request("GET", "members/me/boards",
+                key=current_app.config['TRELLO_API_KEY'],
+                token=current_user.trello_token)
             boards = []
             for b in all_boards:
                 if not b["closed"]:
@@ -151,7 +149,9 @@ def new_or_edit(mapping_id=None):
         if not hasattr(form.master_board, "choice") or \
             not form.master_board.choice:
             labels = perform_request("GET", "boards/%s/labels" % \
-                form.master_board.data, key=current_app.config['TRELLO_API_KEY'], token=form.token.data)
+                form.master_board.data,
+                key=current_app.config['TRELLO_API_KEY'],
+                token=current_user.trello_token)
             form.labels.choices = [(l["id"], l["name"]) for l in labels if l["name"]]
             for l in labels:
                 if l["name"]:
@@ -160,8 +160,9 @@ def new_or_edit(mapping_id=None):
         # TODO: Cache the lists on each board
         lists_on_boards = []
         for b in boards:
-            boards_lists = perform_request("GET", "boards/%s/lists" % b["id"], \
-                key=current_app.config['TRELLO_API_KEY'], token=form.token.data)
+            boards_lists = perform_request("GET", "boards/%s/lists" % b["id"],
+                key=current_app.config['TRELLO_API_KEY'],
+                token=current_user.trello_token)
             for l in boards_lists:
                 lists_on_boards.append((l["id"], "%s | %s" % (b["name"], l["name"])))
         i = 0
@@ -247,15 +248,17 @@ def run(mapping_id):
         return redirect(url_for('mapping.run', mapping_id=mapping_id))
 
     rmf = RunMappingForm()
-    lists = perform_request("GET", "boards/%s/lists" % mapping.master_board, \
-        key=current_app.config['TRELLO_API_KEY'], token=mapping.token)
+    lists = perform_request("GET", "boards/%s/lists" % mapping.master_board,
+        key=current_app.config['TRELLO_API_KEY'],
+        token=current_user.trello_token)
     rmf.lists.choices = [(l["id"], l["name"]) for l in lists]
     list_names = {}
     card_names = {}
     for l in lists:
         list_names[l["id"]] = l["name"]
-        cards = perform_request("GET", "lists/%s/cards" % l["id"], \
-            key=current_app.config['TRELLO_API_KEY'], token=mapping.token)
+        cards = perform_request("GET", "lists/%s/cards" % l["id"],
+            key=current_app.config['TRELLO_API_KEY'],
+            token=current_user.trello_token)
         cards_choices = [(c["id"], "%s | %s" % (l["name"], c["name"])) for c in cards]
         if not rmf.cards.choices:
             rmf.cards.choices = cards_choices

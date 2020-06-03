@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% import 'bootstrap/form.html' as wtf %}
+
+{% block app_content %}
+    <h1>{{ _('Redirecting') }}</h1>
+    <div class="row">
+      <div class="col-md-6">
+        {{ _('In case this page remains open, please paste the the entire address from your browser\'s address bar above into the following box and press "Validate Trello token".') }}
+      </div>
+      <div class="col-md-6">
+        {{ wtf.render_form(form) }}
+      </div>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+      $(function() {
+        const regexToken = /[&#]?token=([0-9a-fA-F]{64})/;
+        const match = regexToken.exec(location.hash);
+        if (match) {
+          token = match[1];
+          $('#trello_token').val(token);
+          $('form')[0].submit();
+        } else {
+          console.log("No token fragment identified");
+        }
+      });
+    </script>
+{% endblock %}

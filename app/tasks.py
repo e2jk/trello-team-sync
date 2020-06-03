@@ -11,7 +11,7 @@ from datetime import datetime
 from flask import render_template
 from rq import get_current_job
 from app import create_app, db
-from app.models import Task, Mapping
+from app.models import Task, Mapping, User
 from app.email import send_email
 from trello_team_sync import perform_request, process_master_card, output_summary
 
@@ -32,11 +32,12 @@ def run_mapping(mapping_id, run_type, elem_id):
                 destination_lists = json.loads(mapping.destination_lists)
             except (TypeError, json.decoder.JSONDecodeError):
                 app.logger.error("Mapping has invalid destination_lists")
+            user = User.query.get(mapping.user_id)
         if destination_lists and run_type in ("card", "list", "board"):
             args_from_app = {
                 "destination_lists": destination_lists,
                 "key": app.config['TRELLO_API_KEY'],
-                "token": mapping.token
+                "token": user.trello_token
             }
             if run_type == "card":
                 status_information = "Job running... Processing one single card."

@@ -25,12 +25,6 @@ class MultiCheckboxField(SelectMultipleField):
 class NewMappingForm(FlaskForm):
     name = StringField(_l('Mapping name'), validators=[DataRequired()])
     description = TextAreaField(_l('Mapping description (optional)'))
-    tku = '<a href="https://trello.com/app-key">https://trello.com/app-key</a>'
-    token = StringField(_l('Trello token'),
-        description=_l('Your Trello token can be created by clicking on the ' \
-        '"token" link on top of the at %(url)s page.', url=tku),
-        validators=[DataRequired(), Regexp("^[0-9a-fA-F]{64}$",
-            message=_l('Invalid Trello token format, it must be a 64 character string.'))])
     master_board = SelectField(_l('Master board'), coerce=str)
     labels = MultiCheckboxField(_l('Which labels need mapping?'), coerce=str, \
         render_kw={'style':'height: auto; list-style: none;'})

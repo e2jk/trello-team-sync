@@ -27,10 +27,18 @@
       {% endif %}
       {% endwith %}
 
+      {% if current_user.trello_token %}
       <div class="col-md-3">
         <h2>{{ _('New mapping') }}</h2>
         <a class="btn btn-info" href="{{ url_for('mapping.new_or_edit') }}" role="button">{{ _('Create a new mapping') }}</a>
       </div>
+      {% else %}
+      <div class="col">
+        <h2>{{ _('Connect to Trello') }}</h2>
+        <p>Please connect to Trello to start syncing cards:</p>
+        <a class="btn btn-info" href="{{ trello_authorizing_url }}" role="button">{{ _('Connect to Trello') }}</a>
+      </div>
+      {% endif %}
     </div>
 
     {% with recent_tasks = current_user.get_recent_tasks() %}

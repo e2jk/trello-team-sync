@@ -8,10 +8,11 @@ from flask import render_template, redirect, url_for, flash, request
 from werkzeug.urls import url_parse
 from flask_login import login_user, logout_user, current_user
 from flask_babel import _
+import re
 from app import db
 from app.auth import bp
 from app.auth.forms import LoginForm, RegistrationForm, \
-    ResetPasswordRequestForm, ResetPasswordForm
+    ResetPasswordRequestForm, ResetPasswordForm, ValidateTrelloTokenForm
 from app.models import User
 from app.auth.email import send_password_reset_email
 
@@ -86,3 +87,19 @@ def reset_password(token):
         flash(_('Your password has been reset.'))
         return redirect(url_for('auth.login'))
     return render_template('auth/reset_password.html', form=form)
+
+
+@bp.route('/validate_trello_token', methods=['GET', 'POST'])
+def validate_trello_token():
+    if not current_user.is_authenticated or current_user.trello_token:
+        return redirect(url_for('main.index'))
+    form = ValidateTrelloTokenForm()
+    if form.validate_on_submit():
+        match = re.search(ValidateTrelloTokenForm.trello_token_regexp, \
+            form.trello_token.data)
+        trello_token = match.group(4)
+        current_user.trello_token = trello_token
+        db.session.commit()
+        return redirect(url_for('main.index'))
+    return render_template('auth/validate_trello_token.html', form=form,
+        title=_('Validating Trello token'))

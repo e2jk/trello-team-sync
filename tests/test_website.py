@@ -66,8 +66,8 @@ class WebsiteTestCase(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def create_user(self, username, password, email=None):
-        u = User(username=username, email=email)
+    def create_user(self, username, password, email=None, trello_token=None):
+        u = User(username=username, email=email, trello_token=trello_token)
         u.set_password(password)
         db.session.add(u)
         db.session.commit()
@@ -299,6 +299,7 @@ class MiscTests(WebsiteTestCase):
                 self.assertIn(h, str(app.logger.handlers))
             self.assertEqual(aem.mock_calls, [])
 
+
 class TaskCase(WebsiteTestCase):
     @patch("app.tasks.get_current_job")
     def test_run_task(self, atgcj):
@@ -376,6 +377,9 @@ class TaskCase(WebsiteTestCase):
     @patch("app.tasks.process_master_card")
     @patch("app.tasks.perform_request")
     def test_run_mapping_vm_valid_args_card(self, atpr, atpmc, atstp):
+        u = User(username='john', email='john@example.com', trello_token="b2"*16)
+        db.session.add(u)
+        db.session.commit()
         destination_lists = {
             "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
             "Label Two": ["ddd"],
@@ -385,7 +389,7 @@ class TaskCase(WebsiteTestCase):
             ]
         }
         dl = json.dumps(destination_lists)
-        m = Mapping(name="abc", destination_lists=dl)
+        m = Mapping(name="abc", destination_lists=dl, user_id=u.id)
         db.session.add(m)
         db.session.commit()
         atpr.return_value = {"name": "Card name"}
@@ -393,7 +397,7 @@ class TaskCase(WebsiteTestCase):
         f = io.StringIO()
         with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
             run_mapping(m.id, "card", "abc")
-        expected_calls = [call('GET', 'cards/abc', key="a1"*16, token=None)]
+        expected_calls = [call('GET', 'cards/abc', key="a1"*16, token="b2"*16)]
         self.assertEqual(atpr.mock_calls, expected_calls)
         expected_logging = "INFO:app:Processing master card 1/1 - Card name"
         self.assertEqual(cm.output[1], expected_logging)
@@ -407,6 +411,9 @@ class TaskCase(WebsiteTestCase):
     @patch("app.tasks.process_master_card")
     @patch("app.tasks.perform_request")
     def test_run_mapping_vm_valid_args_list(self, atpr, atpmc, atstp):
+        u = User(username='john', email='john@example.com', trello_token="b2"*16)
+        db.session.add(u)
+        db.session.commit()
         destination_lists = {
             "Label One": ["a1a1a1a1a1a1a1a1a1a1a1a1"],
             "Label Two": ["ddd"],
@@ -416,7 +423,7 @@ class TaskCase(WebsiteTestCase):
             ]
         }
         dl = json.dumps(destination_lists)
-        m = Mapping(name="abc", destination_lists=dl)
+        m = Mapping(name="abc", destination_lists=dl, user_id=u.id)
         db.session.add(m)
         db.session.commit()
         atpr.return_value = [{"name": "Card name"}, {"name": "Second card"}]
@@ -424,7 +431,7 @@ class TaskCase(WebsiteTestCase):
         f = io.StringIO()
         with self.assertLogs(level='INFO') as cm, contextlib.redirect_stderr(f):
             run_mapping(m.id, "list", "def")
-        expected_calls = [call('GET', 'list/def/cards', key="a1"*16, token=None)]
+        expected_calls = [call('GET', 'list/def/cards', key="a1"*16, token="b2"*16)]
         self.assertEqual(atpr.mock_calls, expected_calls)
         expected_logging = ['INFO:app:Starting task for mapping 1, list def',
             'INFO:app:Processing master card 1/2 - Card name',
@@ -525,9 +532,14 @@ class AuthCase(WebsiteTestCase):
                 'Profile</a></li>',
             '<li class="nav-item"><a class="nav-link" href="/auth/logout">' \
                 'Logout</a></li>',
-            '<h2>New mapping</h2>',
-            '<a class="btn btn-info" href="/mapping/new" role="button">Create ' \
-                'a new mapping</a>']
+            '<title>Home - Trello Team Sync</title>',
+            '<h1>Hi, john!</h1>',
+            '<h2>Connect to Trello</h2>',
+            '<a class="btn btn-info" href="https://trello.com/1/authorize?name=' \
+                'Trello%20Team%20Sync&amp;scope=read,write&amp;expiration=never' \
+                '&amp;return_url=http://127.0.0.1:5000/auth/validate_trello_token' \
+                '&amp;key=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1&amp;' \
+                'callback_method=fragment" role="button">Connect to Trello</a>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
@@ -620,6 +632,62 @@ class AuthCase(WebsiteTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/")
 
+    def test_validate_trello_token_redirects(self):
+        # User needs to be logged in
+        response = self.client.get('/auth/validate_trello_token')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+        # User that already has his Trello token defined
+        self.create_user("john", "abc", trello_token="abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/auth/validate_trello_token')
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+
+    def test_validate_trello_token_get(self):
+        self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/auth/validate_trello_token')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Validating Trello token - Trello Team Sync</title>',
+            '<h1>Redirecting</h1>',
+            '<input class="form-control" id="trello_token" name="trello_token" ' \
+                'required type="text" value="">',
+            '<input class="btn btn-secondary btn-md" id="submit_trello_token" ' \
+                'name="submit_trello_token" type="submit" value="Validate ' \
+                'Trello token">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_validate_trello_token_post(self):
+        self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        # Invalid token format
+        response = self.client.post('/auth/validate_trello_token',
+            data=dict(trello_token="abc"))
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Validating Trello token - Trello Team Sync</title>',
+            '<h1>Redirecting</h1>',
+            '<input class="form-control is-invalid" id="trello_token" name="' \
+                'trello_token" required type="text" value="abc">',
+            '<div class="invalid-feedback">Invalid Trello token format, it ' \
+                'must be a 64 character string.</div>',
+            '<input class="btn btn-secondary btn-md" id="submit_trello_token" ' \
+                'name="submit_trello_token" type="submit" value="Validate ' \
+                'Trello token">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+        # Valid token format
+        response = self.client.post('/auth/validate_trello_token',
+            data=dict(trello_token="b2"*32))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "http://localhost/")
+
 
 class MainCase(WebsiteTestCase):
     def test_main_routes_not_logged_in_redirects(self):
@@ -641,10 +709,14 @@ class MainCase(WebsiteTestCase):
             '<title>Home - Trello Team Sync</title>',
             '<li class="nav-item"><a class="nav-link" href="/auth/logout">' \
                 'Logout</a></li>',
+            '<title>Home - Trello Team Sync</title>',
             '<h1>Hi, john!</h1>',
-            '<h2>New mapping</h2>',
-            '<a class="btn btn-info" href="/mapping/new" role="button">' \
-                'Create a new mapping</a>']
+            '<h2>Connect to Trello</h2>',
+            '<a class="btn btn-info" href="https://trello.com/1/authorize?name=' \
+                'Trello%20Team%20Sync&amp;scope=read,write&amp;expiration=never' \
+                '&amp;return_url=http://127.0.0.1:5000/auth/validate_trello_token' \
+                '&amp;key=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1&amp;' \
+                'callback_method=fragment" role="button">Connect to Trello</a>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
@@ -731,7 +803,6 @@ class MappingCase(WebsiteTestCase):
         mapping_name = "abc" if not secondary_user else "def"
         m = Mapping(name=mapping_name,
             description = "Mapping description for %s" % mapping_name,
-            token="b2"*32,
             master_board = "a"*24,
             destination_lists=dl
         )
@@ -890,8 +961,7 @@ class MappingCase(WebsiteTestCase):
 
     def get_data_step_valid(self):
         ds1ok = dict(name="Mapping name",
-            description="Nice description",
-            token="b2"*32)
+            description="Nice description")
         ds2ok = dict(ds1ok, master_board="a"*24)
         ds3ok = dict(ds2ok, labels="b"*24)
         ds4ok = dict(ds3ok, map_label0_lists="e"*24)
@@ -947,13 +1017,7 @@ class MappingCase(WebsiteTestCase):
             '<h1>New mapping, Step 1/4</h1>',
             '<input class="form-control" id="name" name="name" required ' \
                 'type="text" value="">',
-            '<textarea class="form-control" id="description" name="description">',
-            '<input class="form-control" id="token" name="token" required ' \
-                'type="text" value="">',
-            '<small class="form-text text-muted">Your Trello token can be ' \
-                'created by clicking on the "token" link on top of the at ' \
-                '<a href="https://trello.com/app-key">https://trello.com/' \
-                'app-key</a> page.</small>'
+            '<textarea class="form-control" id="description" name="description">'
         ]
         unexpected_content = [
             '<title>New mapping, Step 2/4 - Trello Team Sync</title>',
@@ -973,16 +1037,6 @@ class MappingCase(WebsiteTestCase):
         ]
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
             unexpected_content, data=dict(name=""))
-
-        # POST step 1, invalid token
-        expected_content = [
-            '<h1>New mapping, Step 1/4</h1>',
-            '<div class="invalid-feedback">Invalid Trello token ' \
-                'format, it must be a 64 character string.</div>'
-        ]
-        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
-            unexpected_content,
-            data=dict(name="Mapping name", key="a"*32, token="b"))
 
         # POST step 1, valid data
         expected_content = unexpected_content
@@ -1074,12 +1128,6 @@ class MappingCase(WebsiteTestCase):
                 'type="text" value="abc">',
             '<textarea class="form-control" id="description" name="description">',
             'Mapping description for abc</textarea>',
-            '<input class="form-control" id="token" name="token" required ' \
-                'type="text" value="%s">' % ("b2"*32),
-            '<small class="form-text text-muted">Your Trello token can be ' \
-                'created by clicking on the "token" link on top of the at ' \
-                '<a href="https://trello.com/app-key">https://trello.com/' \
-                'app-key</a> page.</small>',
             # Elements from step 2
             '<select class="form-control" id="master_board" ' \
             'name="master_board"><option',

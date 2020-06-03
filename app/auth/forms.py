@@ -6,7 +6,8 @@
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
+from wtforms.validators import ValidationError, DataRequired, Email, EqualTo, \
+    Regexp
 from flask_babel import _, lazy_gettext as _l
 from app.models import User
 
@@ -49,3 +50,11 @@ class ResetPasswordForm(FlaskForm):
         _l('Repeat Password'), validators=[DataRequired(),
                                            EqualTo('password')])
     submit = SubmitField(_l('Reset Password'))
+
+
+class ValidateTrelloTokenForm(FlaskForm):
+    trello_token_regexp = "^(.*/auth/validate_trello_token)?(#)?(token=)?([0-9a-fA-F]{64})$"
+    trello_token = StringField(_l('Trello token'), validators=[DataRequired(), \
+        Regexp(trello_token_regexp,
+        message=_l('Invalid Trello token format, it must be a 64 character string.'))])
+    submit_trello_token = SubmitField(_l('Validate Trello token'))
