@@ -37,7 +37,7 @@ def setUpModule():
 # Ensure config and cached values are empty before each new test
 def setUp(cls):
     target.config = None
-    target.cached_values = {"board": {}, "list": {}, "board_of_list": {}}
+    target.cache.clear()
 # Use this for all the tests
 unittest.TestCase.setUp = setUp
 
@@ -61,6 +61,7 @@ class FlaskTestCase(unittest.TestCase):
         db.session.remove()
         db.drop_all()
         target.app_context.pop()
+
 
 class TestOutputSummary(unittest.TestCase):
     def test_output_summary_propagate(self):
@@ -546,6 +547,7 @@ class TestGetName(unittest.TestCase):
         """
         Test getting a board's name, uncached
         """
+        t_pr.return_value = {"name": "abc"}
         target.get_name("board", "a1b2c3")
         expected = call('GET', 'board/a1b2c3')
         self.assertEqual(t_pr.mock_calls[0], expected)
@@ -558,13 +560,14 @@ class TestGetName(unittest.TestCase):
         expected_name = "Board name to be cached"
         # First call, expect network query and answer to be cached
         t_pr.side_effect = [{"name": expected_name}]
-        self.assertEqual(target.cached_values["board"], {})
+        cache_key = target.get_name.make_cache_key(target.get_name, "board", "a1b2c3")
+        self.assertEqual(target.cache.get(cache_key), None)
         board_name = target.get_name("board", "a1b2c3")
         expected_call = call('GET', 'board/a1b2c3')
         self.assertEqual(len(t_pr.mock_calls), 1)
         self.assertEqual(t_pr.mock_calls[0], expected_call)
         self.assertEqual(board_name, expected_name)
-        self.assertEqual(target.cached_values["board"], {"a1b2c3": "Board name to be cached"})
+        self.assertEqual(target.cache.get(cache_key), "Board name to be cached")
         # Second call, no new network call, value from the cache
         board_name = target.get_name("board", "a1b2c3")
         self.assertEqual(len(t_pr.mock_calls), 1)
@@ -575,6 +578,7 @@ class TestGetName(unittest.TestCase):
         """
         Test getting a list's name, uncached
         """
+        t_pr.return_value = {"name": "abc"}
         target.get_name("list", "d4e5f6")
         expected = call('GET', 'list/d4e5f6')
         self.assertEqual(t_pr.mock_calls[0], expected)
@@ -587,13 +591,14 @@ class TestGetName(unittest.TestCase):
         expected_name = "List name to be cached"
         # First call, expect network query and answer to be cached
         t_pr.side_effect = [{"name": expected_name}]
-        self.assertEqual(target.cached_values["list"], {})
+        cache_key = target.get_name.make_cache_key(target.get_name, "list", "d4e5f6")
+        self.assertEqual(target.cache.get(cache_key), None)
         list_name = target.get_name("list", "d4e5f6")
         expected_call = call('GET', 'list/d4e5f6')
         self.assertEqual(len(t_pr.mock_calls), 1)
         self.assertEqual(t_pr.mock_calls[0], expected_call)
         self.assertEqual(list_name, expected_name)
-        self.assertEqual(target.cached_values["list"], {"d4e5f6": "List name to be cached"})
+        self.assertEqual(target.cache.get(cache_key), "List name to be cached")
         # Second call, no new network call, value from the cache
         list_name = target.get_name("list", "d4e5f6")
         self.assertEqual(len(t_pr.mock_calls), 1)
@@ -689,6 +694,9 @@ class TestPerformRequest(FlaskTestCase):
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
         target.config = {"token": "jkl"}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {}
+        r_r.return_value = mock_response
         target.perform_request("GET", "cards/a1b2c3d4")
         expected = [call('GET', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
@@ -703,6 +711,9 @@ class TestPerformRequest(FlaskTestCase):
         """
         target.args = type(inspect.stack()[0][3], (object,), {"dry_run": True})()
         target.config = {"token": "jkl"}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {}
+        r_r.return_value = mock_response
         target.perform_request("GET", "cards/a1b2c3d4")
         expected = [call('GET', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
             call().raise_for_status(),
@@ -834,6 +845,29 @@ class TestPerformRequest(FlaskTestCase):
         r_r.return_value = mock_request
         with self.assertRaises(HTTPError) as cm:
             target.perform_request("GET", "cards/a1b2c3d4")
+
+    @patch("requests.request")
+    def test_perform_request_cached(self, r_r):
+        """
+        Test performing twice the same GET request, the second call will return the cached content
+        """
+        target.args = type(inspect.stack()[0][3], (object,), {"dry_run": False})()
+        target.config = {"token": "jkl"}
+        mock_response = MagicMock()
+        mock_response.json.return_value = {"key1": "value1", "key2": "value2"}
+        r_r.return_value = mock_response
+        output_first = target.perform_request("GET", "cards/a1b2c3d4")
+        expected = [call('GET', 'https://api.trello.com/1/cards/a1b2c3d4?key=ghi&token=jkl', params=None),
+            call().raise_for_status(),
+            call().json()]
+        self.assertEqual(r_r.mock_calls, expected)
+        self.assertEqual(len(r_r.mock_calls), 3)
+        # Second call, no additional external request, same output
+        output_second = target.perform_request("GET", "cards/a1b2c3d4")
+        self.assertEqual(r_r.mock_calls, expected)
+        self.assertEqual(len(r_r.mock_calls), 3)
+        self.assertEqual(output_first, output_second)
+        target.args = None
 
 
 class TestCreateNewSlaveCard(unittest.TestCase):

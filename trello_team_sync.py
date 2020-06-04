@@ -11,7 +11,7 @@ import os
 import sys
 import re
 from slugify import slugify
-from app import create_app
+from app import create_app, cache
 
 try:
     import readline
@@ -21,7 +21,6 @@ except ImportError:
 
 METADATA_PHRASE = "DO NOT EDIT BELOW THIS LINE"
 METADATA_SEPARATOR = "\n\n%s\n*== %s ==*\n" % ("-" * 32, METADATA_PHRASE)
-cached_values = {"board": {}, "list": {}, "board_of_list": {}}
 
 class TrelloConnectionError(Exception):
     pass
@@ -185,17 +184,13 @@ def update_master_card_metadata(master_card, new_master_card_metadata, pr_args={
         logging.debug(new_full_desc)
         perform_request("PUT", "cards/%s" % master_card["id"], {"desc": new_full_desc}, **pr_args)
 
+@cache.memoize(60)
 def get_name(record_type, record_id, pr_args={}):
-    global cached_values
-    if record_id not in cached_values[record_type]:
-        cached_values[record_type][record_id] = perform_request("GET", "%s/%s" % (record_type, record_id), **pr_args)["name"]
-    return cached_values[record_type][record_id]
+    return perform_request("GET", "%s/%s" % (record_type, record_id), **pr_args)["name"]
 
+@cache.memoize(60)
 def get_board_name_from_list(list_id, pr_args={}):
-    global cached_values
-    if list_id not in cached_values["board_of_list"]:
-        cached_values["board_of_list"][list_id] = perform_request("GET", "lists/%s" % list_id, **pr_args)["idBoard"]
-    return get_name("board", cached_values["board_of_list"][list_id], pr_args)
+    return get_name("board", perform_request("GET", "lists/%s" % list_id, **pr_args)["idBoard"], pr_args)
 
 def generate_master_card_metadata(slave_cards, pr_args={}):
     mcm = ""
@@ -206,6 +201,10 @@ def generate_master_card_metadata(slave_cards, pr_args={}):
     logging.debug("New master card metadata: %s" % mcm)
     return mcm
 
+def is_not_get_call(*args, **kwargs):
+    return not (args[1] == "GET")
+
+@cache.memoize(60, unless=is_not_get_call)
 def perform_request(method, url, query=None, key=None, token=None):
     if method not in ("GET", "POST", "PUT", "DELETE"):
         logging.critical("HTTP method '%s' not supported. Exiting..." % method)

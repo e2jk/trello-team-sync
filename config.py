@@ -26,3 +26,4 @@ class Config(object):
     LANGUAGES = ['en']
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
     TRELLO_API_KEY = os.environ.get('TRELLO_API_KEY')
+    CACHE_TYPE = 'simple'
