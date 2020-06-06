@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#    This file is part of trello-team-sync and is MIT-licensed.
+#    This file is part of SyncBoom and is MIT-licensed.
 #    Originally based on microblog, licensed under the MIT License.
 
 from flask import render_template, redirect, url_for, flash, request

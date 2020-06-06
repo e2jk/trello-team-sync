@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#    This file is part of trello-team-sync and is MIT-licensed.
+#    This file is part of SyncBoom and is MIT-licensed.
 
 from datetime import datetime
 from flask import render_template, flash, redirect, url_for, request, g, \
@@ -18,7 +18,7 @@ import requests
 import re
 from wtforms import BooleanField
 import json
-from trello_team_sync import perform_request
+from syncboom import perform_request
 
 
 @bp.before_app_request

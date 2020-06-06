@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#    This file is part of trello-team-sync and is MIT-licensed.
+#    This file is part of SyncBoom and is MIT-licensed.
 #    Originally based on microblog, licensed under the MIT License.
 
 import json
@@ -13,7 +13,7 @@ from rq import get_current_job
 from app import create_app, db
 from app.models import Task, Mapping, User
 from app.email import send_email
-from trello_team_sync import perform_request, process_master_card, output_summary
+from syncboom import perform_request, process_master_card, output_summary
 
 app = create_app()
 app.app_context().push()

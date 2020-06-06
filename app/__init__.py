@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#    This file is part of trello-team-sync and is MIT-licensed.
+#    This file is part of SyncBoom and is MIT-licensed.
 #    Originally based on microblog, licensed under the MIT License.
 
 import logging
@@ -45,7 +45,7 @@ def create_app(config_class=Config):
     babel.init_app(app)
     cache.init_app(app)
     app.redis = Redis.from_url(app.config['REDIS_URL'])
-    app.task_queue = rq.Queue('trello-team-sync-tasks', connection=app.redis)
+    app.task_queue = rq.Queue('syncboom-tasks', connection=app.redis)
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
@@ -71,7 +71,7 @@ def create_app(config_class=Config):
             mail_handler = SMTPHandler(
                 mailhost=(app.config['MAIL_SERVER'], app.config['MAIL_PORT']),
                 fromaddr='no-reply@' + app.config['MAIL_SERVER'],
-                toaddrs=app.config['ADMINS'], subject='Trello Team Sync Failure',
+                toaddrs=app.config['ADMINS'], subject='[SyncBoom] Failure',
                 credentials=auth, secure=secure)
             mail_handler.setLevel(logging.ERROR)
             app.logger.addHandler(mail_handler)
@@ -83,7 +83,7 @@ def create_app(config_class=Config):
         else:
             if not os.path.exists('logs'):
                 os.mkdir('logs')
-            file_handler = RotatingFileHandler('logs/trello-team-sync.log',
+            file_handler = RotatingFileHandler('logs/syncboom.log',
                                                maxBytes=10240, backupCount=10)
             file_handler.setFormatter(logging.Formatter(
                 '%(asctime)s %(levelname)s: %(message)s '

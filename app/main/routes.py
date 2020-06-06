@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#    This file is part of trello-team-sync and is MIT-licensed.
+#    This file is part of SyncBoom and is MIT-licensed.
 #    Originally based on microblog, licensed under the MIT License.
 
 from datetime import datetime
@@ -36,7 +36,7 @@ def index():
         "key=%s&" \
         "callback_method=fragment" % \
         (
-            "Trello%20Team%20Sync",
+            "SyncBoom",
             redirect_url,
             current_app.config["TRELLO_API_KEY"]
         )

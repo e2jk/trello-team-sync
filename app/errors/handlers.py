@@ -1,14 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#    This file is part of trello-team-sync and is MIT-licensed.
+#    This file is part of SyncBoom and is MIT-licensed.
 #    Originally based on microblog, licensed under the MIT License.
 
 from flask import render_template, request
 from flask_babel import _
 from app import db
 from app.errors import bp
-from trello_team_sync import TrelloConnectionError, TrelloAuthenticationError
+from syncboom import TrelloConnectionError, TrelloAuthenticationError
 
 
 @bp.app_errorhandler(404)

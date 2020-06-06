@@ -6,7 +6,7 @@
 # Checking the coverage of the tests:
 # $ coverage run --include=./*.py --omit=tests/* -m unittest discover && \
 #   rm -rf html_dev/coverage && coverage html --directory=html_dev/coverage \
-#   --title="Code test coverage for trello-team-sync"
+#   --title="Code test coverage for SyncBoom"
 
 import unittest
 import sys
@@ -22,7 +22,7 @@ from app import create_app, db
 from config import Config
 
 sys.path.append('.')
-target = __import__("trello_team_sync")
+target = __import__("syncboom")
 
 # Used to test manual entry
 def setUpModule():
@@ -159,7 +159,7 @@ class TestGetCardAttachments(unittest.TestCase):
         card_attachments = target.get_card_attachments(card)
         self.assertEqual(card_attachments, [])
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_get_card_attachments_non_trello(self, t_pr):
         """
         Test the logic retrieving attachments from a card without Trello attachments
@@ -169,7 +169,7 @@ class TestGetCardAttachments(unittest.TestCase):
         card_attachments = target.get_card_attachments(card)
         self.assertEqual(card_attachments, [])
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_get_card_attachments_one_trello(self, t_pr):
         """
         Test retrieving attachments from a card with one Trello attachment
@@ -183,7 +183,7 @@ class TestGetCardAttachments(unittest.TestCase):
             "url": "https://trello.com/c/%s/blablabla" % shortLink}]
         self.assertEqual(card_attachments, expected_card_attachments)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_get_card_attachments_various(self, t_pr):
         """
         Test retrieving attachments from a card with both Trello and non-Trello attachments
@@ -204,7 +204,7 @@ class TestGetCardAttachments(unittest.TestCase):
 
 
 class TestCleanupTestBoards(unittest.TestCase):
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_cleanup_test_boards_not_configured(self, t_pr):
         """
         Test cleaning when the config has no whitelisted boards that are allowed to be cleaned up
@@ -215,7 +215,7 @@ class TestCleanupTestBoards(unittest.TestCase):
         self.assertEqual(cm1.exception.code, 43)
         self.assertEqual(cm2.output, ["CRITICAL:root:This configuration has not been enabled to accept the --cleanup operation. See the `cleanup_boards` section in the config file. Exiting..."])
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_cleanup_test_boards_not_whitelisted(self, t_pr):
         """
         Test cleaning up a board that is not whitelisted for cleaning up
@@ -237,7 +237,7 @@ class TestCleanupTestBoards(unittest.TestCase):
         self.assertEqual(cm1.exception.code, 44)
         self.assertEqual(cm2.output, ["CRITICAL:root:This board qqqqqqqqqqqqqqqqqqqqqqqq is not whitelisted to be cleaned up. See the `cleanup_boards` section in the config file. Exiting..."])
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_cleanup_test_boards_none(self, t_pr):
         """
         Test cleaning up the test boards when there is no master card and no cards on the slave lists
@@ -282,7 +282,7 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:List Destination board name 2/Destination list name 2 has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_cleanup_test_boards_no_mc_yes_sc(self, t_pr):
         """
         Test cleaning up the test boards when there is no master card and cards on the slave lists
@@ -331,7 +331,7 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:Deleting slave card jjjjjjjjjjjjjjjjjjjjjjjj"]
         self.assertEqual(cm.output, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_cleanup_test_boards_master_card_no_attach(self, t_pr):
         """
         Test cleaning up the test boards with a master card without attachment
@@ -381,7 +381,7 @@ class TestCleanupTestBoards(unittest.TestCase):
             "DEBUG:root:List Destination board name 2/Destination list name 2 has 0 cards to delete"]
         self.assertEqual(cm.output, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_cleanup_test_boards_master_card_attach(self, t_pr):
         """
         Test cleaning up the test boards with a master card with related attachment
@@ -439,7 +439,7 @@ class TestCleanupTestBoards(unittest.TestCase):
 
 
 class TestUpdateMasterCardMetadata(unittest.TestCase):
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_update_master_card_metadata_both_none(self, t_pr):
         """
         Test updating a card that had no metadata with empty metadata
@@ -449,7 +449,7 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
         # Confirm perform_request hasn't been called
         self.assertEqual(t_pr.mock_calls, [])
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_update_master_card_metadata(self, t_pr):
         """
         Test updating a card that had no metadata with new metadata
@@ -461,7 +461,7 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
             {'desc': 'abc\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\njsdofhzpeh\nldjfozije'})]
         self.assertEqual(t_pr.mock_calls, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_update_master_card_metadata_empty(self, t_pr):
         """
         Test updating a card's that had metadata with empty metadata
@@ -473,7 +473,7 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
         expected = [call('PUT', 'cards/1a2b3c', {'desc': main_desc})]
         self.assertEqual(t_pr.mock_calls, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_update_master_card_metadata_both(self, t_pr):
         """
         Test updating a card's that had metadata with new metadata
@@ -487,7 +487,7 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
             {'desc': "%s%s%s" % (main_desc, target.METADATA_SEPARATOR, new_metadata)})]
         self.assertEqual(t_pr.mock_calls, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_update_master_card_metadata_same(self, t_pr):
         """
         Test updating a card's that had metadata with the same new metadata
@@ -542,7 +542,7 @@ class TestSplitMasterCardMetadata(unittest.TestCase):
 
 
 class TestGetName(unittest.TestCase):
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_get_name_board_uncached(self, t_pr):
         """
         Test getting a board's name, uncached
@@ -552,7 +552,7 @@ class TestGetName(unittest.TestCase):
         expected = call('GET', 'board/a1b2c3')
         self.assertEqual(t_pr.mock_calls[0], expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_get_name_board_cached(self, t_pr):
         """
         Test getting a board's name, cached
@@ -573,7 +573,7 @@ class TestGetName(unittest.TestCase):
         self.assertEqual(len(t_pr.mock_calls), 1)
         self.assertEqual(board_name, expected_name)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_get_name_list_uncached(self, t_pr):
         """
         Test getting a list's name, uncached
@@ -583,7 +583,7 @@ class TestGetName(unittest.TestCase):
         expected = call('GET', 'list/d4e5f6')
         self.assertEqual(t_pr.mock_calls[0], expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_get_name_list_cached(self, t_pr):
         """
         Test getting a list's name, cached
@@ -606,7 +606,7 @@ class TestGetName(unittest.TestCase):
 
 
 class TestGetBoardNameFromList(unittest.TestCase):
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_get_board_name_from_list_uncached(self, t_pr):
         """
         Test getting a board's name from one of it's list ID, uncached
@@ -619,7 +619,7 @@ class TestGetBoardNameFromList(unittest.TestCase):
         self.assertEqual(board_name, expected_name)
         self.assertEqual(t_pr.mock_calls, expected_calls)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_get_board_name_from_list_cached(self, t_pr):
         """
         Test getting a board's name from one of it's list ID, cached
@@ -640,7 +640,7 @@ class TestGetBoardNameFromList(unittest.TestCase):
 
 
 class TestGenerateMasterCardMetadata(unittest.TestCase):
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_generate_master_card_metadata_no_slave_cards(self, t_pr):
         """
         Test generating a master card's metadata that has no slave cards
@@ -651,7 +651,7 @@ class TestGenerateMasterCardMetadata(unittest.TestCase):
         self.assertEqual(t_pr.mock_calls, [])
         self.assertEqual(new_master_card_metadata, "")
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_generate_master_card_metadata_no_slave_cards_uncached(self, t_pr):
         """
         Test generating a master card's metadata that has 3 slave cards, uncached
@@ -871,7 +871,7 @@ class TestPerformRequest(FlaskTestCase):
 
 
 class TestCreateNewSlaveCard(unittest.TestCase):
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_create_new_slave_card(self, t_pr):
         """
         Test creating a new card
@@ -905,7 +905,7 @@ class TestGlobals(unittest.TestCase):
 
 
 class TestNewWebhook(unittest.TestCase):
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_new_webhook(self, t_pr):
         """
         Test creating a new webhook
@@ -918,7 +918,7 @@ class TestNewWebhook(unittest.TestCase):
 
 
 class TestListWebhooks(unittest.TestCase):
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_list_webhooks(self, t_pr):
         """
         Test listing webhooks
@@ -932,7 +932,7 @@ class TestListWebhooks(unittest.TestCase):
 
 
 class TestDeleteWebhook(unittest.TestCase):
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_delete_webhook_none(self, t_pr):
         """
         Test deleting this board's webhook when no webhook exists
@@ -943,7 +943,7 @@ class TestDeleteWebhook(unittest.TestCase):
         expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_delete_webhook_one_ok(self, t_pr):
         """
         Test deleting this board's webhook when there is one webhook for that board
@@ -955,7 +955,7 @@ class TestDeleteWebhook(unittest.TestCase):
             call('DELETE', 'webhooks/kdfg')]
         self.assertEqual(t_pr.mock_calls, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_delete_webhook_one_nok(self, t_pr):
         """
         Test deleting this board's webhook when there is one webhook but not for that board
@@ -966,7 +966,7 @@ class TestDeleteWebhook(unittest.TestCase):
         expected = [call('GET', 'tokens/jkl/webhooks')]
         self.assertEqual(t_pr.mock_calls, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_delete_webhook_multiple_ok(self, t_pr):
         """
         Test deleting this board's webhook when there are multiple webhook including for that board
@@ -980,7 +980,7 @@ class TestDeleteWebhook(unittest.TestCase):
             call('DELETE', 'webhooks/kdfg3')]
         self.assertEqual(t_pr.mock_calls, expected)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_delete_webhook_multiple_ok(self, t_pr):
         """
         Test deleting this board's webhook when there are multiple webhook including for that board
@@ -1289,8 +1289,8 @@ class TestParseArgs(unittest.TestCase):
 
 
 class TestInitMain(unittest.TestCase):
-    @patch("trello_team_sync.cleanup_test_boards")
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.cleanup_test_boards")
+    @patch("syncboom.perform_request")
     def test_init_cleanup(self, t_pr, t_ctb):
         """
         Test the initialization code with --cleanup parameter
@@ -1308,7 +1308,7 @@ class TestInitMain(unittest.TestCase):
         self.assertEqual(f.getvalue(), "WARNING: this will delete all cards on the slave lists. Type 'YES' to confirm, or 'q' to quit:\u0020\n")
         self.assertEqual(t_ctb.mock_calls[0], call([{'id': 'aaaaaaaaaaaaaaaaaaaaaaaa'}, {'id': 'bbbbbbbbbbbbbbbbbbbbbbbb'}]))
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_init_cleanup_no(self, t_pr):
         """
         Test the initialization code with --cleanup parameter, don't accept warning message
@@ -1332,8 +1332,8 @@ Exiting...
 """
         self.assertEqual(f.getvalue(), expected_output)
 
-    @patch("trello_team_sync.cleanup_test_boards")
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.cleanup_test_boards")
+    @patch("syncboom.perform_request")
     def test_init_cleanup_dry_run_default_config(self, t_pr, t_ctb):
         """
         Test the initialization code with --cleanup parameter, --dry-run and default config file
@@ -1350,7 +1350,7 @@ Exiting...
                 target.init()
             self.assertEqual(str(cm1.exception), "[Errno 2] No such file or directory: 'data/config.json'")
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_init_new_config(self, t_pr):
         """
         Test the initialization code with --new-config
@@ -1367,8 +1367,8 @@ Exiting...
             target.init()
         self.assertEqual(cm1.exception.code, 35)
 
-    @patch("trello_team_sync.process_master_card")
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.process_master_card")
+    @patch("syncboom.perform_request")
     def test_init_propagate_empty(self, t_pr, t_pmc):
         """
         Test the initialization code with --propagate with a single non-relevant master card
@@ -1383,7 +1383,7 @@ Exiting...
         self.assertEqual(t_pmc.mock_calls[0], call({'id': 'aaaaaaaaaaaaaaaaaaaaaaaa', 'name': 'Master card name', 'labels': {}, 'badges': {'attachments': 0}, 'desc': 'Desc'}))
         self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 20 active) that have 30 slave cards (of which 40 new)." in cm.output)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_init_propagate_list_invalid(self, t_pr):
         """
         Test the initialization code with --propagate and --list that's not on the master board
@@ -1395,8 +1395,8 @@ Exiting...
         self.assertEqual(cm1.exception.code, 32)
         self.assertTrue("CRITICAL:root:List b2b2b2b2b2b2b2b2b2b2b2b2 is not on the master board ghi. Exiting..." in cm2.output)
 
-    @patch("trello_team_sync.process_master_card")
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.process_master_card")
+    @patch("syncboom.perform_request")
     def test_init_propagate_list(self, t_pr, t_pmc):
         """
         Test the initialization code with --propagate and --list that's on the master board, then a single non-relevant master card
@@ -1415,7 +1415,7 @@ Exiting...
         self.assertEqual(t_pmc.mock_calls[0], call({'id': 'aaaaaaaaaaaaaaaaaaaaaaaa', 'name': 'Master card name', 'labels': {}, 'badges': {'attachments': 0}, 'desc': 'Desc'}))
         self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 30 active) that have 40 slave cards (of which 50 new)." in cm.output)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_init_propagate_card_invalid_404(self, t_pr):
         """
         Test the initialization code with --propagate and --card that doesn't exist (404 error)
@@ -1432,7 +1432,7 @@ Exiting...
         self.assertEqual(cm1.exception.code, 33)
         self.assertTrue("CRITICAL:root:Invalid card ID d4d4d4d4d4d4d4d4d4d4d4d4, card not found. Exiting..." in cm2.output)
 
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.perform_request")
     def test_init_propagate_card_invalid_not_master_board(self, t_pr):
         """
         Test the initialization code with --propagate and --card that's not on the master board
@@ -1449,8 +1449,8 @@ Exiting...
         self.assertEqual(cm1.exception.code, 31)
         self.assertTrue("CRITICAL:root:Card d4d4d4d4d4d4d4d4d4d4d4d4 is not located on the master board ghi. Exiting..." in cm2.output)
 
-    @patch("trello_team_sync.process_master_card")
-    @patch("trello_team_sync.perform_request")
+    @patch("syncboom.process_master_card")
+    @patch("syncboom.perform_request")
     def test_init_propagate_card(self, t_pr, t_pmc):
         """
         Test the initialization code with --propagate and valid --card
@@ -1466,7 +1466,7 @@ Exiting...
         self.assertEqual(t_pmc.mock_calls[0], call({'idBoard': 'ghi', 'id': 'odn', 'shortLink': 'eoK0Rngb', 'name': 'Master card name', 'labels': {}, 'badges': {'attachments': 0}, 'desc': 'Desc'}))
         self.assertTrue("INFO:root:Summary: processed 1 master cards (of which 40 active) that have 50 slave cards (of which 60 new)." in cm.output)
 
-    @patch("trello_team_sync.new_webhook")
+    @patch("syncboom.new_webhook")
     def test_init_webhook_new(self, t_nw):
         """
         Test the initialization code with --webhook new
@@ -1477,7 +1477,7 @@ Exiting...
         # Confirm we called new_webhook()
         self.assertEqual(t_nw.mock_calls, [call()])
 
-    @patch("trello_team_sync.list_webhooks")
+    @patch("syncboom.list_webhooks")
     def test_init_webhook_list(self, t_lw):
         """
         Test the initialization code with --webhook list
@@ -1488,7 +1488,7 @@ Exiting...
         # Confirm we called list_webhooks()
         self.assertEqual(t_lw.mock_calls, [call()])
 
-    @patch("trello_team_sync.delete_webhook")
+    @patch("syncboom.delete_webhook")
     def test_init_webhook_delete(self, t_dw):
         """
         Test the initialization code with --webhook delete
@@ -1516,10 +1516,10 @@ class TestLicense(unittest.TestCase):
 
     def test_license_mention(self):
         """Validate that the script file contain a mention of the license"""
-        with open('trello_team_sync.py') as f:
+        with open('syncboom.py') as f:
             s = f.read()
             # Confirm it is the MIT License
-            self.assertTrue("#    This file is part of trello-team-sync and is MIT-licensed." in s)
+            self.assertTrue("#    This file is part of SyncBoom and is MIT-licensed." in s)
 
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@
 # Checking the coverage of the tests:
 # $ coverage run --include=./*.py --omit=tests/* -m unittest discover && \
 #   rm -rf html_dev/coverage && coverage html --directory=html_dev/coverage \
-#   --title="Code test coverage for trello-team-sync"
+#   --title="Code test coverage for SyncBoom"
 
 from datetime import datetime, timedelta
 import unittest
@@ -532,11 +532,11 @@ class AuthCase(WebsiteTestCase):
                 'Profile</a></li>',
             '<li class="nav-item"><a class="nav-link" href="/auth/logout">' \
                 'Logout</a></li>',
-            '<title>Home - Trello Team Sync</title>',
+            '<title>Home - SyncBoom</title>',
             '<h1>Hi, john!</h1>',
             '<h2>Connect to Trello</h2>',
             '<a class="btn btn-info" href="https://trello.com/1/authorize?name=' \
-                'Trello%20Team%20Sync&amp;scope=read,write&amp;expiration=never' \
+                'SyncBoom&amp;scope=read,write&amp;expiration=never' \
                 '&amp;return_url=http://127.0.0.1:5000/auth/validate_trello_token' \
                 '&amp;key=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1&amp;' \
                 'callback_method=fragment" role="button">Connect to Trello</a>']
@@ -652,7 +652,7 @@ class AuthCase(WebsiteTestCase):
         response = self.client.get('/auth/validate_trello_token')
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Validating Trello token - Trello Team Sync</title>',
+            '<title>Validating Trello token - SyncBoom</title>',
             '<h1>Redirecting</h1>',
             '<input class="form-control" id="trello_token" name="trello_token" ' \
                 'required type="text" value="">',
@@ -671,7 +671,7 @@ class AuthCase(WebsiteTestCase):
             data=dict(trello_token="abc"))
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Validating Trello token - Trello Team Sync</title>',
+            '<title>Validating Trello token - SyncBoom</title>',
             '<h1>Redirecting</h1>',
             '<input class="form-control is-invalid" id="trello_token" name="' \
                 'trello_token" required type="text" value="abc">',
@@ -706,14 +706,14 @@ class MainCase(WebsiteTestCase):
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Home - Trello Team Sync</title>',
+            '<title>Home - SyncBoom</title>',
             '<li class="nav-item"><a class="nav-link" href="/auth/logout">' \
                 'Logout</a></li>',
-            '<title>Home - Trello Team Sync</title>',
+            '<title>Home - SyncBoom</title>',
             '<h1>Hi, john!</h1>',
             '<h2>Connect to Trello</h2>',
             '<a class="btn btn-info" href="https://trello.com/1/authorize?name=' \
-                'Trello%20Team%20Sync&amp;scope=read,write&amp;expiration=never' \
+                'SyncBoom&amp;scope=read,write&amp;expiration=never' \
                 '&amp;return_url=http://127.0.0.1:5000/auth/validate_trello_token' \
                 '&amp;key=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1&amp;' \
                 'callback_method=fragment" role="button">Connect to Trello</a>']
@@ -749,7 +749,7 @@ class MainCase(WebsiteTestCase):
         response = self.client.get('/edit_profile')
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Edit Profile - Trello Team Sync</title>',
+            '<title>Edit Profile - SyncBoom</title>',
             '<h1>Edit Profile</h1>',
             '<input class="form-control" id="username" name="username" ' \
                 'required type="text" value="john">']
@@ -775,7 +775,7 @@ class MainCase(WebsiteTestCase):
         response = self.client.post('/edit_profile', data=dict(username="j2"))
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Edit Profile - Trello Team Sync</title>',
+            '<title>Edit Profile - SyncBoom</title>',
             '<h1>Edit Profile</h1>',
             '<div class="invalid-feedback">Please use a different username.</div>']
         for ec in expected_content:
@@ -786,7 +786,7 @@ class MainCase(WebsiteTestCase):
         response = self.client.get('/non_existent_route')
         self.assertEqual(response.status_code, 404)
         expected_content = [
-            '<title>Page Not Found - Trello Team Sync</title>',
+            '<title>Page Not Found - SyncBoom</title>',
             '<h1>Page Not Found</h1>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
@@ -820,7 +820,7 @@ class MappingCase(WebsiteTestCase):
         response = self.client.get('/mapping/%d/delete' % m.id)
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Delete mapping &#34;abc&#34; ? - Trello Team Sync</title>',
+            '<title>Delete mapping &#34;abc&#34; ? - SyncBoom</title>',
             '<h1>Delete mapping &#34;abc&#34; ?</h1>',
             '<input class="btn btn-danger btn-md" id="submit" name="submit" ' \
                 'type="submit" value="Delete mapping">']
@@ -838,7 +838,7 @@ class MappingCase(WebsiteTestCase):
         (u2, m2) = self.create_user_mapping_and_login(secondary_user=True)
 
         expected_content = [
-        '<title>Invalid mapping - Trello Team Sync</title>',
+        '<title>Invalid mapping - SyncBoom</title>',
         '<h1>Invalid mapping</h1>',
         '<div class="alert alert-danger">\n      <strong>Error!</strong> ' \
         'You don\'t have access to this mapping.\n    </div>',
@@ -880,7 +880,7 @@ class MappingCase(WebsiteTestCase):
         response = self.client.get("/mapping/%d" % m.id)
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Run mapping &#34;abc&#34; - Trello Team Sync</title>',
+            '<title>Run mapping &#34;abc&#34; - SyncBoom</title>',
             '<h1>Run mapping &#34;abc&#34;</h1>',
             'Would you like to:<br/><br/>',
             '<input class="btn btn-secondary btn-md" id="submit_board" name="' \
@@ -1013,14 +1013,14 @@ class MappingCase(WebsiteTestCase):
 
         # GET step 1
         expected_content = [
-            '<title>New mapping, Step 1/4 - Trello Team Sync</title>',
+            '<title>New mapping, Step 1/4 - SyncBoom</title>',
             '<h1>New mapping, Step 1/4</h1>',
             '<input class="form-control" id="name" name="name" required ' \
                 'type="text" value="">',
             '<textarea class="form-control" id="description" name="description">'
         ]
         unexpected_content = [
-            '<title>New mapping, Step 2/4 - Trello Team Sync</title>',
+            '<title>New mapping, Step 2/4 - SyncBoom</title>',
             '<h1>New mapping, Step 2/4</h1>',
             '<select class="form-control" id="master_board" ' \
                 'name="master_board"><option',
@@ -1041,7 +1041,7 @@ class MappingCase(WebsiteTestCase):
         # POST step 1, valid data
         expected_content = unexpected_content
         unexpected_content = [
-            '<title>New mapping, Step 3/4 - Trello Team Sync</title>',
+            '<title>New mapping, Step 3/4 - SyncBoom</title>',
             '<h1>New mapping, Step 3/4</h1>',
             '<label class="form-control-label" for="labels">Which labels need ' \
                 'mapping?</label>',
@@ -1054,7 +1054,7 @@ class MappingCase(WebsiteTestCase):
             unexpected_content, data=ds1ok)
 
         # POST step 2, invalid master_board, no specific error message
-        expected_content = ['<title>New mapping, Step 2/4 - Trello Team Sync' \
+        expected_content = ['<title>New mapping, Step 2/4 - SyncBoom' \
             '</title>',
             '<h1>New mapping, Step 2/4</h1>',
         ]
@@ -1064,7 +1064,7 @@ class MappingCase(WebsiteTestCase):
         # POST step 2, valid data
         expected_content = unexpected_content
         unexpected_content = [
-            '<title>New mapping, Step 4/4 - Trello Team Sync</title>',
+            '<title>New mapping, Step 4/4 - SyncBoom</title>',
             '<h1>New mapping, Step 4/4</h1>',
             '<label class="form-control-label" for="map_label0_lists">Map label ' \
                 '&#34;Label Name Two&#34; to which Trello lists?</label>',
@@ -1121,7 +1121,7 @@ class MappingCase(WebsiteTestCase):
 
         # GET step 1
         expected_content_step_1 = [
-            '<title>Edit mapping 1 - Trello Team Sync</title>',
+            '<title>Edit mapping 1 - SyncBoom</title>',
             '<h1>Edit mapping 1</h1>',
             # Elements from step 1
             '<input class="form-control" id="name" name="name" required ' \
@@ -1151,7 +1151,7 @@ class MappingCase(WebsiteTestCase):
 
         # POST, error on step 4
         expected_content = [
-            '<title>Edit mapping 1, Step 4/4 - Trello Team Sync</title>',
+            '<title>Edit mapping 1, Step 4/4 - SyncBoom</title>',
             '<h1>Edit mapping 1, Step 4/4</h1>',
             '<label class="form-control-label" for="map_label0_lists">Map label ' \
                 '&#34;Label Name Two&#34; to which Trello lists?</label>',
