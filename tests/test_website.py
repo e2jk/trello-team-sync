@@ -776,6 +776,17 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
+    def test_main_routes_pricing(self):
+        response = self.client.get('/pricing')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Pricing - SyncBoom</title>',
+            '<h1>Pricing</h1>',
+            'As SyncBoom is just being launched, the current features are '\
+                'all free of cost.']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
     def test_main_routes_notifications(self):
         u = self.create_user("john", "abc")
         response = self.login("john", "abc")

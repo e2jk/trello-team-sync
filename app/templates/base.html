@@ -29,6 +29,9 @@
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('main.contact') }}">{{ _('Contact') }}</a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.pricing') }}">{{ _('Pricing') }}</a>
+          </li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
           {% if current_user.is_anonymous %}

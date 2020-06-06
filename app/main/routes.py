@@ -77,3 +77,8 @@ def notifications():
 @bp.route('/contact')
 def contact():
     return render_template('contact.html', title=_('Contact Us'))
+
+
+@bp.route('/pricing')
+def pricing():
+    return render_template('pricing.html', title=_('Pricing'))
