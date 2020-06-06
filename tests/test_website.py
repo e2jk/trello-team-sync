@@ -744,7 +744,18 @@ class MainCase(WebsiteTestCase):
             self.assertEqual(response.headers["Location"],
                 "http://localhost/auth/login?next=%s" % quote(url, safe=''))
 
-    def test_main_routes_home(self):
+    def test_main_routes_home_not_logged_in(self):
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+        '<title>Welcome - SyncBoom</title>',
+        '<h1 class="display-4">Welcome to SyncBoom!</h1>',
+        'SyncBoom enables you to "push" cards from one Master Trello board '\
+            'onto one or multiple destination lists.']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_main_routes_home_logged_in(self):
         u = self.create_user("john", "abc")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
