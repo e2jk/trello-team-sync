@@ -33,6 +33,7 @@
         <ul class="nav navbar-nav navbar-right">
           {% if current_user.is_anonymous %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.login') }}">{{ _('Login') }}</a></li>
+          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.register') }}">{{ _('Register') }}</a></li>
           {% else %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('main.edit_profile') }}">{{ _('Profile') }}</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a></li>
