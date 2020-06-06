@@ -8,6 +8,8 @@
     {% block styles %}
     <!-- Bootstrap CSS -->
     {{ bootstrap.load_css() }}
+    <!-- Cookie Consent CSS -->
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
     {% endblock %}
 
     <title>{% if title %}{{ title }} - {% endif %}SyncBoom</title>
@@ -79,6 +81,19 @@
     {{ bootstrap.load_js() }}
     {{ moment.include_moment() }}
     {{ moment.lang(g.locale) }}
+    <script src="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.js" data-cfasync="false"></script>
+    <script>
+      window.cookieconsent.initialise({
+        "palette": {
+          "popup": {
+            "background": "#000"
+          },
+          "button": {
+            "background": "#f1d600"
+          }
+        }
+      });
+    </script>
     <script>
       function set_task_progress(task_id, progress) {
         $('#' + task_id + '-progress').text(progress);
