@@ -4,6 +4,7 @@ html_dev/coverage/
 logs/
 startup.sh
 temp/
+.venv-syncboom/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
