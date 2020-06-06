@@ -24,7 +24,7 @@ def before_request():
     g.locale = str(get_locale())
 
 
-@bp.route('/', methods=['GET', 'POST'])
+@bp.route('/')
 @login_required
 def index():
     redirect_url = "http://127.0.0.1:5000/auth/validate_trello_token"
