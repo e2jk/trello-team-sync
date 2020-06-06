@@ -494,6 +494,18 @@ class AuthCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
+        # Test with an invalid email address (invalid format)
+        response = self.register("john", "invalid", "abc", "abc")
+        self.assertEqual(response.status_code, 200)
+        ec = '<div class="invalid-feedback">Invalid email address.</div>'
+        self.assertIn(str.encode(ec), response.data)
+
+        # Test with an invalid email address (too long)
+        response = self.register("john", "%s@example.com" % ("john"*20), "abc", \
+            "abc")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(str.encode(ec), response.data)
+
     def test_register(self):
         # First registration is succesful
         response = self.register("john", "john@example.com", "abc", "abc")
