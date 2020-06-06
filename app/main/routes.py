@@ -70,3 +70,8 @@ def notifications():
         'data': n.get_data(),
         'timestamp': n.timestamp
     } for n in notifications])
+
+
+@bp.route('/contact')
+def contact():
+    return render_template('contact.html', title=_('Contact Us'))

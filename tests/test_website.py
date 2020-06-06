@@ -709,7 +709,6 @@ class MainCase(WebsiteTestCase):
             '<title>Home - SyncBoom</title>',
             '<li class="nav-item"><a class="nav-link" href="/auth/logout">' \
                 'Logout</a></li>',
-            '<title>Home - SyncBoom</title>',
             '<h1>Hi, john!</h1>',
             '<h2>Connect to Trello</h2>',
             '<a class="btn btn-info" href="https://trello.com/1/authorize?name=' \
@@ -717,6 +716,18 @@ class MainCase(WebsiteTestCase):
                 '&amp;return_url=http://127.0.0.1:5000/auth/validate_trello_token' \
                 '&amp;key=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1&amp;' \
                 'callback_method=fragment" role="button">Connect to Trello</a>']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_main_routes_contact(self):
+        response = self.client.get('/contact')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Contact Us - SyncBoom</title>',
+            '<h1>Contact Us</h1>',
+            'You can drop us an email at: <strong>hello AT syncboom DOT com' \
+                '</strong>',
+            '(replace AT by "@" and DOT by ".", without the quotes)']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
