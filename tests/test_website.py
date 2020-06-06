@@ -786,8 +786,8 @@ class MainCase(WebsiteTestCase):
         response = self.client.get('/non_existent_route')
         self.assertEqual(response.status_code, 404)
         expected_content = [
-            '<title>Welcome to Trello Team Sync</title>',
-            '<h1>Not Found</h1>']
+            '<title>Page Not Found - Trello Team Sync</title>',
+            '<h1>Page Not Found</h1>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
