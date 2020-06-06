@@ -495,26 +495,38 @@ class AuthCase(WebsiteTestCase):
             self.assertIn(str.encode(ec), response.data)
 
         # Test with an invalid email address (invalid format)
-        response = self.register("john", "invalid", "abc", "abc")
+        response = self.register("john", "invalid", "abc"*3, "abc"*3)
         self.assertEqual(response.status_code, 200)
         ec = '<div class="invalid-feedback">Invalid email address.</div>'
         self.assertIn(str.encode(ec), response.data)
 
         # Test with an invalid email address (too long)
-        response = self.register("john", "%s@example.com" % ("john"*20), "abc", \
-            "abc")
+        response = self.register("john", "%s@example.com" % ("john"*20),
+            "abc"*3, "abc"*3)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(str.encode(ec), response.data)
+
+        # Test with an invalid password (too short)
+        response = self.register("john", "john@example.com", "abc", "abc")
+        self.assertEqual(response.status_code, 200)
+        ec = '<div class="invalid-feedback">Field must be between 8 and 128 ' \
+            'characters long.</div>'
+        self.assertIn(str.encode(ec), response.data)
+
+        # Test with an invalid password (too long)
+        response = self.register("john", "john@example.com", "a"*129, "a"*129)
         self.assertEqual(response.status_code, 200)
         self.assertIn(str.encode(ec), response.data)
 
     def test_register(self):
         # First registration is succesful
-        response = self.register("john", "john@example.com", "abc", "abc")
+        response = self.register("john", "john@example.com", "abc"*3, "abc"*3)
         self.assertEqual(response.status_code, 200)
         ec = '<div class="alert alert-info" role="alert">Congratulations, ' \
             'you are now a registered user!</div>'
         self.assertIn(str.encode(ec), response.data)
         # Double registration fails
-        response = self.register("john", "john@example.com", "abc", "abc")
+        response = self.register("john", "john@example.com", "abc"*3, "abc"*3)
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<div class="invalid-feedback">Please use a different username.</div>',
