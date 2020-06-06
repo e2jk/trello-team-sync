@@ -25,23 +25,25 @@ def before_request():
 
 
 @bp.route('/')
-@login_required
 def index():
-    redirect_url = "http://127.0.0.1:5000/auth/validate_trello_token"
-    trello_authorizing_url = "https://trello.com/1/authorize?" \
-        "name=%s&" \
-        "scope=read,write&" \
-        "expiration=never&" \
-        "return_url=%s&" \
-        "key=%s&" \
-        "callback_method=fragment" % \
-        (
-            "SyncBoom",
-            redirect_url,
-            current_app.config["TRELLO_API_KEY"]
-        )
-    return render_template('index.html', title=_('Home'),
-        trello_authorizing_url=trello_authorizing_url)
+    if current_user.is_authenticated:
+        redirect_url = "http://127.0.0.1:5000/auth/validate_trello_token"
+        trello_authorizing_url = "https://trello.com/1/authorize?" \
+            "name=%s&" \
+            "scope=read,write&" \
+            "expiration=never&" \
+            "return_url=%s&" \
+            "key=%s&" \
+            "callback_method=fragment" % \
+            (
+                "SyncBoom",
+                redirect_url,
+                current_app.config["TRELLO_API_KEY"]
+            )
+        return render_template('index_loggedin.html', title=_('Home'),
+            trello_authorizing_url=trello_authorizing_url)
+    else:
+        return render_template('index_not_loggedin.html', title=_('Welcome'))
 
 
 @bp.route('/edit_profile', methods=['GET', 'POST'])

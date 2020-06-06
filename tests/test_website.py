@@ -737,7 +737,7 @@ class AuthCase(WebsiteTestCase):
 class MainCase(WebsiteTestCase):
     def test_main_routes_not_logged_in_redirects(self):
         # GETting these pages without being logged in redirects to login page
-        for url in ("/", "/edit_profile", "/notifications", "/mapping/999/edit",
+        for url in ("/edit_profile", "/notifications", "/mapping/999/edit",
             "/mapping/new", "/mapping/999/delete", "/mapping/999"):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 302)

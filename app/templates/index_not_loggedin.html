@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+
+    <div class="jumbotron">
+      <h1 class="display-4">{{ _('Welcome to SyncBoom!') }}</h1>
+      <p class="lead">{{ _('SyncBoom enables you to "push" cards from one Master Trello board onto one or multiple destination lists.') }}</p>
+      <hr class="my-4">
+      <p>{{ _('This is achieved by adding labels to the master cards on the master board, and defining to which destination list(s) the cards that have these labels should be pushed towards.') }}</p>
+      <!-- <a class="btn btn-primary btn-lg" href="#" role="button">Learn more</a> -->
+    </div>
+
+    <div class="row">
+      <div class="col">
+        {{ _('') }}<br/>
+        <div class="list-group list-group-horizontal">
+          <a href="{{ url_for('auth.login') }}" class="list-group-item list-group-item-action list-group-item-info">{{ _('Existing user? Go straight to Log In.') }}</a>
+          <a href="{{ url_for('auth.register') }}" class="list-group-item list-group-item-action list-group-item-success">{{ _('New user? Click to Register for Free!') }}</a>
+        </div>
+      </div>
+    </div>
+
+{% endblock %}
