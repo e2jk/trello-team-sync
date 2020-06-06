@@ -525,6 +525,14 @@ class AuthCase(WebsiteTestCase):
         ec = '<div class="alert alert-info" role="alert">Congratulations, ' \
             'you are now a registered user!</div>'
         self.assertIn(str.encode(ec), response.data)
+
+    def test_register_double_fails(self):
+        # First registration is succesful
+        response = self.register("john", "john@example.com", "abc"*3, "abc"*3)
+        self.assertEqual(response.status_code, 200)
+        ec = '<div class="alert alert-info" role="alert">Congratulations, ' \
+            'you are now a registered user!</div>'
+        self.assertIn(str.encode(ec), response.data)
         # Double registration fails
         response = self.register("john", "john@example.com", "abc"*3, "abc"*3)
         self.assertEqual(response.status_code, 200)
@@ -533,6 +541,19 @@ class AuthCase(WebsiteTestCase):
             '<div class="invalid-feedback">Please use a different email address.</div>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
+
+    def test_register_case_insensitive_username(self):
+        # First registration is succesful
+        response = self.register("john", "john@example.com", "abc"*3, "abc"*3)
+        self.assertEqual(response.status_code, 200)
+        ec = '<div class="alert alert-info" role="alert">Congratulations, ' \
+            'you are now a registered user!</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Username is case-insensitive, fails if entering with a different case
+        response = self.register("John", "john2@example.com", "def"*3, "def"*3)
+        self.assertEqual(response.status_code, 200)
+        ec = '<div class="invalid-feedback">Please use a different username.</div>'
+        self.assertIn(str.encode(ec), response.data)
 
     def test_login_invalid(self):
         self.create_user("john", "abc")

@@ -18,10 +18,10 @@ class EditProfileForm(FlaskForm):
 
     def __init__(self, original_username, *args, **kwargs):
         super(EditProfileForm, self).__init__(*args, **kwargs)
-        self.original_username = original_username
+        self.original_username = original_username.lower()
 
     def validate_username(self, username):
-        if username.data != self.original_username:
-            user = User.query.filter_by(username=self.username.data).first()
+        if username.data.lower() != self.original_username:
+            user = User.query.filter_by(username=self.username.data.lower()).first()
             if user is not None:
                 raise ValidationError(_('Please use a different username.'))
