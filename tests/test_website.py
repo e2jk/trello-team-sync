@@ -573,8 +573,8 @@ class AuthCase(WebsiteTestCase):
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<li class="nav-item"><a class="nav-link" href="/edit_profile">' \
-                'Profile</a></li>',
+            '<li class="nav-item"><a class="nav-link" href="/edit_account">' \
+                'Account</a></li>',
             '<li class="nav-item"><a class="nav-link" href="/auth/logout">' \
                 'Logout</a></li>',
             '<title>Home - SyncBoom</title>',
@@ -737,7 +737,7 @@ class AuthCase(WebsiteTestCase):
 class MainCase(WebsiteTestCase):
     def test_main_routes_not_logged_in_redirects(self):
         # GETting these pages without being logged in redirects to login page
-        for url in ("/edit_profile", "/notifications", "/mapping/999/edit",
+        for url in ("/edit_account", "/notifications", "/mapping/999/edit",
             "/mapping/new", "/mapping/999/delete", "/mapping/999"):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 302)
@@ -820,41 +820,41 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    def test_main_routes_edit_profile_get(self):
+    def test_main_routes_edit_account_get(self):
         u = self.create_user("john", "abc")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.get('/edit_profile')
+        response = self.client.get('/edit_account')
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Edit Profile - SyncBoom</title>',
-            '<h1>Edit Profile</h1>',
+            '<title>Edit Account - SyncBoom</title>',
+            '<h1>Edit Account</h1>',
             '<input class="form-control" id="username" name="username" ' \
                 'required type="text" value="john">']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    def test_main_routes_edit_profile_post(self):
+    def test_main_routes_edit_account_post(self):
         u = self.create_user("john", "abc")
         self.assertEqual(u.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.post('/edit_profile', data=dict(username="j2"))
+        response = self.client.post('/edit_account', data=dict(username="j2"))
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers["Location"], "http://localhost/edit_profile")
+        self.assertEqual(response.headers["Location"], "http://localhost/edit_account")
         self.assertEqual(u.username, "j2")
 
-    def test_main_routes_edit_profile_post_collision(self):
+    def test_main_routes_edit_account_post_collision(self):
         u1 = self.create_user("john", "abc")
         u2 = self.create_user("j2", "def")
         self.assertEqual(u1.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.post('/edit_profile', data=dict(username="j2"))
+        response = self.client.post('/edit_account', data=dict(username="j2"))
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Edit Profile - SyncBoom</title>',
-            '<h1>Edit Profile</h1>',
+            '<title>Edit Account - SyncBoom</title>',
+            '<h1>Edit Account</h1>',
             '<div class="invalid-feedback">Please use a different username.</div>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)

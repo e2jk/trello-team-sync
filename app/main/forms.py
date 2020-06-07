@@ -12,12 +12,12 @@ from flask_babel import _, lazy_gettext as _l
 from app.models import User
 
 
-class EditProfileForm(FlaskForm):
+class EditAccountForm(FlaskForm):
     username = StringField(_l('Username'), validators=[DataRequired()])
     submit = SubmitField(_l('Submit'))
 
     def __init__(self, original_username, *args, **kwargs):
-        super(EditProfileForm, self).__init__(*args, **kwargs)
+        super(EditAccountForm, self).__init__(*args, **kwargs)
         self.original_username = original_username.lower()
 
     def validate_username(self, username):

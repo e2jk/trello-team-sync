@@ -11,7 +11,7 @@ from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 from guess_language import guess_language
 from app import db
-from app.main.forms import EditProfileForm
+from app.main.forms import EditAccountForm
 from app.models import User, Notification
 from app.main import bp
 
@@ -46,18 +46,18 @@ def index():
         return render_template('index_not_loggedin.html', title=_('Welcome'))
 
 
-@bp.route('/edit_profile', methods=['GET', 'POST'])
+@bp.route('/edit_account', methods=['GET', 'POST'])
 @login_required
-def edit_profile():
-    form = EditProfileForm(current_user.username)
+def edit_account():
+    form = EditAccountForm(current_user.username)
     if form.validate_on_submit():
         current_user.username = form.username.data.lower()
         db.session.commit()
         flash(_('Your changes have been saved.'))
-        return redirect(url_for('main.edit_profile'))
+        return redirect(url_for('main.edit_account'))
     elif request.method == 'GET':
         form.username.data = current_user.username.lower()
-    return render_template('edit_profile.html', title=_('Edit Profile'),
+    return render_template('edit_account.html', title=_('Edit Account'),
                            form=form)
 
 
