@@ -16,6 +16,8 @@ from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_babel import Babel, lazy_gettext as _l
 from flask_caching import Cache
+from secure import SecureHeaders, SecurePolicies
+from flask_paranoid import Paranoid
 from redis import Redis
 import rq
 from config import Config
@@ -25,11 +27,33 @@ migrate = Migrate()
 login = LoginManager()
 login.login_view = 'auth.login'
 login.login_message = _l('Please log in to access this page.')
+login.session_protection = "strong"
 mail = Mail()
 bootstrap = Bootstrap()
 moment = Moment()
 babel = Babel()
 cache = Cache()
+csp_value = (
+    SecurePolicies.CSP()
+    .default_src(SecurePolicies.CSP().Values.none)
+    .block_all_mixed_content()
+    .base_uri(SecurePolicies.CSP().Values.self_)
+    .script_src(SecurePolicies.CSP().Values.self_,
+        SecurePolicies.CSP().Values.unsafe_inline,
+        "cdn.jsdelivr.net/npm/jquery@3.4.1/",
+        "cdn.jsdelivr.net/npm/popper.js@1.14.0/",
+        "cdn.jsdelivr.net/npm/bootstrap@4.3.1/",
+        "cdnjs.cloudflare.com/ajax/libs/moment.js/",
+        "cdn.jsdelivr.net/npm/cookieconsent@3/")
+    .style_src(SecurePolicies.CSP().Values.self_,
+        SecurePolicies.CSP().Values.unsafe_inline,
+        "cdn.jsdelivr.net/npm/bootstrap@4.3.1/",
+        "cdn.jsdelivr.net/npm/cookieconsent@3/")
+    .form_action(SecurePolicies.CSP().Values.self_)
+    .connect_src(SecurePolicies.CSP().Values.self_)
+    .img_src(SecurePolicies.CSP().Values.self_, "data:")
+)
+secure_headers = SecureHeaders(server="None", feature=True, csp=csp_value)
 
 
 def create_app(config_class=Config):
@@ -46,6 +70,8 @@ def create_app(config_class=Config):
     cache.init_app(app)
     app.redis = Redis.from_url(app.config['REDIS_URL'])
     app.task_queue = rq.Queue('syncboom-tasks', connection=app.redis)
+    paranoid = Paranoid(app)
+    paranoid.redirect_view = '/'
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)
@@ -95,6 +121,11 @@ def create_app(config_class=Config):
 
     # Serve local Bootstrap files when in debug mode
     app.config["BOOTSTRAP_SERVE_LOCAL"] = app.debug
+
+    @app.after_request
+    def set_secure_headers(response):
+        secure_headers.flask(response)
+        return response
 
     return app
 

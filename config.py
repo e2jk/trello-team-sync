@@ -27,3 +27,9 @@ class Config(object):
     REDIS_URL = os.environ.get('REDIS_URL') or 'redis://'
     TRELLO_API_KEY = os.environ.get('TRELLO_API_KEY')
     CACHE_TYPE = 'simple'
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Strict'
+    REMEMBER_COOKIE_SECURE = True
+    REMEMBER_COOKIE_HTTPONLY = True
+    REMEMBER_COOKIE_SAMESITE = 'Strict'
