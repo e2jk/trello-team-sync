@@ -257,7 +257,7 @@ class ConfigCase(unittest.TestCase):
         self.assertEqual(Config.MAIL_USE_TLS, os.environ.get('MAIL_USE_TLS') is not None)
         self.assertEqual(Config.MAIL_USERNAME, os.environ.get('MAIL_USERNAME'))
         self.assertEqual(Config.MAIL_PASSWORD, os.environ.get('MAIL_PASSWORD'))
-        self.assertEqual(Config.ADMINS, ['your-email@example.com'])
+        self.assertEqual(Config.ADMINS, ['SyncBoom <hello@syncboom.com>'])
         self.assertEqual(Config.LANGUAGES, ['en'])
         self.assertEqual(Config.REDIS_URL, os.environ.get('REDIS_URL') or 'redis://')
         self.assertEqual(Config.TRELLO_API_KEY, os.environ.get('TRELLO_API_KEY'))
