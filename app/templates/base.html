@@ -100,7 +100,7 @@
           }
         },
         "cookie": {
-          "secure": true
+          "secure": {{(not config['DEBUG'])|lower}}
         }
       });
     </script>
