@@ -11,7 +11,7 @@ from flask_babel import _
 import re
 from app import db
 from app.auth import bp
-from app.auth.forms import LoginForm, RegistrationForm, \
+from app.auth.forms import LoginForm, makeRegistrationForm, \
     ResetPasswordRequestForm, ResetPasswordForm, ValidateTrelloTokenForm
 from app.models import User
 from app.auth.email import send_password_reset_email
@@ -45,7 +45,7 @@ def logout():
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
-    form = RegistrationForm()
+    form = makeRegistrationForm(url_for('main.privacy'), url_for('main.legal'))
     if form.validate_on_submit():
         user = User(username=form.username.data.lower(), email=form.email.data)
         user.set_password(form.password.data)

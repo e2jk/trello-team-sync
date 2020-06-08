@@ -82,3 +82,13 @@ def contact():
 @bp.route('/pricing')
 def pricing():
     return render_template('pricing.html', title=_('Pricing'))
+
+
+@bp.route('/privacy')
+def privacy():
+    return render_template('privacy.html', title=_('Privacy Policy'))
+
+
+@bp.route('/legal')
+def legal():
+    return render_template('legal.html', title=_('Terms and Conditions'))

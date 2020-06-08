@@ -8,6 +8,7 @@
     {% block styles %}
     <!-- Bootstrap CSS -->
     {{ bootstrap.load_css() }}
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='style.css') }}" />
     <!-- Cookie Consent CSS -->
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/cookieconsent@3/build/cookieconsent.min.css" />
     {% endblock %}
@@ -33,6 +34,12 @@
           </li>
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('main.pricing') }}">{{ _('Pricing') }}</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.privacy') }}">{{ _('Privacy') }}</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('main.legal') }}">{{ _('Terms and Conditions') }}</a>
           </li>
         </ul>
         <ul class="nav navbar-nav navbar-right">

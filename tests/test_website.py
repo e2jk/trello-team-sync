@@ -470,16 +470,19 @@ class TaskCase(WebsiteTestCase):
 
 
 class AuthCase(WebsiteTestCase):
-    def register(self, username, email, password, password2):
+    def register(self, username, email, password, password2, accept_terms):
+        data_dict = dict(username=username, email=email,
+            password=password, password2=password2)
+        if accept_terms:
+            data_dict["accept_terms"] = "y"
         return self.client.post(
             '/auth/register',
-            data=dict(username=username, email=email,
-                password=password, password2=password2),
+            data=data_dict,
             follow_redirects=True
         )
 
     def test_register_invalid(self):
-        response = self.register(None, None, None, None)
+        response = self.register(None, None, None, None, None)
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<input class="form-control is-invalid" id="username" ' \
@@ -490,37 +493,49 @@ class AuthCase(WebsiteTestCase):
             '<input class="form-control is-invalid" id="password" ' \
                 'name="password" required type="password" value="">',
             '<input class="form-control is-invalid" id="password2" ' \
-                'name="password2" required type="password" value="">']
+                'name="password2" required type="password" value="">',
+            '<input class="form-check-input is-invalid" id="accept_terms" ' \
+                'name="accept_terms" required type="checkbox" value="y">']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
         # Test with an invalid email address (invalid format)
-        response = self.register("john", "invalid", "abc"*3, "abc"*3)
+        response = self.register("john", "invalid", "abc"*3, "abc"*3, True)
         self.assertEqual(response.status_code, 200)
         ec = '<div class="invalid-feedback">Invalid email address.</div>'
         self.assertIn(str.encode(ec), response.data)
 
         # Test with an invalid email address (too long)
         response = self.register("john", "%s@example.com" % ("john"*20),
-            "abc"*3, "abc"*3)
+            "abc"*3, "abc"*3, True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(str.encode(ec), response.data)
 
         # Test with an invalid password (too short)
-        response = self.register("john", "john@example.com", "abc", "abc")
+        response = self.register("john", "john@example.com", "abc", "abc", True)
         self.assertEqual(response.status_code, 200)
         ec = '<div class="invalid-feedback">Field must be between 8 and 128 ' \
             'characters long.</div>'
         self.assertIn(str.encode(ec), response.data)
 
         # Test with an invalid password (too long)
-        response = self.register("john", "john@example.com", "a"*129, "a"*129)
+        response = self.register("john", "john@example.com", "a"*129, "a"*129, True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(str.encode(ec), response.data)
 
+        # Test without accepting the terms
+        response = self.register("john", "john@example.com", "abc"*3, "abc"*3, False)
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<div class="invalid-feedback" style="display: block;">This field is required.</div',
+            '<input class="form-check-input is-invalid" id="accept_terms" ' \
+                'name="accept_terms" required type="checkbox" value="y">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
     def test_register(self):
         # First registration is succesful
-        response = self.register("john", "john@example.com", "abc"*3, "abc"*3)
+        response = self.register("john", "john@example.com", "abc"*3, "abc"*3, True)
         self.assertEqual(response.status_code, 200)
         ec = '<div class="alert alert-info" role="alert">Congratulations, ' \
             'you are now a registered user!</div>'
@@ -528,13 +543,13 @@ class AuthCase(WebsiteTestCase):
 
     def test_register_double_fails(self):
         # First registration is succesful
-        response = self.register("john", "john@example.com", "abc"*3, "abc"*3)
+        response = self.register("john", "john@example.com", "abc"*3, "abc"*3, True)
         self.assertEqual(response.status_code, 200)
         ec = '<div class="alert alert-info" role="alert">Congratulations, ' \
             'you are now a registered user!</div>'
         self.assertIn(str.encode(ec), response.data)
         # Double registration fails
-        response = self.register("john", "john@example.com", "abc"*3, "abc"*3)
+        response = self.register("john", "john@example.com", "abc"*3, "abc"*3, True)
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<div class="invalid-feedback">Please use a different username.</div>',
@@ -544,13 +559,13 @@ class AuthCase(WebsiteTestCase):
 
     def test_register_case_insensitive_username(self):
         # First registration is succesful
-        response = self.register("john", "john@example.com", "abc"*3, "abc"*3)
+        response = self.register("john", "john@example.com", "abc"*3, "abc"*3, True)
         self.assertEqual(response.status_code, 200)
         ec = '<div class="alert alert-info" role="alert">Congratulations, ' \
             'you are now a registered user!</div>'
         self.assertIn(str.encode(ec), response.data)
         # Username is case-insensitive, fails if entering with a different case
-        response = self.register("John", "john2@example.com", "def"*3, "def"*3)
+        response = self.register("John", "john2@example.com", "def"*3, "def"*3, True)
         self.assertEqual(response.status_code, 200)
         ec = '<div class="invalid-feedback">Please use a different username.</div>'
         self.assertIn(str.encode(ec), response.data)
@@ -795,6 +810,31 @@ class MainCase(WebsiteTestCase):
             '<h1>Pricing</h1>',
             'As SyncBoom is just being launched, the current features are '\
                 'all free of cost.']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_main_routes_privacy(self):
+        response = self.client.get('/privacy')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Privacy Policy - SyncBoom</title>',
+            '<h1>Privacy Policy for SyncBoom</h1>',
+            'This Privacy Policy describes how your personal information is ' \
+                'collected, used, and shared when you',
+            'Latest update: 2020-06-08']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_main_routes_legal(self):
+        response = self.client.get('/legal')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Terms and Conditions - SyncBoom</title>',
+            '<h1>Terms and Conditions for SyncBoom</h1>',
+            'By visiting our site and/ or purchasing from us, you engage in ' \
+                'our “Service” and agree to be bound by the following terms ' \
+                'and conditions',
+            'Latest update: 2020-06-08']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
