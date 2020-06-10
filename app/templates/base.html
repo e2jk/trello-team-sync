@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="h-100">
   <head>
     {% block head %}
     <meta charset="utf-8">
@@ -16,7 +16,7 @@
     <title>{% if title %}{{ title }} - {% endif %}SyncBoom</title>
     {% endblock %}
   </head>
-  <body>
+  <body class="d-flex flex-column h-100">
     {% block navbar %}
     <header>
       <nav class="navbar navbar-expand-md navbar-light bg-light fixed-top">
@@ -32,15 +32,6 @@
             </li>
             <li class="nav-item{% if request.url_rule.endpoint == "main.contact" %} active{% endif %}">
               <a class="nav-link" href="{{ url_for('main.contact') }}">{{ _('Contact') }}{% if request.url_rule.endpoint == "main.contact" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
-            </li>
-            <li class="nav-item{% if request.url_rule.endpoint == "main.pricing" %} active{% endif %}">
-              <a class="nav-link" href="{{ url_for('main.pricing') }}">{{ _('Pricing') }}{% if request.url_rule.endpoint == "main.pricing" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
-            </li>
-            <li class="nav-item{% if request.url_rule.endpoint == "main.privacy" %} active{% endif %}">
-              <a class="nav-link" href="{{ url_for('main.privacy') }}">{{ _('Privacy') }}{% if request.url_rule.endpoint == "main.privacy" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
-            </li>
-            <li class="nav-item{% if request.url_rule.endpoint == "main.legal" %} active{% endif %}">
-              <a class="nav-link" href="{{ url_for('main.legal') }}">{{ _('Terms and Conditions') }}{% if request.url_rule.endpoint == "main.legal" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
             </li>
           </ul>
           <ul class="nav navbar-nav navbar-right">
@@ -85,6 +76,39 @@
       {% block app_content %}{% endblock %}
   </div>
 </main>
+    {% endblock %}
+
+    {% block footer %}
+<footer class="pt-4 my-md-5 pt-md-5 border-top">
+  <div class="container">
+    <div class="row">
+      <div class="col-12 col-md">
+        SyncBoom
+        <small class="d-block mb-3 text-muted">&copy; 2020</small>
+      </div>
+      <div class="col-6 col-md">
+        <h5>Features</h5>
+        <ul class="list-unstyled text-small">
+          <li><a class="text-muted" href="#">TBD</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-md">
+        <h5>Resources</h5>
+        <ul class="list-unstyled text-small">
+          <li><a class="text-muted" href="{{ url_for('main.contact') }}">{{ _('Contact us') }}</a></li>
+        </ul>
+      </div>
+      <div class="col-6 col-md">
+        <h5>About</h5>
+        <ul class="list-unstyled text-small">
+          <li><a class="text-muted" href="{{ url_for('main.pricing') }}">{{ _('Pricing') }}</a></li>
+          <li><a class="text-muted" href="{{ url_for('main.privacy') }}">{{ _('Privacy') }}</a></li>
+          <li><a class="text-muted" href="{{ url_for('main.legal') }}">{{ _('Terms and Conditions') }}</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</footer>
     {% endblock %}
 
     {% block scripts %}
