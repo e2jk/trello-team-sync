@@ -22,26 +22,29 @@ class MultiCheckboxField(SelectMultipleField):
     option_widget = widgets.CheckboxInput()
 
 
-class NewMappingForm(FlaskForm):
-    name = StringField(_l('Mapping name'), validators=[DataRequired()])
-    description = TextAreaField(_l('Mapping description (optional)'))
-    master_board = SelectField(_l('Master board'), coerce=str)
-    labels = MultiCheckboxField(_l('Which labels need mapping?'), coerce=str, \
-        render_kw={'style':'height: auto; list-style: none;'})
+def makeNewMappingForm(obj, num_map_labelN_lists):
+    class NewMappingForm(FlaskForm):
+        name = StringField(_l('Mapping name'), validators=[DataRequired()])
+        description = TextAreaField(_l('Mapping description (optional)'))
+        master_board = SelectField(_l('Master board'), coerce=str)
+        labels = MultiCheckboxField(_l('Which labels need mapping?'), \
+            coerce=str, render_kw={'style':'height: auto; list-style: none;'})
 
-    def validate_master_board(form, field):
-        if not form.labels.choices:
-            raise ValidationError(_l('None of the labels on this board have '
-                'names. Only named labels can be selected for mapping.'))
+        def validate_master_board(form, field):
+            if not form.labels.choices:
+                raise ValidationError(_l('None of the labels on this board have '
+                    'names. Only named labels can be selected for mapping.'))
 
-# Add 100 fields to map labels to lists
-for i in range(100):
-    setattr(NewMappingForm, "map_label%d_lists" % i,
-        MultiCheckboxField(_l('Map label XX to which Trello lists?'),
-            coerce=str, choices = [],
-            render_kw={'style':'height: auto; list-style: none;'}))
-# Add the Submit button after all the fields
-setattr(NewMappingForm, "submit", SubmitField(_l('Submit')))
+    # Add fields to map labels to lists
+    for i in range(num_map_labelN_lists):
+        setattr(NewMappingForm, "map_label%d_lists" % i,
+            MultiCheckboxField(_l('Map label XX to which Trello lists?'),
+                coerce=str, choices = [],
+                render_kw={'style':'height: auto; list-style: none;'}))
+    # Add the Submit button after all the other fields
+    setattr(NewMappingForm, "submit", SubmitField(_l('Submit')))
+
+    return NewMappingForm(obj=obj)
 
 
 class DeleteMappingForm(FlaskForm):

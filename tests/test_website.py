@@ -1061,13 +1061,13 @@ class MappingCase(WebsiteTestCase):
             response = self.client.get(url)
         elif method == 'POST':
             response = self.client.post(url, data=data)
-        self.assertEqual(response.status_code, expected_status_code)
-        if redirect_url:
-            self.assertEqual(response.headers["Location"], redirect_url)
         if display:
             print("\n\n", response.data, "\n\n")
             print("expected_content", expected_content)
             print("unexpected_content", unexpected_content)
+        self.assertEqual(response.status_code, expected_status_code)
+        if redirect_url:
+            self.assertEqual(response.headers["Location"], redirect_url)
         # Confirm that the elements from the this step are present
         if expected_content:
             for ec in expected_content:
@@ -1261,7 +1261,7 @@ class MappingCase(WebsiteTestCase):
             t_boards, t_labels, t_lists1, t_lists2,
             t_boards, t_labels, t_lists1, t_lists2,
             t_boards, t_labels, t_lists1, t_lists2,
-            t_boards, t_labels
+            t_boards, t_labels, t_lists1, t_lists2,
         ]
         amrcu.id = 1
 
@@ -1276,7 +1276,7 @@ class MappingCase(WebsiteTestCase):
             'Mapping description for abc</textarea>',
             # Elements from step 2
             '<select class="form-control" id="master_board" ' \
-            'name="master_board"><option',
+                'name="master_board"><option',
             # Elements from step 3
             '<label class="form-control-label" for="labels">Which labels need ' \
                 'mapping?</label>',
@@ -1311,19 +1311,50 @@ class MappingCase(WebsiteTestCase):
             None, data=dict(ds3ok, map_label0_lists="invalid_list"))
 
         # GET with invalid destination_lists
+        # Expect all elements until step 3 (included)
+        expected_content = expected_content_step_1[:8]
+        saved_destination_lists = m.destination_lists
         m.destination_lists = ""
         self.retrieve_and_check("GET", "/mapping/1/edit", 200,
-            expected_content_step_1, None)
+            expected_content, None)
         m.destination_lists = None
         self.retrieve_and_check("GET", "/mapping/1/edit", 200,
-            expected_content_step_1, None)
+            expected_content, None)
 
         # POST, all good on step 4
         expected_content = None
+        m.destination_lists = saved_destination_lists
         self.retrieve_and_check("POST", "/mapping/1/edit", 302, expected_content,
             None, data=ds4ok, redirect_url="http://localhost/")
         self.assertEqual(amrf.mock_calls,[call('Your mapping "Mapping name" ' \
             'has been updated.')])
+
+    @patch("app.mapping.routes.flash")
+    @patch("app.mapping.routes.current_user")
+    @patch("app.mapping.routes.perform_request")
+    def test_mapping_large_map_labelN_lists(self, amrpr, amrcu, amrf):
+        (u, m) = self.create_user_mapping_and_login()
+        self.assertEqual(m.id, 1)
+        ds1ok, ds2ok, ds3ok, ds4ok = self.get_data_step_valid()
+        t_boards, t_labels, t_lists1, t_lists2 = self.get_sample_values()
+        t_lists = t_lists1 * 5
+        amrpr.side_effect = [
+            # 9 boards, of which only 6 are not closed
+            t_boards * 3,
+            # 120 labels
+            t_labels * 30,
+            # 6 sets of 20 lists each
+            t_lists, t_lists, t_lists, t_lists, t_lists, t_lists
+        ]
+        amrcu.id = 1
+
+        # POST step 3, valid label
+        expected_content = ['<li><input id="map_label109_lists-119" name="map_label109_lists" type="checkbox" value="list_id_4"> <label for="map_label109_lists-119">klm | List Name Four</label></li></ul>']
+        unexpected_content = None
+        # Select 110 labels
+        selected_labels = ["b"*24]*110
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content, data=dict(ds2ok, labels=selected_labels), display=False)
 
 
 if __name__ == '__main__':

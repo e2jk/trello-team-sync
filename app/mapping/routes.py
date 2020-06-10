@@ -10,7 +10,7 @@ from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 # from guess_language import guess_language
 from app import db
-from app.mapping.forms import NewMappingForm, DeleteMappingForm, \
+from app.mapping.forms import makeNewMappingForm, DeleteMappingForm, \
     RunMappingForm
 from app.models import Mapping, mappings as users_mappings_links
 from app.mapping import bp
@@ -34,6 +34,7 @@ def before_request():
 @login_required
 def new_or_edit(mapping_id=None):
     mapping = None
+    num_map_labelN_lists = 0
     if mapping_id:
         # Check if this user has access to this mapping
         (valid_mapping, val1, val2) = check_mapping_ownership(mapping_id)
@@ -48,7 +49,6 @@ def new_or_edit(mapping_id=None):
             mapping.labels = list(destination_lists.keys())
         except (TypeError, json.decoder.JSONDecodeError):
             destination_lists = []
-        # TODO (#76) Support more than 100 map_labelN_lists
         i = 0
         for label_id in destination_lists:
             label_lists = []
@@ -56,13 +56,16 @@ def new_or_edit(mapping_id=None):
                 label_lists.append(list_id)
             setattr(mapping, "map_label%d_lists" % i, label_lists)
             i += 1
+        num_map_labelN_lists = i
+    else:
+        num_map_labelN_lists = len(request.form.getlist('labels'))
 
-    form = NewMappingForm(obj=mapping)
+    form = makeNewMappingForm(obj=mapping,
+        num_map_labelN_lists=num_map_labelN_lists)
 
     # Check if the fields from each fields are valid
     step = 1
     selected_labels = []
-    map_label_lists = [mll for mll in dir(form) if mll.startswith("map_label")]
     if request.method == 'POST' or mapping_id:
         use_default_master_board = False
         # Get the list of boards for this user
@@ -118,7 +121,8 @@ def new_or_edit(mapping_id=None):
             destination_lists = {}
             i = 0
             for label_id in selected_labels:
-                if len(getattr(form, "map_label%d_lists" % i).data) == 0:
+                if not hasattr(form, "map_label%d_lists" % i) or \
+                    len(getattr(form, "map_label%d_lists" % i).data) == 0:
                     step_4_ok = False
                     break
                 destination_lists[label_id] = []
@@ -158,9 +162,7 @@ def new_or_edit(mapping_id=None):
     if step > 1:
         pass
     if step > 2:
-        if not len(labels_names):
-            # No labels for this master board, stay on step 2
-            step = 2
+        pass
     if step > 3:
         lists_on_boards = []
         for b in boards:
@@ -171,20 +173,20 @@ def new_or_edit(mapping_id=None):
                 lists_on_boards.append((l["id"], "%s | %s" % (b["name"], l["name"])))
         i = 0
         for l in selected_labels:
-            field = getattr(form, "map_label%d_lists" % i)
-            field.choices = [(l[0], l[1]) for l in lists_on_boards]
-            field.label.text = field.label.text.replace("XX", \
-                '"%s"'% labels_names[selected_labels[i]])
-            i+= 1
+            if hasattr(form, "map_label%d_lists" % i):
+                field = getattr(form, "map_label%d_lists" % i)
+                field.choices = [(l[0], l[1]) for l in lists_on_boards]
+                field.label.text = field.label.text.replace("XX", \
+                    '"%s"'% labels_names[selected_labels[i]])
+                i+= 1
+            else:
+                break
 
     # Remove fields from later steps
     if step < 2:
         del form.master_board
     if step < 3:
         del form.labels
-    # Remove all the surplus "map_labelN_lists" fields
-    for i in range(len(selected_labels), len(map_label_lists)):
-        delattr(form, "map_label%d_lists" % i)
 
     if mapping_id:
         if request.method == 'GET':
