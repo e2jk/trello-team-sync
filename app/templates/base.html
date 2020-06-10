@@ -18,45 +18,48 @@
   </head>
   <body>
     {% block navbar %}
-    <nav class="navbar navbar-expand-md navbar-light bg-light">
-      <a class="navbar-brand" href="{{ url_for('main.index') }}">SyncBoom</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+    <header>
+      <nav class="navbar navbar-expand-md navbar-light bg-light fixed-top">
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">SyncBoom</a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
 
-      <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
-          <li class="nav-item{% if request.url_rule.endpoint == "main.index" %} active{% endif %}">
-            <a class="nav-link" href="{{ url_for('main.index') }}">{{ _('Home') }}{% if request.url_rule.endpoint == "main.index" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
-          </li>
-          <li class="nav-item{% if request.url_rule.endpoint == "main.contact" %} active{% endif %}">
-            <a class="nav-link" href="{{ url_for('main.contact') }}">{{ _('Contact') }}{% if request.url_rule.endpoint == "main.contact" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
-          </li>
-          <li class="nav-item{% if request.url_rule.endpoint == "main.pricing" %} active{% endif %}">
-            <a class="nav-link" href="{{ url_for('main.pricing') }}">{{ _('Pricing') }}{% if request.url_rule.endpoint == "main.pricing" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
-          </li>
-          <li class="nav-item{% if request.url_rule.endpoint == "main.privacy" %} active{% endif %}">
-            <a class="nav-link" href="{{ url_for('main.privacy') }}">{{ _('Privacy') }}{% if request.url_rule.endpoint == "main.privacy" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
-          </li>
-          <li class="nav-item{% if request.url_rule.endpoint == "main.legal" %} active{% endif %}">
-            <a class="nav-link" href="{{ url_for('main.legal') }}">{{ _('Terms and Conditions') }}{% if request.url_rule.endpoint == "main.legal" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
-          </li>
-        </ul>
-        <ul class="nav navbar-nav navbar-right">
-          {% if current_user.is_anonymous %}
-          <li class="nav-item"><a class="nav-link{% if request.url_rule.endpoint == "auth.login" %} active{% endif %}" href="{{ url_for('auth.login') }}">{{ _('Login') }}{% if request.url_rule.endpoint == "auth.login" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
-          <li class="nav-item"><a class="nav-link{% if request.url_rule.endpoint == "auth.register" %} active{% endif %}" href="{{ url_for('auth.register') }}">{{ _('Register') }}{% if request.url_rule.endpoint == "auth.register" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
-          {% else %}
-          <li class="nav-item"><a class="nav-link{% if request.url_rule.endpoint == "main.edit_account" %} active{% endif %}" href="{{ url_for('main.edit_account') }}">{{ _('Account') }}{% if request.url_rule.endpoint == "main.edit_account" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a></li>
-          {% endif %}
-        </ul>
-      </div>
-    </nav>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+            <li class="nav-item{% if request.url_rule.endpoint == "main.index" %} active{% endif %}">
+              <a class="nav-link" href="{{ url_for('main.index') }}">{{ _('Home') }}{% if request.url_rule.endpoint == "main.index" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
+            </li>
+            <li class="nav-item{% if request.url_rule.endpoint == "main.contact" %} active{% endif %}">
+              <a class="nav-link" href="{{ url_for('main.contact') }}">{{ _('Contact') }}{% if request.url_rule.endpoint == "main.contact" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
+            </li>
+            <li class="nav-item{% if request.url_rule.endpoint == "main.pricing" %} active{% endif %}">
+              <a class="nav-link" href="{{ url_for('main.pricing') }}">{{ _('Pricing') }}{% if request.url_rule.endpoint == "main.pricing" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
+            </li>
+            <li class="nav-item{% if request.url_rule.endpoint == "main.privacy" %} active{% endif %}">
+              <a class="nav-link" href="{{ url_for('main.privacy') }}">{{ _('Privacy') }}{% if request.url_rule.endpoint == "main.privacy" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
+            </li>
+            <li class="nav-item{% if request.url_rule.endpoint == "main.legal" %} active{% endif %}">
+              <a class="nav-link" href="{{ url_for('main.legal') }}">{{ _('Terms and Conditions') }}{% if request.url_rule.endpoint == "main.legal" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a>
+            </li>
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            {% if current_user.is_anonymous %}
+            <li class="nav-item"><a class="nav-link{% if request.url_rule.endpoint == "auth.login" %} active{% endif %}" href="{{ url_for('auth.login') }}">{{ _('Login') }}{% if request.url_rule.endpoint == "auth.login" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
+            <li class="nav-item"><a class="nav-link{% if request.url_rule.endpoint == "auth.register" %} active{% endif %}" href="{{ url_for('auth.register') }}">{{ _('Register') }}{% if request.url_rule.endpoint == "auth.register" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
+            {% else %}
+            <li class="nav-item"><a class="nav-link{% if request.url_rule.endpoint == "main.edit_account" %} active{% endif %}" href="{{ url_for('main.edit_account') }}">{{ _('Account') }}{% if request.url_rule.endpoint == "main.edit_account" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a></li>
+            {% endif %}
+          </ul>
+        </div>
+      </nav>
+    </header>
     {% endblock %}
 
     {% block content %}
-<div class="container">
+<main>
+  <div class="container">
       {% if current_user.is_authenticated %}
       {% with tasks = current_user.get_tasks_in_progress() %}
       {% if tasks %}
@@ -80,7 +83,8 @@
 
       {# application content needs to be provided in the app_content block #}
       {% block app_content %}{% endblock %}
-</div>
+  </div>
+</main>
     {% endblock %}
 
     {% block scripts %}
