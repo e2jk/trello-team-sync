@@ -7,7 +7,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, SelectField, \
     SelectMultipleField
 from wtforms import widgets
-from wtforms.validators import DataRequired, Regexp
+from wtforms.validators import DataRequired, Regexp, ValidationError
 from flask_babel import _, lazy_gettext as _l
 
 
@@ -29,10 +29,16 @@ class NewMappingForm(FlaskForm):
     labels = MultiCheckboxField(_l('Which labels need mapping?'), coerce=str, \
         render_kw={'style':'height: auto; list-style: none;'})
 
+    def validate_master_board(form, field):
+        if not form.labels.choices:
+            raise ValidationError(_l('None of the labels on this board have '
+                'names. Only named labels can be selected for mapping.'))
+
 # Add 100 fields to map labels to lists
 for i in range(100):
     setattr(NewMappingForm, "map_label%d_lists" % i,
-        MultiCheckboxField(_l('Map label XX to which Trello lists?'), coerce=str, \
+        MultiCheckboxField(_l('Map label XX to which Trello lists?'),
+            coerce=str, choices = [],
             render_kw={'style':'height: auto; list-style: none;'}))
 # Add the Submit button after all the fields
 setattr(NewMappingForm, "submit", SubmitField(_l('Submit')))

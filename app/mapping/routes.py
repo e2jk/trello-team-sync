@@ -48,6 +48,7 @@ def new_or_edit(mapping_id=None):
             mapping.labels = list(destination_lists.keys())
         except (TypeError, json.decoder.JSONDecodeError):
             destination_lists = []
+        # TODO (#76) Support more than 100 map_labelN_lists
         i = 0
         for label_id in destination_lists:
             label_lists = []
@@ -61,7 +62,34 @@ def new_or_edit(mapping_id=None):
     # Check if the fields from each fields are valid
     step = 1
     selected_labels = []
+    map_label_lists = [mll for mll in dir(form) if mll.startswith("map_label")]
     if request.method == 'POST' or mapping_id:
+        use_default_master_board = False
+        # Get the list of boards for this user
+        all_boards = perform_request("GET", "members/me/boards",
+            key=current_app.config['TRELLO_API_KEY'],
+            token=current_user.trello_token)
+        boards = []
+        for b in all_boards:
+            if not b["closed"]:
+                boards.append(b)
+        form.master_board.choices = [(b["id"], b["name"]) for b in boards]
+        # TODO (#74): show error message if form.master_board.choices is empty
+        if not form.master_board.data:
+            use_default_master_board = True
+            form.master_board.data = form.master_board.choices[0][0]
+        labels_names = {}
+        labels = perform_request("GET", "boards/%s/labels" % \
+            form.master_board.data,
+            key=current_app.config['TRELLO_API_KEY'],
+            token=current_user.trello_token)
+        form.labels.choices = [(l["id"], l["name"]) for l in labels if l["name"]]
+        for l in labels:
+            if l["name"]:
+                labels_names[l["id"]] = l["name"]
+
+        form.validate_on_submit()
+
         # Check elements from the first step
         if form.name.validate(form) and \
             form.description.validate(form):
@@ -69,7 +97,7 @@ def new_or_edit(mapping_id=None):
             step = 2
         # If the first step cleared, go on to check elements from the second step
         if step == 2:
-            if form.master_board.data and \
+            if not use_default_master_board and \
                 re.match("^[0-9a-fA-F]{24}$", form.master_board.data):
                 # Go to next step
                 step = 3
@@ -127,37 +155,13 @@ def new_or_edit(mapping_id=None):
             return redirect(url_for('main.index'))
 
     # Populate conditional form elements
-    labels_names = {}
     if step > 1:
-        # TODO: Cache the board IDs
-        if not hasattr(form.master_board, "choice") or \
-            not form.master_board.choice:
-            # Get the list of boards for this user
-            all_boards = perform_request("GET", "members/me/boards",
-                key=current_app.config['TRELLO_API_KEY'],
-                token=current_user.trello_token)
-            boards = []
-            for b in all_boards:
-                if not b["closed"]:
-                    boards.append(b)
-            form.master_board.choices = [(b["id"], b["name"]) for b in boards]
-        # TODO: show error message if form.master_board.choices is empty
-        if not form.master_board.data:
-            form.master_board.data = form.master_board.choices[0][0]
+        pass
     if step > 2:
-        # TODO: Cache the labels
-        if not hasattr(form.master_board, "choice") or \
-            not form.master_board.choice:
-            labels = perform_request("GET", "boards/%s/labels" % \
-                form.master_board.data,
-                key=current_app.config['TRELLO_API_KEY'],
-                token=current_user.trello_token)
-            form.labels.choices = [(l["id"], l["name"]) for l in labels if l["name"]]
-            for l in labels:
-                if l["name"]:
-                    labels_names[l["id"]] = l["name"]
+        if not len(labels_names):
+            # No labels for this master board, stay on step 2
+            step = 2
     if step > 3:
-        # TODO: Cache the lists on each board
         lists_on_boards = []
         for b in boards:
             boards_lists = perform_request("GET", "boards/%s/lists" % b["id"],
@@ -179,7 +183,6 @@ def new_or_edit(mapping_id=None):
     if step < 3:
         del form.labels
     # Remove all the surplus "map_labelN_lists" fields
-    map_label_lists = [mll for mll in dir(form) if mll.startswith("map_label")]
     for i in range(len(selected_labels), len(map_label_lists)):
         delattr(form, "map_label%d_lists" % i)
 

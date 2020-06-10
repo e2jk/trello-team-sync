@@ -1120,12 +1120,15 @@ class MappingCase(WebsiteTestCase):
         ds1ok, ds2ok, ds3ok, ds4ok = self.get_data_step_valid()
         t_boards, t_labels, t_lists1, t_lists2 = self.get_sample_values()
         amrpr.side_effect = [
-            t_boards,
-            t_boards,
+            t_boards, t_labels,
+            t_boards, t_labels,
+            t_boards, t_labels,
+            t_boards, [],
             t_boards, t_labels,
             t_boards, t_labels,
             t_boards, t_labels, t_lists1, t_lists2,
-            t_boards, t_labels, t_lists1, t_lists2
+            t_boards, t_labels, t_lists1, t_lists2,
+            t_boards, t_labels
         ]
         amrcu.id = 1
 
@@ -1173,8 +1176,17 @@ class MappingCase(WebsiteTestCase):
 
         # POST step 2, invalid master_board, no specific error message
         expected_content = ['<title>New mapping, Step 2/4 - SyncBoom' \
-            '</title>',
+                '</title>',
             '<h1>New mapping, Step 2/4</h1>',
+        ]
+        self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
+            unexpected_content, data=dict(ds1ok, master_board="c"))
+
+        # POST step 2, valid master_board, which has no named labels
+        expected_content = ['<title>New mapping, Step 2/4 - SyncBoom' \
+                '</title>',
+            '<div class="invalid-feedback">None of the labels on this board have ' \
+                'names. Only named labels can be selected for mapping.</div>',
         ]
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
             unexpected_content, data=dict(ds1ok, master_board="c"))
@@ -1194,7 +1206,14 @@ class MappingCase(WebsiteTestCase):
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
             unexpected_content, data=ds2ok)
 
-        # POST step 3, invalid label, no specific error message
+        # POST step 3, invalid label
+        expected_content = [
+            '<h1>New mapping, Step 3/4</h1>',
+            '<ul class="form-control is-invalid" id="labels" style="height: ' \
+                'auto; list-style: none;"><li><input id="labels-0" name=' \
+                '"labels" type="checkbox" value="label_id_1"> <label for=' \
+                '"labels-0">Label Name One</label></li>',
+        ]
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
             unexpected_content,
             data=dict(ds2ok, labels="invalid_label"))
@@ -1205,7 +1224,15 @@ class MappingCase(WebsiteTestCase):
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
             unexpected_content, data=ds3ok)
 
-        # POST step 4, invalid selected list, no specific error message
+        # POST step 4, invalid selected list
+        expected_content = [
+            '<h1>New mapping, Step 4/4</h1>',
+            '<ul class="form-control is-invalid" id="map_label0_lists" style=' \
+                '"height: auto; list-style: none;"><li><input id="' \
+                'map_label0_lists-0" name="map_label0_lists" type="checkbox" ' \
+                'value="list_id_1"> <label for="map_label0_lists-0">hij | ' \
+                'List Name One</label></li>',
+        ]
         self.retrieve_and_check("POST", "/mapping/new", 200, expected_content,
             unexpected_content,
             data=dict(ds3ok, map_label0_lists="invalid_list"))
@@ -1233,7 +1260,8 @@ class MappingCase(WebsiteTestCase):
             t_boards, t_labels, t_lists1, t_lists2,
             t_boards, t_labels, t_lists1, t_lists2,
             t_boards, t_labels, t_lists1, t_lists2,
-            t_boards, t_labels, t_lists1, t_lists2
+            t_boards, t_labels, t_lists1, t_lists2,
+            t_boards, t_labels
         ]
         amrcu.id = 1
 
@@ -1273,10 +1301,11 @@ class MappingCase(WebsiteTestCase):
             '<h1>Edit mapping 1, Step 4/4</h1>',
             '<label class="form-control-label" for="map_label0_lists">Map label ' \
                 '&#34;Label Name Two&#34; to which Trello lists?</label>',
-            '<ul class="form-control" id="map_label0_lists" style="height: auto;' \
-                ' list-style: none;"><li><input id="map_label0_lists-0" name="' \
-                'map_label0_lists" type="checkbox" value="list_id_1"> <label ' \
-                'for="map_label0_lists-0">hij | List Name One</label></li>',
+            '<ul class="form-control is-invalid" id="map_label0_lists" style=' \
+                '"height: auto; list-style: none;"><li><input id="' \
+                'map_label0_lists-0" name="map_label0_lists" type="checkbox" ' \
+                'value="list_id_1"> <label for="map_label0_lists-0">hij | ' \
+                'List Name One</label></li>',
         ]
         self.retrieve_and_check("POST", "/mapping/1/edit", 200, expected_content,
             None, data=dict(ds3ok, map_label0_lists="invalid_list"))
