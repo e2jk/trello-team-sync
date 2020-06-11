@@ -303,7 +303,7 @@ class MiscTests(WebsiteTestCase):
         # No redirects when testing
         response = self.client.get('/')
         self.assertEqual(response.status_code, 200)
-        
+
         tc = TestConfig()
         # WARNING, testing without the TESTING or DEBUG flag
         tc.TESTING = False
@@ -349,6 +349,17 @@ class MiscTests(WebsiteTestCase):
         response = client.get('https://syncboom.com/',
             headers={"Cf-Visitor": '{"scheme":"https"}'})
         self.assertEqual(response.status_code, 200)
+
+    def test_static_files(self):
+        response = self.client.get('/robots.txt')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            "User-agent: *",
+            "Disallow: /auth/"
+        ]
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+        response.close()
 
 
 class TaskCase(WebsiteTestCase):

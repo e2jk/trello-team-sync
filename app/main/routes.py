@@ -6,7 +6,7 @@
 
 from datetime import datetime
 from flask import render_template, flash, redirect, url_for, request, g, \
-    jsonify, current_app
+    jsonify, current_app, send_from_directory
 from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 from guess_language import guess_language
@@ -92,3 +92,7 @@ def privacy():
 @bp.route('/legal')
 def legal():
     return render_template('legal.html', title=_('Terms and Conditions'))
+
+@bp.route('/robots.txt')
+def static_from_root():
+    return send_from_directory(current_app.static_folder, request.path[1:])
