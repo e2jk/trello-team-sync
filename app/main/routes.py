@@ -46,18 +46,23 @@ def index():
         return render_template('index_not_loggedin.html', title=_('Welcome'))
 
 
-@bp.route('/edit_account', methods=['GET', 'POST'])
+@bp.route('/account')
 @login_required
-def edit_account():
+def account():
+    return render_template('account.html', title=_('Account'))
+
+@bp.route('/account/edit/username', methods=['GET', 'POST'])
+@login_required
+def account_edit_username():
     form = EditAccountForm(current_user.username)
     if form.validate_on_submit():
         current_user.username = form.username.data.lower()
         db.session.commit()
         flash(_('Your changes have been saved.'))
-        return redirect(url_for('main.edit_account'))
+        return redirect(url_for('main.account'))
     elif request.method == 'GET':
         form.username.data = current_user.username.lower()
-    return render_template('edit_account.html', title=_('Edit Account'),
+    return render_template('account_edit_username.html', title=_('Edit username'),
                            form=form)
 
 

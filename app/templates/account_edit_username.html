@@ -1,0 +1,6 @@
+{% extends "account.html" %}
+{% import 'bootstrap/form.html' as wtf %}
+
+{% block account_edit_content %}
+    {{ wtf.render_form(form) }}
+{% endblock %}

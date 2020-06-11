@@ -1,7 +1,13 @@
 pre {
  white-space: pre-wrap;
 }
-
 main > .container {
   padding: 60px 15px 0;
+}
+#account_list > a {
+  color: #212529;
+}
+#account_list > a:hover {
+  text-decoration: none;
+  color: #0056b3;
 }

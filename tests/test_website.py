@@ -663,7 +663,7 @@ class AuthCase(WebsiteTestCase):
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<li class="nav-item"><a class="nav-link" href="/edit_account">' \
+            '<li class="nav-item"><a class="nav-link" href="/account">' \
                 'Account</a></li>',
             '<li class="nav-item"><a class="nav-link" href="/auth/logout">' \
                 'Logout</a></li>',
@@ -827,8 +827,9 @@ class AuthCase(WebsiteTestCase):
 class MainCase(WebsiteTestCase):
     def test_main_routes_not_logged_in_redirects(self):
         # GETting these pages without being logged in redirects to login page
-        for url in ("/edit_account", "/notifications", "/mapping/999/edit",
-            "/mapping/new", "/mapping/999/delete", "/mapping/999"):
+        for url in ("/account", "/account/edit/username", "/notifications",
+            "/mapping/999/edit", "/mapping/new", "/mapping/999/delete",
+            "/mapping/999"):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.headers["Location"],
@@ -935,41 +936,65 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    def test_main_routes_edit_account_get(self):
+    def test_main_routes_account(self):
         u = self.create_user("john", "abc")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.get('/edit_account')
+        response = self.client.get('/account')
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Edit Account - SyncBoom</title>',
-            '<h1>Edit Account</h1>',
+            '<title>Account - SyncBoom</title>',
+            '<h1>Account</h1>',
+            '<div class="list-group" id="account_list">',
+            '<a href="/account/edit/username" class="list-group-item d-flex '\
+                'justify-content-between align-items-center">\n            '\
+                'Username: john\n            <span class="badge badge-pill">'\
+                'edit</span>\n          </a>',
+            '<span class="list-group-item d-flex justify-content-between '\
+                'align-items-center">\n            Email address: None'\
+                '\n          </span>',
+            '<span class="list-group-item d-flex justify-content-between '\
+                'align-items-center">\n            Account type: Free'\
+                '\n          </span>',
+        ]
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    def test_main_routes_account_edit_username_get(self):
+        u = self.create_user("john", "abc")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get('/account/edit/username')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Edit username - SyncBoom</title>',
+            '<h1>Edit username</h1>',
             '<input class="form-control" id="username" name="username" ' \
                 'required type="text" value="john">']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    def test_main_routes_edit_account_post(self):
+    def test_main_routes_account_edit_username_post(self):
         u = self.create_user("john", "abc")
         self.assertEqual(u.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.post('/edit_account', data=dict(username="j2"))
+        response = self.client.post('/account/edit/username', data=dict(username="j2"))
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers["Location"], "http://localhost/edit_account")
+        self.assertEqual(response.headers["Location"], "http://localhost/account")
         self.assertEqual(u.username, "j2")
 
-    def test_main_routes_edit_account_post_collision(self):
+    def test_main_routes_account_edit_username_post_collision(self):
         u1 = self.create_user("john", "abc")
         u2 = self.create_user("j2", "def")
         self.assertEqual(u1.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        response = self.client.post('/edit_account', data=dict(username="j2"))
+        response = self.client.post('/account/edit/username', data=dict(username="j2"))
         self.assertEqual(response.status_code, 200)
         expected_content = [
-            '<title>Edit Account - SyncBoom</title>',
-            '<h1>Edit Account</h1>',
+            '<title>Edit username - SyncBoom</title>',
+            '<h1>Edit username</h1>',
             '<div class="invalid-feedback">Please use a different username.</div>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block app_content %}
+
+    <div class="row">
+      <h1>{{ title }}</h1>
+    </div>
+
+    <div class="row">
+      <div class="col-6">
+        <div class="list-group" id="account_list">
+          <a href="{{ url_for('main.account_edit_username') }}" class="list-group-item d-flex justify-content-between align-items-center">
+            {{ _('Username: %(username)s', username=current_user.username) }}
+            <span class="badge badge-pill">edit</span>
+          </a>
+          <span class="list-group-item d-flex justify-content-between align-items-center">
+            {{ _('Email address: %(email)s', email=current_user.email) }}
+          </span>
+          <span class="list-group-item d-flex justify-content-between align-items-center">
+            {{ _('Account type: %(account_type)s', account_type="Free") }}
+          </span>
+        </div>
+      </div>
+      <div class="col-6">
+        {% block account_edit_content %}{% endblock %}
+      </div>
+    </div>
+
+{% endblock %}
+
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+      console.log("ACCOUNT");
+      console.log($('#account_list > a'));
+      $('#account_list > a').hover(
+        function(){ $(this).children("span").addClass('badge-primary') },
+        function(){ $(this).children("span").removeClass('badge-primary') }
+      )
+    </script>
+{% endblock %}
