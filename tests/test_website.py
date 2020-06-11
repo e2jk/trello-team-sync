@@ -361,6 +361,19 @@ class MiscTests(WebsiteTestCase):
             self.assertIn(str.encode(ec), response.data)
         response.close()
 
+        response = self.client.get('/sitemap.txt')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            "https://syncboom.com/",
+            "https://syncboom.com/contact",
+            "https://syncboom.com/pricing",
+            "https://syncboom.com/privacy",
+            "https://syncboom.com/legal",
+        ]
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+        response.close()
+
 
 class TaskCase(WebsiteTestCase):
     @patch("app.tasks.get_current_job")

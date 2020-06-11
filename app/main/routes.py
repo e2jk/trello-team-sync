@@ -94,5 +94,6 @@ def legal():
     return render_template('legal.html', title=_('Terms and Conditions'))
 
 @bp.route('/robots.txt')
+@bp.route('/sitemap.txt')
 def static_from_root():
     return send_from_directory(current_app.static_folder, request.path[1:])
