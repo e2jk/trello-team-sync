@@ -14,6 +14,7 @@ from app import db
 from app.main.forms import EditAccountForm
 from app.models import User, Notification
 from app.main import bp
+from syncboom import perform_request
 
 
 @bp.before_app_request
@@ -47,23 +48,27 @@ def index():
 
 
 @bp.route('/account')
+@bp.route('/account/edit/<any(username):edit_element>', methods=['GET', 'POST'])
 @login_required
-def account():
-    return render_template('account.html', title=_('Account'))
-
-@bp.route('/account/edit/username', methods=['GET', 'POST'])
-@login_required
-def account_edit_username():
-    form = EditAccountForm(current_user.username)
-    if form.validate_on_submit():
-        current_user.username = form.username.data.lower()
-        db.session.commit()
-        flash(_('Your changes have been saved.'))
-        return redirect(url_for('main.account'))
-    elif request.method == 'GET':
-        form.username.data = current_user.username.lower()
-    return render_template('account_edit_username.html', title=_('Edit username'),
-                           form=form)
+def account(edit_element=None):
+    trello_details = perform_request("GET", "members/me",
+        key=current_app.config['TRELLO_API_KEY'],
+        token=current_user.trello_token)
+    if not edit_element:
+        return render_template('account.html', title=_('Account'),
+            trello_username=trello_details["username"])
+    elif edit_element == "username":
+        form = EditAccountForm(current_user.username)
+        if form.validate_on_submit():
+            current_user.username = form.username.data.lower()
+            db.session.commit()
+            flash(_('Your changes have been saved.'))
+            return redirect(url_for('main.account'))
+        elif request.method == 'GET':
+            form.username.data = current_user.username.lower()
+        return render_template('account_edit_username.html',
+            title=_('Edit username'), form=form,
+            trello_username=trello_details["username"])
 
 
 @bp.route('/notifications')

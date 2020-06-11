@@ -936,34 +936,32 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    def test_main_routes_account(self):
-        u = self.create_user("john", "abc")
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account(self, amrpr):
+        u = self.create_user("john", "abc", email='john@example.com')
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
         response = self.client.get('/account')
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<title>Account - SyncBoom</title>',
             '<h1>Account</h1>',
             '<div class="list-group" id="account_list">',
-            '<a href="/account/edit/username" class="list-group-item d-flex '\
-                'justify-content-between align-items-center">\n            '\
-                'Username: john\n            <span class="badge badge-pill">'\
-                'edit</span>\n          </a>',
-            '<span class="list-group-item d-flex justify-content-between '\
-                'align-items-center">\n            Email address: None'\
-                '\n          </span>',
-            '<span class="list-group-item d-flex justify-content-between '\
-                'align-items-center">\n            Account type: Free'\
-                '\n          </span>',
+            'Username: john\n            <span class="badge badge-pill">edit',
+            'Email address: john@example.com',
+            'Account type: Free',
+            'Trello username: trello_username',
         ]
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    def test_main_routes_account_edit_username_get(self):
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_username_get(self, amrpr):
         u = self.create_user("john", "abc")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
         response = self.client.get('/account/edit/username')
         self.assertEqual(response.status_code, 200)
         expected_content = [
@@ -974,22 +972,26 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    def test_main_routes_account_edit_username_post(self):
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_username_post(self, amrpr):
         u = self.create_user("john", "abc")
         self.assertEqual(u.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
         response = self.client.post('/account/edit/username', data=dict(username="j2"))
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], "http://localhost/account")
         self.assertEqual(u.username, "j2")
 
-    def test_main_routes_account_edit_username_post_collision(self):
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_username_post_collision(self, amrpr):
         u1 = self.create_user("john", "abc")
         u2 = self.create_user("j2", "def")
         self.assertEqual(u1.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
         response = self.client.post('/account/edit/username', data=dict(username="j2"))
         self.assertEqual(response.status_code, 200)
         expected_content = [
