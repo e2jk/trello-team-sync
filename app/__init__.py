@@ -7,7 +7,7 @@
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
 import os
-from flask import Flask, request, current_app
+from flask import Flask, request, current_app, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_login import LoginManager
@@ -21,6 +21,7 @@ from flask_paranoid import Paranoid
 from redis import Redis
 import rq
 from config import Config
+import json
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -56,6 +57,38 @@ csp_value = (
 secure_headers = SecureHeaders(server="None", feature=True, csp=csp_value)
 
 
+def app_before_request(*args, **kwargs):
+    """
+    Redirect any non-https requests to https, and www and Herolu subdomain to
+    naked domain. Inspired by flask-talisman's _force_https and
+    https://julien.danjou.info/correct-http-scheme-in-wsgi-with-cloudflare/
+    """
+    proto = None
+    cf_visitor = request.headers.get("Cf-Visitor")
+    if cf_visitor:
+        try:
+            cf_visitor = json.loads(cf_visitor)
+        except ValueError:
+            pass
+        else:
+            proto = cf_visitor.get("scheme")
+    if request.environ["wsgi.url_scheme"] != "https" and proto == "https":
+        request.environ["wsgi.url_scheme"] = "https"
+
+    if not current_app.debug and not current_app.testing:
+        url = None
+        code = 301
+        non_https = (proto != "https")
+        non_naked_domain = "://www." in request.url
+        heroku_subdomain = "://syncboom.herokuapp.com" in request.url
+        if non_https or non_naked_domain or heroku_subdomain:
+            url = request.url.\
+                replace('http://', 'https://', 1).\
+                replace('://www.', '://', 1).\
+                replace('://syncboom.herokuapp.com', '://syncboom.com', 1)
+        if url:
+            return redirect(url, code=code)
+
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
@@ -72,6 +105,8 @@ def create_app(config_class=Config):
     app.task_queue = rq.Queue('syncboom-tasks', connection=app.redis)
     paranoid = Paranoid(app)
     paranoid.redirect_view = '/'
+
+    app.before_request(app_before_request)
 
     from app.errors import bp as errors_bp
     app.register_blueprint(errors_bp)

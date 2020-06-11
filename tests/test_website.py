@@ -299,6 +299,57 @@ class MiscTests(WebsiteTestCase):
                 self.assertIn(h, str(app.logger.handlers))
             self.assertEqual(aem.mock_calls, [])
 
+    def test_production_redirects(self):
+        # No redirects when testing
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        
+        tc = TestConfig()
+        # WARNING, testing without the TESTING or DEBUG flag
+        tc.TESTING = False
+        tc.DEBUG = False
+        app = create_app(tc)
+        client = app.test_client()
+        # http://localhost/ -> https://localhost/
+        response = client.get('/')
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "https://localhost/")
+        # CloudFlare HTTPS -> Heroku HTTP, no redirect
+        response = client.get('/', headers={"Cf-Visitor": '{"scheme":"https"}'})
+        self.assertEqual(response.status_code, 200)
+        # CloudFlare HTTPS -> Heroku HTTP, no redirect
+        response = client.get('/', headers={"Cf-Visitor": '{"scheme":"http"}'})
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "https://localhost/")
+        # Invalid CloudFlare header
+        response = client.get('/', headers={"Cf-Visitor": 'INVALID'})
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "https://localhost/")
+        # Heroku subdomain HTTP (faking CF header to test only the Heroku subdomain)
+        response = client.get('http://syncboom.herokuapp.com/',
+            headers={"Cf-Visitor": '{"scheme":"https"}'})
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "https://syncboom.com/")
+        # Heroku subdomain HTTPS (faking CF header to test only the Heroku subdomain)
+        response = client.get('https://syncboom.herokuapp.com/',
+            headers={"Cf-Visitor": '{"scheme":"https"}'})
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "https://syncboom.com/")
+        # www subdomain HTTP (faking CF header to test only the www subdomain)
+        response = client.get('http://www.syncboom.com/',
+            headers={"Cf-Visitor": '{"scheme":"https"}'})
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "https://syncboom.com/")
+        # www subdomain HTTPS (faking CF header to test only the www subdomain)
+        response = client.get('https://www.syncboom.com/',
+            headers={"Cf-Visitor": '{"scheme":"https"}'})
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response.headers["Location"], "https://syncboom.com/")
+        # No redirect (faking CF header to test only the www subdomain)
+        response = client.get('https://syncboom.com/',
+            headers={"Cf-Visitor": '{"scheme":"https"}'})
+        self.assertEqual(response.status_code, 200)
+
 
 class TaskCase(WebsiteTestCase):
     @patch("app.tasks.get_current_job")
