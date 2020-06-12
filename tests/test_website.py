@@ -827,9 +827,16 @@ class AuthCase(WebsiteTestCase):
 class MainCase(WebsiteTestCase):
     def test_main_routes_not_logged_in_redirects(self):
         # GETting these pages without being logged in redirects to login page
-        for url in ("/account", "/account/edit/username", "/notifications",
-            "/mapping/999/edit", "/mapping/new", "/mapping/999/delete",
-            "/mapping/999"):
+        for url in (
+            "/account",
+            "/account/edit/username",
+            "/account/edit/email",
+            "/notifications",
+            "/mapping/999/edit",
+            "/mapping/new",
+            "/mapping/999/delete",
+            "/mapping/999",
+            ):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 302)
             self.assertEqual(response.headers["Location"],
@@ -979,10 +986,12 @@ class MainCase(WebsiteTestCase):
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
         amrpr.return_value = {"username": "trello_username"}
-        response = self.client.post('/account/edit/username', data=dict(username="j2"))
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.headers["Location"], "http://localhost/account")
+        response = self.client.post('/account/edit/username',
+            data=dict(username="j2"), follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(u.username, "j2")
+        ec = 'Your username has been updated.'
+        self.assertIn(str.encode(ec), response.data)
 
     @patch("app.main.routes.perform_request")
     def test_main_routes_account_edit_username_post_collision(self, amrpr):
@@ -1001,6 +1010,55 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
         self.assertEqual(u1.username, "john")
+
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_email_get(self, amrpr):
+        u = self.create_user("john", "abc", email='john@example.com')
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
+        response = self.client.get('/account/edit/email')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Edit email - SyncBoom</title>',
+            '<h1>Edit email</h1>',
+            '<input class="form-control" id="email" name="email" ' \
+                'required type="text" value="john@example.com">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_email_post(self, amrpr):
+        u = self.create_user("john", "abc", email='john@example.com')
+        self.assertEqual(u.email, "john@example.com")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
+        response = self.client.post('/account/edit/email',
+            data=dict(email="j2@example.com"), follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(u.email, "j2@example.com")
+        ec = 'Your email has been updated.'
+        self.assertIn(str.encode(ec), response.data)
+
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_email_post_collision(self, amrpr):
+        u1 = self.create_user("john", "abc", email='john@example.com')
+        u2 = self.create_user("j2", "def", email='j2@example.com')
+        self.assertEqual(u1.email, "john@example.com")
+        response = self.login("john", "abc")
+        self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
+        response = self.client.post('/account/edit/email',
+            data=dict(email="j2@example.com"))
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Edit email - SyncBoom</title>',
+            '<h1>Edit email</h1>',
+            '<div class="invalid-feedback">Please use a different email address.</div>']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+        self.assertEqual(u1.email, "john@example.com")
 
     def test_error_404(self):
         response = self.client.get('/non_existent_route')
