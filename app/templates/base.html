@@ -39,8 +39,10 @@
             <li class="nav-item"><a class="nav-link{% if request.url_rule.endpoint == "auth.login" %} active{% endif %}" href="{{ url_for('auth.login') }}">{{ _('Login') }}{% if request.url_rule.endpoint == "auth.login" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
             <li class="nav-item"><a class="nav-link{% if request.url_rule.endpoint == "auth.register" %} active{% endif %}" href="{{ url_for('auth.register') }}">{{ _('Register') }}{% if request.url_rule.endpoint == "auth.register" %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
             {% else %}
-            <li class="nav-item"><a class="nav-link{% if request.url_rule.endpoint.startswith("main.account") %} active{% endif %}" href="{{ url_for('main.account') }}">{{ _('Account') }}{% if request.url_rule.endpoint.startswith("main.account") %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
+            {% with url_endpoint_sw = request.url_rule.endpoint.startswith("main.account") if request.url_rule else "" %}
+            <li class="nav-item"><a class="nav-link{% if url_endpoint_sw %} active{% endif %}" href="{{ url_for('main.account') }}">{{ _('Account') }}{% if url_endpoint_sw %}<span class="sr-only"> ({{ _('current') }})</span>{% endif %}</a></li>
             <li class="nav-item"><a class="nav-link" href="{{ url_for('auth.logout') }}">{{ _('Logout') }}</a></li>
+            {% endwith %}
             {% endif %}
           </ul>
         </div>
