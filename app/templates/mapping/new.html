@@ -5,7 +5,12 @@
     <h1>{{ title }}</h1>
     <div class="row">
         <div class="col-lg-8">
+            {% if form %}
             {{ wtf.render_form(form) }}
+            {% else %}
+            {{ _('You don\'t have any active board available in Trello.') }}<br>
+            {{ _('Go create some boards, lists and cards in %(trello_link)s and come back for some syncing fun!', trello_link='<a href="https://trello.com/">Trello</a>'|safe) }}<br>
+            {% endif %}
         </div>
     </div>
 {% endblock %}

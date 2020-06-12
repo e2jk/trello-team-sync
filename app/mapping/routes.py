@@ -60,6 +60,18 @@ def new_or_edit(mapping_id=None):
     else:
         num_map_labelN_lists = len(request.form.getlist('labels'))
 
+    # Get the list of boards for this user
+    all_boards = perform_request("GET", "members/me/boards",
+        key=current_app.config['TRELLO_API_KEY'],
+        token=current_user.trello_token)
+    boards = []
+    for b in all_boards:
+        if not b["closed"]:
+            boards.append(b)
+    if not boards:
+        title = _('No boards available in Trello')
+        return render_template('mapping/new.html', title=title)
+
     form = makeNewMappingForm(obj=mapping,
         num_map_labelN_lists=num_map_labelN_lists)
 
@@ -68,14 +80,6 @@ def new_or_edit(mapping_id=None):
     selected_labels = []
     if request.method == 'POST' or mapping_id:
         use_default_master_board = False
-        # Get the list of boards for this user
-        all_boards = perform_request("GET", "members/me/boards",
-            key=current_app.config['TRELLO_API_KEY'],
-            token=current_user.trello_token)
-        boards = []
-        for b in all_boards:
-            if not b["closed"]:
-                boards.append(b)
         form.master_board.choices = [(b["id"], b["name"]) for b in boards]
         # TODO (#74): show error message if form.master_board.choices is empty
         if not form.master_board.data:

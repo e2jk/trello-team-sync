@@ -1376,6 +1376,46 @@ class MappingCase(WebsiteTestCase):
         ]
         return t_boards, t_labels, t_lists1, t_lists2
 
+    @patch("app.mapping.routes.perform_request")
+    def test_mapping_no_boards(self, amrpr):
+        (u, m) = self.create_user_mapping_and_login()
+        self.assertEqual(m.id, 1)
+        ds1ok, ds2ok, ds3ok, ds4ok = self.get_data_step_valid()
+        amrpr.side_effect = [
+            # No boards at all
+            [],
+            # Only closed boards
+            [
+                {"id": "123", "name": "hij", "closed": True},
+                {"id": "456", "name": "nop", "closed": True},
+                {"id": "a"*24, "name": "klm", "closed": True}
+            ]
+        ]
+
+        # GET step 1
+        expected_content = [
+            '<title>No boards available in Trello - SyncBoom</title>',
+            '<h1>No boards available in Trello</h1>',
+            'You don\'t have any active board available in Trello.',
+            'Go create some boards, lists and cards in <a href="https://' \
+                'trello.com/">Trello</a> and come back for some syncing fun!'
+        ]
+        unexpected_content = [
+            '<title>New mapping, Step 1/4 - SyncBoom</title>',
+            '<h1>New mapping, Step 1/4</h1>',
+            '<input class="form-control" id="name" name="name" required ' \
+            'type="text" value="">',
+            '<textarea class="form-control" id="description" name="description">'
+            '<select class="form-control" id="master_board" ' \
+                'name="master_board"><option',
+        ]
+        # Test no boards at all
+        self.retrieve_and_check("GET", "/mapping/new", 200, expected_content,
+            unexpected_content)
+        # Test only closed boards
+        self.retrieve_and_check("GET", "/mapping/new", 200, expected_content,
+            unexpected_content)
+
     @patch("app.mapping.routes.flash")
     @patch("app.mapping.routes.current_user")
     @patch("app.mapping.routes.perform_request")
@@ -1385,6 +1425,7 @@ class MappingCase(WebsiteTestCase):
         ds1ok, ds2ok, ds3ok, ds4ok = self.get_data_step_valid()
         t_boards, t_labels, t_lists1, t_lists2 = self.get_sample_values()
         amrpr.side_effect = [
+            t_boards,
             t_boards, t_labels,
             t_boards, t_labels,
             t_boards, t_labels,
