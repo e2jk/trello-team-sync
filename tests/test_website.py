@@ -1060,6 +1060,64 @@ class MainCase(WebsiteTestCase):
             self.assertIn(str.encode(ec), response.data)
         self.assertEqual(u1.email, "john@example.com")
 
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_password_get(self, amrpr):
+        u = self.create_user("john", "abc"*3)
+        response = self.login("john", "abc"*3)
+        self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
+        response = self.client.get('/account/edit/password')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Edit password - SyncBoom</title>',
+            '<h1>Edit password</h1>',
+            '<input class="form-control" id="password" name="password" ' \
+                'required type="password" value="">',
+            '<input class="form-control" id="password2" name="password2" ' \
+                'required type="password" value="">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_password_post(self, amrpr):
+        u = self.create_user("john", "abc"*3)
+        self.assertTrue(u.check_password("abc"*3))
+        response = self.login("john", "abc"*3)
+        self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
+        # Empty passwords
+        response = self.client.post('/account/edit/password')
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(u.check_password("def"*3))
+        self.assertTrue(u.check_password("abc"*3))
+        ec = '<div class="invalid-feedback">This field is required.</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Different second password
+        response = self.client.post('/account/edit/password',
+            data=dict(password="def"*3, password2="abc"*3))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(u.check_password("def"*3))
+        self.assertTrue(u.check_password("abc"*3))
+        ec = '<div class="invalid-feedback">Field must be equal to password.' \
+            '</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Password is too short
+        response = self.client.post('/account/edit/password',
+            data=dict(password="abc", password2="abc"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(u.check_password("abc"))
+        self.assertTrue(u.check_password("abc"*3))
+        ec = '<div class="invalid-feedback">Field must be between 8 and 128 ' \
+            'characters long.</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Valid password
+        response = self.client.post('/account/edit/password',
+            data=dict(password="def"*3, password2="def"*3), follow_redirects=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(u.check_password("def"*3))
+        ec = 'Your password has been updated.'
+        self.assertIn(str.encode(ec), response.data)
+
     def test_error_404(self):
         response = self.client.get('/non_existent_route')
         self.assertEqual(response.status_code, 404)

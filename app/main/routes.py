@@ -48,7 +48,8 @@ def index():
 
 
 @bp.route('/account')
-@bp.route('/account/edit/<any(username, email):edit_element>', methods=['GET', 'POST'])
+@bp.route('/account/edit/<any(username, email, password):edit_element>',
+    methods=['GET', 'POST'])
 @login_required
 def account(edit_element=None):
     trello_details = perform_request("GET", "members/me",
@@ -59,17 +60,20 @@ def account(edit_element=None):
         return render_template('account.html', title=_('Account'),
             trello_username=trello_username)
     else:
-        form = makeAccountEditForm(edit_element,
-            getattr(current_user, edit_element))
+        original_value = getattr(current_user, edit_element) \
+            if hasattr(current_user, edit_element) else ""
+        form = makeAccountEditForm(edit_element, original_value)
         if form.validate_on_submit():
-            setattr(current_user, edit_element,
-                getattr(form, edit_element).data.lower())
+            if edit_element != "password":
+                setattr(current_user, edit_element,
+                    getattr(form, edit_element).data.lower())
+            else:
+                current_user.set_password(form.password.data)
             db.session.commit()
             flash(_('Your %s has been updated.' % edit_element))
             return redirect(url_for('main.account'))
         elif request.method == 'GET':
-            getattr(form, edit_element).data = \
-                getattr(current_user, edit_element).lower()
+            getattr(form, edit_element).data = original_value.lower()
         return render_template('account_edit.html',
             title=_('Edit %s' % edit_element), form=form,
             trello_username=trello_username)

@@ -6,8 +6,9 @@
 
 from flask import request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField
-from wtforms.validators import ValidationError, DataRequired, Length, Email
+from wtforms import StringField, SubmitField, PasswordField
+from wtforms.validators import ValidationError, DataRequired, Length, Email, \
+    EqualTo
 from flask_babel import _, lazy_gettext as _l
 from app.models import User
 
@@ -17,6 +18,11 @@ def makeAccountEditForm(edit_element, original_value):
         username = StringField(_l('Username'), validators=[DataRequired()])
         email = StringField(_l('Email'), validators=[DataRequired(), Email(),
             Length(min=5, max=255)])
+        password = PasswordField(_l('Password'), validators=[DataRequired(),
+            Length(min=8, max=128)])
+        password2 = PasswordField(
+            _l('Repeat Password'), validators=[DataRequired(),
+                                               EqualTo('password')])
         submit = SubmitField(_l('Submit'))
 
         def __init__(self, original_value, *args, **kwargs):
@@ -40,4 +46,7 @@ def makeAccountEditForm(edit_element, original_value):
     for element in ("username", "email"):
         if edit_element != element:
             delattr(form, element)
+    if edit_element != "password":
+        delattr(form, "password")
+        delattr(form, "password2")
     return form
