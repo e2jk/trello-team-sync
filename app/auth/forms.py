@@ -21,7 +21,8 @@ class LoginForm(FlaskForm):
 
 def makeRegistrationForm(privacy_link, terms_link):
     class RegistrationForm(FlaskForm):
-        username = StringField(_l('Username'), validators=[DataRequired()])
+        username = StringField(_l('Username'), validators=[DataRequired(),
+            Length(max=63)])
         email = StringField(_l('Email'), validators=[DataRequired(), Email(),
             Length(min=5, max=255)])
         password = PasswordField(_l('Password'), validators=[DataRequired(),

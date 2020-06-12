@@ -15,7 +15,8 @@ from app.models import User
 
 def makeAccountEditForm(edit_element, original_value):
     class AccountEditForm(FlaskForm):
-        username = StringField(_l('Username'), validators=[DataRequired()])
+        username = StringField(_l('Username'), validators=[DataRequired(),
+            Length(max=63)])
         email = StringField(_l('Email'), validators=[DataRequired(), Email(),
             Length(min=5, max=255)])
         password = PasswordField(_l('Password'), validators=[DataRequired(),

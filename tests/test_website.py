@@ -598,6 +598,13 @@ class AuthCase(WebsiteTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(str.encode(ec), response.data)
 
+        # Test with an invalid username (too long)
+        ec = '<div class="invalid-feedback">Field cannot be longer than 63 characters.</div>'
+        response = self.register("john"*20, "john@example.com",
+            "abc"*3, "abc"*3, True)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(str.encode(ec), response.data)
+
         # Test without accepting the terms
         response = self.register("john", "john@example.com", "abc"*3, "abc"*3, False)
         self.assertEqual(response.status_code, 200)
@@ -986,6 +993,22 @@ class MainCase(WebsiteTestCase):
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
         amrpr.return_value = {"username": "trello_username"}
+        # Empty username
+        response = self.client.post('/account/edit/username')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(u.username, "john")
+        ec = '<div class="invalid-feedback">This field is required.</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Username too long
+        response = self.client.post('/account/edit/username',
+            data=dict(username="a"*64))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(u.username, "john")
+        self.assertNotEqual(u.username, "a"*64)
+        ec = '<div class="invalid-feedback">Field cannot be longer than 63 ' \
+            'characters.</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Valid username
         response = self.client.post('/account/edit/username',
             data=dict(username="j2"), follow_redirects=True)
         self.assertEqual(response.status_code, 200)
@@ -1001,7 +1024,8 @@ class MainCase(WebsiteTestCase):
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
         amrpr.return_value = {"username": "trello_username"}
-        response = self.client.post('/account/edit/username', data=dict(username="j2"))
+        response = self.client.post('/account/edit/username',
+            data=dict(username="j2"))
         self.assertEqual(response.status_code, 200)
         expected_content = [
             '<title>Edit username - SyncBoom</title>',
@@ -1034,6 +1058,28 @@ class MainCase(WebsiteTestCase):
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
         amrpr.return_value = {"username": "trello_username"}
+        # Empty email
+        response = self.client.post('/account/edit/email')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(u.email, "john@example.com")
+        ec = '<div class="invalid-feedback">This field is required.</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Short email
+        response = self.client.post('/account/edit/email',
+            data=dict(email="abc"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(u.email, "john@example.com")
+        ec = '<div class="invalid-feedback">Field must be between 5 and 255 ' \
+            'characters long.</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Invalid email
+        response = self.client.post('/account/edit/email',
+            data=dict(email="abcdef"))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(u.email, "john@example.com")
+        ec = '<div class="invalid-feedback">Invalid email address.</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Valid email
         response = self.client.post('/account/edit/email',
             data=dict(email="j2@example.com"), follow_redirects=True)
         self.assertEqual(response.status_code, 200)
@@ -1055,7 +1101,8 @@ class MainCase(WebsiteTestCase):
         expected_content = [
             '<title>Edit email - SyncBoom</title>',
             '<h1>Edit email</h1>',
-            '<div class="invalid-feedback">Please use a different email address.</div>']
+            '<div class="invalid-feedback">Please use a different email ' \
+                'address.</div>']
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
         self.assertEqual(u1.email, "john@example.com")
