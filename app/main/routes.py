@@ -11,7 +11,7 @@ from flask_login import current_user, login_required
 from flask_babel import _, get_locale
 from guess_language import guess_language
 from app import db
-from app.main.forms import AccountEditUsernameForm, AccountEditEmailForm
+from app.main.forms import makeAccountEditForm
 from app.models import User, Notification
 from app.main import bp
 from syncboom import perform_request
@@ -58,29 +58,20 @@ def account(edit_element=None):
     if not edit_element:
         return render_template('account.html', title=_('Account'),
             trello_username=trello_username)
-    elif edit_element == "username":
-        form = AccountEditUsernameForm(current_user.username)
+    else:
+        form = makeAccountEditForm(edit_element,
+            getattr(current_user, edit_element))
         if form.validate_on_submit():
-            current_user.username = form.username.data.lower()
+            setattr(current_user, edit_element,
+                getattr(form, edit_element).data.lower())
             db.session.commit()
-            flash(_('Your username has been updated.'))
+            flash(_('Your %s has been updated.' % edit_element))
             return redirect(url_for('main.account'))
         elif request.method == 'GET':
-            form.username.data = current_user.username.lower()
+            getattr(form, edit_element).data = \
+                getattr(current_user, edit_element).lower()
         return render_template('account_edit.html',
-            title=_('Edit username'), form=form,
-            trello_username=trello_username)
-    elif edit_element == "email":
-        form = AccountEditEmailForm(current_user.email)
-        if form.validate_on_submit():
-            current_user.email = form.email.data.lower()
-            db.session.commit()
-            flash(_('Your email has been updated.'))
-            return redirect(url_for('main.account'))
-        elif request.method == 'GET':
-            form.email.data = current_user.email.lower()
-        return render_template('account_edit.html',
-            title=_('Edit email'), form=form,
+            title=_('Edit %s' % edit_element), form=form,
             trello_username=trello_username)
 
 
