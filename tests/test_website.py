@@ -1178,8 +1178,8 @@ class MainCase(WebsiteTestCase):
         expected_content = [
             '<title>Edit trello - SyncBoom</title>',
             '<h1>Edit trello</h1>',
-            '<p>Warning: changing your Trello username will delete the 1 ' \
-                'mappings you currently have configured.</p>',
+            '<p>Warning: changing your Trello username will delete the ' \
+                'mapping you currently have configured.</p>',
             '<p><strong>Are you sure you want to proceed?</strong></p>',
             '<input class="btn btn-secondary btn-md" id="submit" name="submit" ' \
                 'type="submit" value="Unlink and continue to Trello">']

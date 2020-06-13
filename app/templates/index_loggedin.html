@@ -10,13 +10,21 @@
       {% with mappings = current_user.get_mappings() %}
       {% if mappings %}
       <div class="col-md-9">
-        <h2>{{ _('Your mappings') }}</h2>
+        <h2>{{ ngettext('Your mapping', 'Your mappings', mappings|length) }}</h2>
         <ul>
           {% for mapping in mappings %}
           <li>
             <a class="btn btn-success btn-sm" href="{{ url_for('mapping.run', mapping_id=mapping.id) }}" role="button">{{ _('Run') }}</a>
             {{ mapping.name }}<br/>
-            {{ _('%(num_labels)d labels and %(num_dest_lists)d destination lists', num_labels=mapping.get_num_labels(), num_dest_lists=mapping.get_num_dest_lists()) }}<br/>
+            {% with num_labels = mapping.get_num_labels() %}
+            {% with num_dest_lists = mapping.get_num_dest_lists() %}
+            {% with num_labels_str = ngettext('%(num_labels)d label', '%(num_labels)d labels', num_labels, num_labels=num_labels) %}
+            {% with num_dest_lists_str = ngettext('%(num_dest_lists)d destination list', '%(num_dest_lists)d destination lists', num_dest_lists, num_dest_lists=num_dest_lists) %}
+            {{ _('%(num_labels_str)s and %(num_dest_lists_str)s', num_labels_str=num_labels_str, num_dest_lists_str=num_dest_lists_str) }}<br/>
+            {% endwith %}
+            {% endwith %}
+            {% endwith %}
+            {% endwith %}
             {% if mapping.description %}{{ mapping.description }}<br/>{% endif %}
             <a href="{{ url_for('mapping.new_or_edit', mapping_id=mapping.id) }}">{{ _('Edit') }}</a> -
             <a href="{{ url_for('mapping.delete', mapping_id=mapping.id) }}">{{ _('Delete') }}</a>
