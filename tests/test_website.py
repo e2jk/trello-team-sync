@@ -679,7 +679,7 @@ class AuthCase(WebsiteTestCase):
             '<h2>Connect to Trello</h2>',
             '<a class="btn btn-info" href="https://trello.com/1/authorize?name=' \
                 'SyncBoom&amp;scope=read,write&amp;expiration=never' \
-                '&amp;return_url=http://127.0.0.1:5000/auth/validate_trello_token' \
+                '&amp;return_url=http://localhost/auth/validate_trello_token' \
                 '&amp;key=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1&amp;' \
                 'callback_method=fragment" role="button">Connect to Trello</a>']
         for ec in expected_content:
@@ -875,7 +875,7 @@ class MainCase(WebsiteTestCase):
             '<h2>Connect to Trello</h2>',
             '<a class="btn btn-info" href="https://trello.com/1/authorize?name=' \
                 'SyncBoom&amp;scope=read,write&amp;expiration=never' \
-                '&amp;return_url=http://127.0.0.1:5000/auth/validate_trello_token' \
+                '&amp;return_url=http://localhost/auth/validate_trello_token' \
                 '&amp;key=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1&amp;' \
                 'callback_method=fragment" role="button">Connect to Trello</a>']
         for ec in expected_content:
@@ -1207,7 +1207,7 @@ class MainCase(WebsiteTestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response.headers["Location"], 'https://trello.com/1/' \
             'authorize?name=SyncBoom&scope=read,write&expiration=never&' \
-            'return_url=http://127.0.0.1:5000/auth/validate_trello_token&' \
+            'return_url=http://localhost/auth/validate_trello_token&' \
             'key=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1&callback_method=fragment')
         self.assertEqual(u.trello_token, None)
         self.assertEqual(len(u.get_mappings()), 0)

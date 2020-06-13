@@ -18,13 +18,15 @@ from syncboom import perform_request
 
 
 def get_trello_authorizing_url():
-    return "https://trello.com/1/authorize?" \
-    "name=SyncBoom&" \
-    "scope=read,write&" \
-    "expiration=never&" \
-    "return_url=http://127.0.0.1:5000/auth/validate_trello_token&" \
-    "key=%s&" \
-    "callback_method=fragment" % (current_app.config["TRELLO_API_KEY"])
+    url = "https://trello.com/1/authorize?" \
+        "name=SyncBoom&" \
+        "scope=read,write&" \
+        "expiration=never&" \
+        "return_url=%sauth/validate_trello_token&" \
+        "key=%s&" \
+        "callback_method=fragment" % \
+            (request.url_root, current_app.config["TRELLO_API_KEY"])
+    return url
 
 @bp.before_app_request
 def before_request():
