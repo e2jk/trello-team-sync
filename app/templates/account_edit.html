@@ -2,5 +2,12 @@
 {% import 'bootstrap/form.html' as wtf %}
 
 {% block account_edit_content %}
+    {% if edit_element == "trello" %}
+    {% if num_mappings %}
+    <p>{{ _('Warning: changing your Trello username will delete the %(num_mappings)d mappings you currently have configured.', num_mappings=num_mappings) }}</p>
+    <p><strong>{{ _('Are you sure you want to proceed?') }}</strong></p>
+    {% endif %}
+    {% endif %}
+
     {{ wtf.render_form(form) }}
 {% endblock %}

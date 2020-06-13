@@ -838,6 +838,7 @@ class MainCase(WebsiteTestCase):
             "/account",
             "/account/edit/username",
             "/account/edit/email",
+            "/account/edit/trello",
             "/notifications",
             "/mapping/999/edit",
             "/mapping/new",
@@ -1164,6 +1165,52 @@ class MainCase(WebsiteTestCase):
         self.assertTrue(u.check_password("def"*3))
         ec = 'Your password has been updated.'
         self.assertIn(str.encode(ec), response.data)
+
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_trello_get(self, amrpr):
+        u = self.create_user("john", "abc"*3)
+        u.mappings.append(Mapping(name="abc"))
+        response = self.login("john", "abc"*3)
+        self.assertEqual(response.status_code, 200)
+        amrpr.return_value = {"username": "trello_username"}
+        response = self.client.get('/account/edit/trello')
+        self.assertEqual(response.status_code, 200)
+        expected_content = [
+            '<title>Edit trello - SyncBoom</title>',
+            '<h1>Edit trello</h1>',
+            '<p>Warning: changing your Trello username will delete the 1 ' \
+                'mappings you currently have configured.</p>',
+            '<p><strong>Are you sure you want to proceed?</strong></p>',
+            '<input class="btn btn-secondary btn-md" id="submit" name="submit" ' \
+                'type="submit" value="Unlink and continue to Trello">']
+        for ec in expected_content:
+            self.assertIn(str.encode(ec), response.data)
+
+    @patch("app.main.routes.perform_request")
+    def test_main_routes_account_edit_trello_post(self, amrpr):
+        u = self.create_user("john", "abc"*3, trello_token="b2"*16)
+        u.mappings.append(Mapping(name="abc"))
+        response = self.login("john", "abc"*3)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(u.trello_token, "b2"*16)
+        self.assertEqual(len(u.get_mappings()), 1)
+        amrpr.return_value = {"username": "trello_username"}
+        # Checkbox not checked
+        response = self.client.post('/account/edit/trello')
+        self.assertEqual(response.status_code, 200)
+        ec = '<div class="invalid-feedback" style="display: block;">This ' \
+            'field is required.</div>'
+        self.assertIn(str.encode(ec), response.data)
+        # Checkbox checked
+        response = self.client.post('/account/edit/trello',
+            data=dict(trello="y"))
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], 'https://trello.com/1/' \
+            'authorize?name=SyncBoom&scope=read,write&expiration=never&' \
+            'return_url=http://127.0.0.1:5000/auth/validate_trello_token&' \
+            'key=a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1a1&callback_method=fragment')
+        self.assertEqual(u.trello_token, None)
+        self.assertEqual(len(u.get_mappings()), 0)
 
     def test_error_404(self):
         response = self.client.get('/non_existent_route')

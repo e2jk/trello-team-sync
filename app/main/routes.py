@@ -17,6 +17,15 @@ from app.main import bp
 from syncboom import perform_request
 
 
+def get_trello_authorizing_url():
+    return "https://trello.com/1/authorize?" \
+    "name=SyncBoom&" \
+    "scope=read,write&" \
+    "expiration=never&" \
+    "return_url=http://127.0.0.1:5000/auth/validate_trello_token&" \
+    "key=%s&" \
+    "callback_method=fragment" % (current_app.config["TRELLO_API_KEY"])
+
 @bp.before_app_request
 def before_request():
     if current_user.is_authenticated:
@@ -24,31 +33,17 @@ def before_request():
         db.session.commit()
     g.locale = str(get_locale())
 
-
 @bp.route('/')
 def index():
     if current_user.is_authenticated:
-        redirect_url = "http://127.0.0.1:5000/auth/validate_trello_token"
-        trello_authorizing_url = "https://trello.com/1/authorize?" \
-            "name=%s&" \
-            "scope=read,write&" \
-            "expiration=never&" \
-            "return_url=%s&" \
-            "key=%s&" \
-            "callback_method=fragment" % \
-            (
-                "SyncBoom",
-                redirect_url,
-                current_app.config["TRELLO_API_KEY"]
-            )
         return render_template('index_loggedin.html', title=_('Home'),
-            trello_authorizing_url=trello_authorizing_url)
+            trello_authorizing_url=get_trello_authorizing_url())
     else:
         return render_template('index_not_loggedin.html', title=_('Welcome'))
 
 
 @bp.route('/account')
-@bp.route('/account/edit/<any(username, email, password):edit_element>',
+@bp.route('/account/edit/<any(username, email, password, trello):edit_element>',
     methods=['GET', 'POST'])
 @login_required
 def account(edit_element=None):
@@ -56,27 +51,48 @@ def account(edit_element=None):
         key=current_app.config['TRELLO_API_KEY'],
         token=current_user.trello_token)
     trello_username=trello_details["username"]
+    # trello_username="abc"
     if not edit_element:
         return render_template('account.html', title=_('Account'),
             trello_username=trello_username)
     else:
+        num_mappings = None
         original_value = getattr(current_user, edit_element) \
             if hasattr(current_user, edit_element) else ""
         form = makeAccountEditForm(edit_element, original_value)
         if form.validate_on_submit():
-            if edit_element != "password":
-                setattr(current_user, edit_element,
-                    getattr(form, edit_element).data.lower())
-            else:
+            redirect_url = url_for('main.account')
+            if edit_element == "password":
                 current_user.set_password(form.password.data)
+                flash(_('Your %s has been updated.' % edit_element))
+            elif edit_element == "trello":
+                # Delete current Trello token
+                current_user.trello_token = None
+                # Delete all the mappings the user currently has, since they
+                # have been created with the old Trello key we just removed.
+                for m in current_user.mappings:
+                    db.session.delete(m)
+                # Redirect to Trello for new pairing
+                redirect_url = get_trello_authorizing_url()
+            else:
+                setattr(current_user, edit_element,
+                getattr(form, edit_element).data.lower())
+                flash(_('Your %s has been updated.' % edit_element))
             db.session.commit()
-            flash(_('Your %s has been updated.' % edit_element))
-            return redirect(url_for('main.account'))
+            return redirect(redirect_url)
         elif request.method == 'GET':
-            getattr(form, edit_element).data = original_value.lower()
+            if edit_element == "trello":
+                form.submit.label.text = _('Unlink and continue to Trello')
+                num_mappings = len(current_user.get_mappings())
+                if num_mappings:
+                    form.trello.label.text = _('OK, unlink my Trello account ' \
+                        'and delete all my mappings')
+            else:
+                getattr(form, edit_element).data = original_value.lower()
         return render_template('account_edit.html',
             title=_('Edit %s' % edit_element), form=form,
-            trello_username=trello_username)
+            edit_element=edit_element, trello_username=trello_username,
+            num_mappings=num_mappings)
 
 
 @bp.route('/notifications')

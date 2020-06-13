@@ -24,9 +24,10 @@
           <span class="list-group-item d-flex justify-content-between align-items-center">
             {{ _('Account type: %(account_type)s', account_type="Free") }}
           </span>
-          <span class="list-group-item d-flex justify-content-between align-items-center">
+          <a href="{{ url_for('main.account', edit_element="trello") }}" class="list-group-item d-flex justify-content-between align-items-center">
             {{ _('Trello username: %(trello_username)s', trello_username=trello_username) }}
-          </span>
+            <span class="badge badge-pill">edit</span>
+          </a>
         </div>
       </div>
       <div class="col-6">

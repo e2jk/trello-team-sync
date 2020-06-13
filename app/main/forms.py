@@ -6,7 +6,7 @@
 
 from flask import request
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField
+from wtforms import StringField, SubmitField, PasswordField, BooleanField
 from wtforms.validators import ValidationError, DataRequired, Length, Email, \
     EqualTo
 from flask_babel import _, lazy_gettext as _l
@@ -24,6 +24,8 @@ def makeAccountEditForm(edit_element, original_value):
         password2 = PasswordField(
             _l('Repeat Password'), validators=[DataRequired(),
                                                EqualTo('password')])
+        trello = BooleanField(_l('OK, unlink my Trello account'),
+            validators=[DataRequired()])
         submit = SubmitField(_l('Submit'))
 
         def __init__(self, original_value, *args, **kwargs):
@@ -44,7 +46,7 @@ def makeAccountEditForm(edit_element, original_value):
 
     form = AccountEditForm(original_value)
     # Remove the other elements
-    for element in ("username", "email"):
+    for element in ("username", "email", "trello"):
         if edit_element != element:
             delattr(form, element)
     if edit_element != "password":
