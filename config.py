@@ -33,3 +33,4 @@ class Config(object):
     REMEMBER_COOKIE_SECURE = True
     REMEMBER_COOKIE_HTTPONLY = True
     REMEMBER_COOKIE_SAMESITE = 'Strict'
+    WTF_CSRF_ENABLED = True
