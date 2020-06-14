@@ -49,11 +49,7 @@ def index():
     methods=['GET', 'POST'])
 @login_required
 def account(edit_element=None):
-    trello_details = perform_request("GET", "members/me",
-        key=current_app.config['TRELLO_API_KEY'],
-        token=current_user.trello_token)
-    trello_username=trello_details["username"]
-    # trello_username="abc"
+    trello_username=current_user.trello_username
     if not edit_element:
         return render_template('account.html', title=_('Account'),
             trello_username=trello_username)

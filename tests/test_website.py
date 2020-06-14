@@ -66,8 +66,10 @@ class WebsiteTestCase(unittest.TestCase):
         db.drop_all()
         self.app_context.pop()
 
-    def create_user(self, username, password, email=None, trello_token=None):
-        u = User(username=username, email=email, trello_token=trello_token)
+    def create_user(self, username, password, email=None, trello_token=None,
+        trello_username=None):
+        u = User(username=username, email=email, trello_token=trello_token,
+        trello_username=trello_username)
         u.set_password(password)
         db.session.add(u)
         db.session.commit()
@@ -951,12 +953,11 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account(self, amrpr):
-        u = self.create_user("john", "abc", email='john@example.com')
+    def test_main_routes_account(self):
+        u = self.create_user("john", "abc", email='john@example.com',
+            trello_username="trello_username")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         response = self.client.get('/account')
         self.assertEqual(response.status_code, 200)
         expected_content = [
@@ -971,12 +972,10 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_username_get(self, amrpr):
+    def test_main_routes_account_edit_username_get(self):
         u = self.create_user("john", "abc")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         response = self.client.get('/account/edit/username')
         self.assertEqual(response.status_code, 200)
         expected_content = [
@@ -987,13 +986,11 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_username_post(self, amrpr):
+    def test_main_routes_account_edit_username_post(self):
         u = self.create_user("john", "abc")
         self.assertEqual(u.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         # Empty username
         response = self.client.post('/account/edit/username')
         self.assertEqual(response.status_code, 200)
@@ -1017,14 +1014,12 @@ class MainCase(WebsiteTestCase):
         ec = 'Your username has been updated.'
         self.assertIn(str.encode(ec), response.data)
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_username_post_collision(self, amrpr):
+    def test_main_routes_account_edit_username_post_collision(self):
         u1 = self.create_user("john", "abc")
         u2 = self.create_user("j2", "def")
         self.assertEqual(u1.username, "john")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         response = self.client.post('/account/edit/username',
             data=dict(username="j2"))
         self.assertEqual(response.status_code, 200)
@@ -1036,12 +1031,10 @@ class MainCase(WebsiteTestCase):
             self.assertIn(str.encode(ec), response.data)
         self.assertEqual(u1.username, "john")
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_email_get(self, amrpr):
+    def test_main_routes_account_edit_email_get(self):
         u = self.create_user("john", "abc", email='john@example.com')
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         response = self.client.get('/account/edit/email')
         self.assertEqual(response.status_code, 200)
         expected_content = [
@@ -1052,13 +1045,11 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_email_post(self, amrpr):
+    def test_main_routes_account_edit_email_post(self):
         u = self.create_user("john", "abc", email='john@example.com')
         self.assertEqual(u.email, "john@example.com")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         # Empty email
         response = self.client.post('/account/edit/email')
         self.assertEqual(response.status_code, 200)
@@ -1088,14 +1079,12 @@ class MainCase(WebsiteTestCase):
         ec = 'Your email has been updated.'
         self.assertIn(str.encode(ec), response.data)
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_email_post_collision(self, amrpr):
+    def test_main_routes_account_edit_email_post_collision(self):
         u1 = self.create_user("john", "abc", email='john@example.com')
         u2 = self.create_user("j2", "def", email='j2@example.com')
         self.assertEqual(u1.email, "john@example.com")
         response = self.login("john", "abc")
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         response = self.client.post('/account/edit/email',
             data=dict(email="j2@example.com"))
         self.assertEqual(response.status_code, 200)
@@ -1108,12 +1097,10 @@ class MainCase(WebsiteTestCase):
             self.assertIn(str.encode(ec), response.data)
         self.assertEqual(u1.email, "john@example.com")
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_password_get(self, amrpr):
+    def test_main_routes_account_edit_password_get(self):
         u = self.create_user("john", "abc"*3)
         response = self.login("john", "abc"*3)
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         response = self.client.get('/account/edit/password')
         self.assertEqual(response.status_code, 200)
         expected_content = [
@@ -1126,13 +1113,11 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_password_post(self, amrpr):
+    def test_main_routes_account_edit_password_post(self):
         u = self.create_user("john", "abc"*3)
         self.assertTrue(u.check_password("abc"*3))
         response = self.login("john", "abc"*3)
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         # Empty passwords
         response = self.client.post('/account/edit/password')
         self.assertEqual(response.status_code, 200)
@@ -1166,13 +1151,11 @@ class MainCase(WebsiteTestCase):
         ec = 'Your password has been updated.'
         self.assertIn(str.encode(ec), response.data)
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_trello_get(self, amrpr):
+    def test_main_routes_account_edit_trello_get(self):
         u = self.create_user("john", "abc"*3)
         u.mappings.append(Mapping(name="abc"))
         response = self.login("john", "abc"*3)
         self.assertEqual(response.status_code, 200)
-        amrpr.return_value = {"username": "trello_username"}
         response = self.client.get('/account/edit/trello')
         self.assertEqual(response.status_code, 200)
         expected_content = [
@@ -1186,15 +1169,13 @@ class MainCase(WebsiteTestCase):
         for ec in expected_content:
             self.assertIn(str.encode(ec), response.data)
 
-    @patch("app.main.routes.perform_request")
-    def test_main_routes_account_edit_trello_post(self, amrpr):
+    def test_main_routes_account_edit_trello_post(self):
         u = self.create_user("john", "abc"*3, trello_token="b2"*16)
         u.mappings.append(Mapping(name="abc"))
         response = self.login("john", "abc"*3)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(u.trello_token, "b2"*16)
         self.assertEqual(len(u.get_mappings()), 1)
-        amrpr.return_value = {"username": "trello_username"}
         # Checkbox not checked
         response = self.client.post('/account/edit/trello')
         self.assertEqual(response.status_code, 200)
