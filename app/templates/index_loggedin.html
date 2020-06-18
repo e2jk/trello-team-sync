@@ -14,8 +14,13 @@
         <ul>
           {% for mapping in mappings %}
           <li>
+            {{ mapping.name }}
+            {% if mapping.m_type == "manual" %}
             <a class="btn btn-success btn-sm" href="{{ url_for('mapping.run', mapping_id=mapping.id) }}" role="button">{{ _('Run') }}</a>
-            {{ mapping.name }}<br/>
+            {% else %}
+            <button type="button" class="btn btn-success btn-sm" disabled>Runs automatically</button>
+            {% endif %}
+            <br/>
             {% with num_labels = mapping.get_num_labels() %}
             {% with num_dest_lists = mapping.get_num_dest_lists() %}
             {% with num_labels_str = ngettext('%(num_labels)d label', '%(num_labels)d labels', num_labels, num_labels=num_labels) %}

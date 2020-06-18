@@ -1214,6 +1214,7 @@ class MappingCase(WebsiteTestCase):
         mapping_name = "abc" if not secondary_user else "def"
         m = Mapping(name=mapping_name,
             description = "Mapping description for %s" % mapping_name,
+            m_type = "automatic",
             master_board = "a"*24,
             destination_lists=dl
         )
@@ -1432,7 +1433,13 @@ class MappingCase(WebsiteTestCase):
             '<title>New mapping, Step 1/4 - SyncBoom</title>',
             '<h1>New mapping, Step 1/4</h1>',
             '<input class="form-control" id="name" name="name" required ' \
-            'type="text" value="">',
+                'type="text" value="">',
+            '<div class="form-group "><label class="form-control-label" ' \
+                'for="m_type">Type of mapping</label>',
+            '<input checked class="form-check-input" id="m_type-0" ' \
+                'name="m_type" type="radio" value="automatic"> Automatic',
+            '<input class="form-check-input" id="m_type-1" name="m_type" ' \
+                'type="radio" value="manual"> Manual',
             '<textarea class="form-control" id="description" name="description">'
             '<select class="form-control" id="master_board" ' \
                 'name="master_board"><option',
@@ -1472,7 +1479,13 @@ class MappingCase(WebsiteTestCase):
             '<h1>New mapping, Step 1/4</h1>',
             '<input class="form-control" id="name" name="name" required ' \
                 'type="text" value="">',
-            '<textarea class="form-control" id="description" name="description">'
+            '<textarea class="form-control" id="description" name="description">',
+            '<div class="form-group "><label class="form-control-label" ' \
+                'for="m_type">Type of mapping</label>',
+            '<input checked class="form-check-input" id="m_type-0" ' \
+                'name="m_type" type="radio" value="automatic"> Automatic',
+            '<input class="form-check-input" id="m_type-1" name="m_type" ' \
+                'type="radio" value="manual"> Manual',
         ]
         unexpected_content = [
             '<title>New mapping, Step 2/4 - SyncBoom</title>',
@@ -1608,6 +1621,12 @@ class MappingCase(WebsiteTestCase):
                 'type="text" value="abc">',
             '<textarea class="form-control" id="description" name="description">',
             'Mapping description for abc</textarea>',
+            '<div class="form-group "><label class="form-control-label" ' \
+                'for="m_type">Type of mapping</label>',
+            '<input checked class="form-check-input" id="m_type-0" ' \
+                'name="m_type" type="radio" value="automatic"> Automatic',
+            '<input class="form-check-input" id="m_type-1" name="m_type" ' \
+                'type="radio" value="manual"> Manual',
             # Elements from step 2
             '<select class="form-control" id="master_board" ' \
                 'name="master_board"><option',

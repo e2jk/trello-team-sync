@@ -5,7 +5,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, TextAreaField, SelectField, \
-    SelectMultipleField
+    SelectMultipleField, RadioField
 from wtforms import widgets
 from wtforms.validators import DataRequired, Regexp, ValidationError
 from flask_babel import _, lazy_gettext as _l
@@ -26,6 +26,13 @@ def makeNewMappingForm(obj, num_map_labelN_lists):
     class NewMappingForm(FlaskForm):
         name = StringField(_l('Mapping name'), validators=[DataRequired()])
         description = TextAreaField(_l('Mapping description (optional)'))
+        m_type = RadioField(_l('Type of mapping'),
+            description=_l('An "Automatic" mapping will run each time any card ' \
+                'on the master board is modified, while a "Manual" mapping ' \
+                'will need to be run each time from the home page.'),
+            choices=[("automatic", "Automatic"), ("manual", "Manual")],
+            default='automatic',
+            validators=[DataRequired()])
         master_board = SelectField(_l('Master board'), coerce=str)
         labels = MultiCheckboxField(_l('Which labels need mapping?'), \
             coerce=str, render_kw={'style':'height: auto; list-style: none;'})

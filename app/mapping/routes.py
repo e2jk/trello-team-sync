@@ -99,7 +99,8 @@ def new_or_edit(mapping_id=None):
 
         # Check elements from the first step
         if form.name.validate(form) and \
-            form.description.validate(form):
+            form.description.validate(form) and \
+            form.m_type.validate(form):
             # Go to next step
             step = 2
         # If the first step cleared, go on to check elements from the second step
@@ -145,6 +146,7 @@ def new_or_edit(mapping_id=None):
             if mapping_id:
                 mapping.name = form.name.data
                 mapping.description=form.description.data
+                mapping.m_type=form.m_type.data
                 mapping.master_board=form.master_board.data
                 mapping.destination_lists = json.dumps(destination_lists)
                 mapping.user_id = current_user.id
@@ -153,6 +155,7 @@ def new_or_edit(mapping_id=None):
                 mapping = Mapping(
                     name=form.name.data,
                     description=form.description.data,
+                    m_type=form.m_type.data,
                     master_board=form.master_board.data,
                     destination_lists = json.dumps(destination_lists),
                     user_id = current_user.id)
