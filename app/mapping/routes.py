@@ -191,6 +191,12 @@ def new_or_edit(mapping_id=None):
         del form.master_board
     if step < 3:
         del form.labels
+    if step < 4:
+        # Remove all the "map_labelN_lists" fields
+        map_label_lists = [mll for mll in dir(form)
+            if mll.startswith("map_label")]
+        for i in range(len(map_label_lists)):
+            delattr(form, "map_label%d_lists" % i)
 
     if mapping_id:
         if request.method == 'GET':
