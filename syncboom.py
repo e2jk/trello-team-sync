@@ -232,6 +232,8 @@ def perform_request(method, url, query=None, key=None, token=None):
         if http_error.response.status_code == 401:
             raise TrelloAuthenticationError
         else:
+            logging.critical("Request failed with code %s and message '%s'" %
+                (http_error.response.status_code, response.content))
             raise http_error
     return response.json()
 

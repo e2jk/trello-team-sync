@@ -843,8 +843,9 @@ class TestPerformRequest(FlaskTestCase):
         mock_request = MagicMock()
         mock_request.raise_for_status.side_effect = HTTPError("", response=mock_exception_response)
         r_r.return_value = mock_request
-        with self.assertRaises(HTTPError) as cm:
+        with self.assertRaises(HTTPError) as cm1, self.assertLogs(level='CRITICAL') as cm2:
             target.perform_request("GET", "cards/a1b2c3d4")
+        self.assertTrue("CRITICAL:root:Request failed with code OTHER and message '<MagicMock name='request().content' id='" in cm2.output[0])
 
     @patch("requests.request")
     def test_perform_request_cached(self, r_r):
