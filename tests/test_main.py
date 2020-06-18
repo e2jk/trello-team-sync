@@ -63,7 +63,7 @@ class FlaskTestCase(unittest.TestCase):
         target.app_context.pop()
 
 
-class TestOutputSummary(unittest.TestCase):
+class TestOutputSummary(FlaskTestCase):
     def test_output_summary_propagate(self):
         """
         Test the summary for --propagate
@@ -150,7 +150,7 @@ class TestOutputSummary(unittest.TestCase):
         self.assertEqual(f.getvalue(), "")
 
 
-class TestGetCardAttachments(unittest.TestCase):
+class TestGetCardAttachments(FlaskTestCase):
     def test_get_card_attachments_none(self):
         """
         Test retrieving attachments from a card without attachments
@@ -203,7 +203,7 @@ class TestGetCardAttachments(unittest.TestCase):
         self.assertEqual(card_attachments, expected_card_attachments)
 
 
-class TestCleanupTestBoards(unittest.TestCase):
+class TestCleanupTestBoards(FlaskTestCase):
     @patch("syncboom.perform_request")
     def test_cleanup_test_boards_not_configured(self, t_pr):
         """
@@ -438,7 +438,7 @@ class TestCleanupTestBoards(unittest.TestCase):
         self.assertEqual(cm.output, expected)
 
 
-class TestUpdateMasterCardMetadata(unittest.TestCase):
+class TestUpdateMasterCardMetadata(FlaskTestCase):
     @patch("syncboom.perform_request")
     def test_update_master_card_metadata_both_none(self, t_pr):
         """
@@ -500,7 +500,7 @@ class TestUpdateMasterCardMetadata(unittest.TestCase):
         self.assertEqual(t_pr.mock_calls, [])
 
 
-class TestSplitMasterCardMetadata(unittest.TestCase):
+class TestSplitMasterCardMetadata(FlaskTestCase):
     def test_split_master_card_metadata_no_metadata(self):
         """
         Test splitting the master card description without metadata
@@ -541,7 +541,7 @@ class TestSplitMasterCardMetadata(unittest.TestCase):
         self.assertEqual(current_metadata, metadata)
 
 
-class TestGetName(unittest.TestCase):
+class TestGetName(FlaskTestCase):
     @patch("syncboom.perform_request")
     def test_get_name_board_uncached(self, t_pr):
         """
@@ -605,7 +605,7 @@ class TestGetName(unittest.TestCase):
         self.assertEqual(list_name, expected_name)
 
 
-class TestGetBoardNameFromList(unittest.TestCase):
+class TestGetBoardNameFromList(FlaskTestCase):
     @patch("syncboom.perform_request")
     def test_get_board_name_from_list_uncached(self, t_pr):
         """
@@ -639,7 +639,7 @@ class TestGetBoardNameFromList(unittest.TestCase):
         self.assertEqual(board_name, expected_name)
 
 
-class TestGenerateMasterCardMetadata(unittest.TestCase):
+class TestGenerateMasterCardMetadata(FlaskTestCase):
     @patch("syncboom.perform_request")
     def test_generate_master_card_metadata_no_slave_cards(self, t_pr):
         """
@@ -871,7 +871,7 @@ class TestPerformRequest(FlaskTestCase):
         target.args = None
 
 
-class TestCreateNewSlaveCard(unittest.TestCase):
+class TestCreateNewSlaveCard(FlaskTestCase):
     @patch("syncboom.perform_request")
     def test_create_new_slave_card(self, t_pr):
         """
@@ -891,7 +891,7 @@ class TestCreateNewSlaveCard(unittest.TestCase):
         self.assertEqual(card, t_pr.return_value)
 
 
-class TestGlobals(unittest.TestCase):
+class TestGlobals(FlaskTestCase):
     def test_globals_metadata_phrase(self):
         """
         Test the METADATA_PHRASE global
@@ -905,7 +905,7 @@ class TestGlobals(unittest.TestCase):
         self.assertEqual(target.METADATA_SEPARATOR, "\n\n--------------------------------\n*== DO NOT EDIT BELOW THIS LINE ==*\n")
 
 
-class TestNewWebhook(unittest.TestCase):
+class TestNewWebhook(FlaskTestCase):
     @patch("syncboom.perform_request")
     def test_new_webhook(self, t_pr):
         """
@@ -914,11 +914,12 @@ class TestNewWebhook(unittest.TestCase):
         target.config = {"master_board": "cde"}
         t_pr.return_value = {}
         target.new_webhook()
+        print(t_pr.mock_calls)
         expected = [call('POST', 'webhooks', {'callbackURL': 'https://webhook.site/04b7baf0-1a59-41e2-b41a-245abeabc847?c=config', 'idModel': 'cde'})]
         self.assertEqual(t_pr.mock_calls, expected)
 
 
-class TestListWebhooks(unittest.TestCase):
+class TestListWebhooks(FlaskTestCase):
     @patch("syncboom.perform_request")
     def test_list_webhooks(self, t_pr):
         """
@@ -932,7 +933,7 @@ class TestListWebhooks(unittest.TestCase):
         self.assertEqual(webhooks, t_pr.return_value)
 
 
-class TestDeleteWebhook(unittest.TestCase):
+class TestDeleteWebhook(FlaskTestCase):
     @patch("syncboom.perform_request")
     def test_delete_webhook_none(self, t_pr):
         """
@@ -994,7 +995,7 @@ class TestDeleteWebhook(unittest.TestCase):
         self.assertEqual(t_pr.mock_calls, expected)
 
 
-class TestParseArgs(unittest.TestCase):
+class TestParseArgs(FlaskTestCase):
     def test_parse_args_no_arguments(self):
         """
         Test running the script without one of the required arguments --propagate, --cleanup, --new-config or --webhook
@@ -1289,7 +1290,7 @@ class TestParseArgs(unittest.TestCase):
             self.assertTrue(parser.webhook, t)
 
 
-class TestInitMain(unittest.TestCase):
+class TestInitMain(FlaskTestCase):
     @patch("syncboom.cleanup_test_boards")
     @patch("syncboom.perform_request")
     def test_init_cleanup(self, t_pr, t_ctb):
@@ -1501,7 +1502,7 @@ Exiting...
         self.assertEqual(t_dw.mock_calls, [call()])
 
 
-class TestLicense(unittest.TestCase):
+class TestLicense(FlaskTestCase):
     def test_license_file(self):
         """Validate that the project has a LICENSE file, check part of its content"""
         self.assertTrue(os.path.isfile("LICENSE"))
